@@ -1,6 +1,23 @@
 # Viscount's Rally Spamulator
 
-A single-file HTML web tool for the game **Whiteout Survival**. Everything (CSS, HTML, JS) lives in `index.html` (~1740 lines). There are no dependencies, no build step, no frameworks.
+A web tool for the game **Whiteout Survival**. The frontend (CSS, HTML, JS) lives in `public/index.html` (~1740 lines). Served by a minimal Express server (`server.js`). Deployed to Google Cloud Run via Docker.
+
+## Project Structure
+
+```
+rally-spamulator/
+  .claude/launch.json     # Dev server config (node server.js, port 8080)
+  .dockerignore
+  .gitignore
+  CLAUDE.md
+  Dockerfile
+  README.md
+  package.json
+  package-lock.json
+  server.js               # Express static server (~15 lines)
+  public/
+    index.html            # The entire frontend application
+```
 
 ## What It Does
 
@@ -30,12 +47,19 @@ Tracks incoming enemy rallies and tells defenders when to send reinforcements.
 
 ## Architecture
 
+### Frontend (`public/index.html`)
 - **State variables**: `callers[]`, `enemies[]`, `activeRallies[]`, `selectedEnemyId`, `locked`, `lockedArrivalMs`, etc.
 - **Persistence**: All state saved to localStorage (`rally_callers`, `rally_enemies`, `garrison_enemies`, `garrison_your_march`, `rally_settings`, `rally_presets`, `app_lang`).
 - **Live updates**: Three `setInterval` loops at 100ms (clock) and 250ms (schedule + active rallies).
 - **Tab switching**: Uses `data-tab` attributes on tab buttons (not text content), so it works across all languages.
 - **Click-to-order**: Callers are selected by clicking; each gets a numbered badge for arrival order.
 - **Validation feedback**: `flashElement()` shows a red outline flash when Track is clicked without selecting an enemy or entering a countdown.
+
+### Server (`server.js`)
+- Minimal Express server serving `public/` as static files.
+- Wildcard fallback to `index.html` for any unmatched route.
+- Reads `PORT` from environment variable (default 8080) for Cloud Run compatibility.
+- Future API routes go **before** the wildcard catch-all.
 
 ## i18n System
 
@@ -54,19 +78,39 @@ Six languages: English (`en`), Turkish (`tr`), Polish (`pl`), Chinese (`zh`), Ko
 
 ## Dev Server
 
-Preview with any static server, e.g.:
-
 ```bash
-python3 -m http.server 8080
+npm install
+node server.js
 ```
 
-Launch config is in `.claude/launch.json` (name: `rally-spamulator`, port 8080).
+Then open `http://localhost:8080`. Launch config is in `.claude/launch.json`.
+
+## Docker
+
+```bash
+docker build -t rally-spamulator .
+docker run --rm -p 8080:8080 rally-spamulator
+```
+
+## Cloud Run Deployment
+
+```bash
+gcloud run deploy rally-spamulator \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8080 \
+  --memory 256Mi \
+  --min-instances 0 \
+  --max-instances 3
+```
 
 ## Key Patterns to Preserve
 
-- **Single file**: Do not split into multiple files. Everything stays in `index.html`.
-- **No frameworks**: Vanilla JS only.
+- **Single frontend file**: Do not split `public/index.html` into multiple files. All CSS, HTML, and JS stay in one file.
+- **No frameworks**: Vanilla JS only on the frontend.
 - **All times are UTC**: The clock shows UTC, all calculations use `Date.now()` (UTC epoch ms).
 - **Buffer rounding**: First departure is always rounded up to the next buffer interval — this is intentional so callers have clean departure times.
 - **i18n keys**: When adding new UI text, add a key to every language in the `LANG` object, add `data-i18n` to the HTML element, and use `t('key')` in any JS that renders that text dynamically.
 - **RTL**: If adding new styled elements with directional borders/margins/padding, add corresponding `[dir="rtl"]` CSS overrides.
+- **Server routes**: Future API routes in `server.js` must be added **before** the wildcard `app.get('*', ...)` catch-all.

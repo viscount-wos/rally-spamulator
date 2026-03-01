@@ -1,0 +1,6 @@
+.git
+.claude
+node_modules
+*.md
+.gitignore
+.dockerignore
