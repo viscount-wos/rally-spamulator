@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viscount's Rally Spamulator</title>
+    <style>
+        :root {
+            --bg-dark: #0a0e1a;
+            --bg-card: #141b2d;
+            --bg-input: #1c2541;
+            --border: #2a3a5c;
+            --text: #e8eaf6;
+            --text-muted: #7986cb;
+            --accent: #64b5f6;
+            --green: #69f0ae;
+            --orange: #ffab40;
+            --red: #ff5252;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 8px 12px 40px;
+        }
+
+        .app-title {
+            text-align: center;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--accent);
+            padding: 10px 0 8px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        /* ---- Sticky UTC Clock ---- */
+        .clock {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            text-align: center;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 14px 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+        }
+        .clock-time {
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 3.4rem;
+            font-weight: 700;
+            color: var(--green);
+            letter-spacing: 3px;
+            line-height: 1;
+        }
+        .clock-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ---- Sections ---- */
+        .section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+        }
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        /* ---- Quick Select Buttons ---- */
+        .quick-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .qs-btn {
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: var(--bg-input);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.15s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .qs-btn:active { transform: scale(0.95); }
+        .qs-btn.selected {
+            background: rgba(105, 240, 174, 0.15);
+            color: var(--green);
+            border-color: var(--green);
+        }
+        .qs-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .qs-actions .qs-btn {
+            font-size: 0.75rem;
+            padding: 5px 10px;
+            color: var(--accent);
+            border-color: var(--accent);
+            border-style: dashed;
+        }
+
+        /* ---- Config Row ---- */
+        .config-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .config-row label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .config-row select {
+            flex: 1;
+            min-width: 130px;
+        }
+
+        /* ---- Generic Inputs ---- */
+        input[type="text"], select {
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-input);
+            color: var(--text);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        .btn {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: opacity 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--accent); color: var(--bg-dark); }
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px dashed var(--border);
+        }
+        .btn-danger {
+            background: rgba(255, 82, 82, 0.15);
+            color: var(--red);
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+        .btn-lock {
+            background: rgba(255, 171, 64, 0.15);
+            color: var(--orange);
+            white-space: nowrap;
+        }
+        .btn-lock.active {
+            background: var(--orange);
+            color: var(--bg-dark);
+        }
+        .btn-copy {
+            background: rgba(100, 181, 246, 0.15);
+            color: var(--accent);
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px;
+        }
+
+        /* ---- Schedule ---- */
+        .arrival-display {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(255, 171, 64, 0.08);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 171, 64, 0.25);
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .arrival-display.locked {
+            background: rgba(255, 171, 64, 0.18);
+            border-color: var(--orange);
+        }
+        .arrival-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .arrival-time {
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--orange);
+            line-height: 1.2;
+        }
+        .locked-indicator {
+            font-size: 0.7rem;
+            color: var(--orange);
+            letter-spacing: 1px;
+            display: none;
+        }
+        .arrival-display.locked .locked-indicator { display: block; }
+
+        .schedule-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            border-left: 3px solid var(--green);
+            transition: border-color 0.3s, opacity 0.3s;
+        }
+        .schedule-item.overdue {
+            border-left-color: var(--red);
+            opacity: 0.65;
+        }
+        .schedule-item.imminent {
+            border-left-color: var(--orange);
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .si-left { display: flex; flex-direction: column; min-width: 0; }
+        .si-name {
+            font-weight: 600;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .si-march { font-size: 0.75rem; color: var(--text-muted); }
+        .si-right { text-align: right; flex-shrink: 0; padding-left: 12px; }
+        .si-time {
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--green);
+        }
+        .schedule-item.overdue .si-time { color: var(--red); }
+        .schedule-item.imminent .si-time { color: var(--orange); }
+        .si-countdown { font-size: 0.75rem; color: var(--text-muted); }
+        .schedule-item.overdue .si-countdown { color: var(--red); }
+        .schedule-item.imminent .si-countdown { color: var(--orange); font-weight: 600; }
+
+        .warning {
+            padding: 8px 12px;
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            border-radius: 8px;
+            color: var(--red);
+            font-size: 0.82rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-msg {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 16px;
+            font-size: 0.9rem;
+        }
+
+        /* ---- Order Badge on Quick Select ---- */
+        .order-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--green);
+            color: var(--bg-dark);
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-right: 4px;
+            flex-shrink: 0;
+        }
+
+        /* ---- Caller Setup (bottom) ---- */
+        .caller-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+        .caller-row .name-input {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.88rem;
+        }
+        .caller-row .march-input {
+            width: 62px;
+            text-align: center;
+            font-size: 0.88rem;
+            font-family: 'Courier New', Consolas, monospace;
+        }
+        .caller-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* ---- Preset Bar ---- */
+        .preset-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .preset-bar select { flex: 1; min-width: 110px; }
+        .preset-bar input { flex: 1; min-width: 90px; }
+
+        /* ---- Tab System ---- */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            color: var(--bg-dark);
+            border-color: var(--accent);
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ---- Garrison Defense ---- */
+        .garrison-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .garrison-input-row label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .garrison-input-row input[type="text"] {
+            width: 70px;
+            text-align: center;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 1rem;
+        }
+        .track-input {
+            width: 80px !important;
+            font-size: 1.1rem !important;
+        }
+        .selected-enemy-name {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+        .rally-tracker {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            position: relative;
+        }
+        .rally-tracker.urgent {
+            border-left-color: var(--orange);
+            animation: pulse 1s infinite;
+        }
+        .rally-tracker.landed {
+            border-left-color: var(--text-muted);
+            opacity: 0.5;
+        }
+        .rt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .rt-enemy {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .rt-alliance {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        .rt-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+        .rt-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rt-label.send-label {
+            color: var(--orange);
+            font-weight: 600;
+        }
+        .rt-time {
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        .rt-time.hit-time { color: var(--red); }
+        .rt-time.send-time { color: var(--orange); }
+        .rt-countdown {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+        .rt-send-countdown {
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--orange);
+            text-align: center;
+            padding: 6px 0 2px;
+        }
+        .rt-send-countdown.go-now {
+            color: var(--green);
+            animation: pulse 0.5s infinite;
+        }
+        .rt-send-countdown.too-late {
+            color: var(--red);
+            animation: none;
+            opacity: 0.6;
+        }
+        .enemy-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+        .enemy-row .name-input { flex: 2; min-width: 0; font-size: 0.88rem; }
+        .enemy-row .alliance-input { flex: 1; min-width: 0; font-size: 0.88rem; }
+        .enemy-row .march-input {
+            width: 62px;
+            text-align: center;
+            font-size: 0.88rem;
+            font-family: 'Courier New', Consolas, monospace;
+        }
+        .enemy-header {
+            display: flex;
+            gap: 6px;
+            padding: 0 8px 4px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .enemy-header span:nth-child(1) { flex: 2; min-width: 0; }
+        .enemy-header span:nth-child(2) { flex: 1; min-width: 0; }
+        .enemy-header span:nth-child(3) { width: 62px; text-align: center; }
+        .enemy-header span:nth-child(4) { width: 33px; }
+
+        /* ---- Language Selector ---- */
+        .lang-bar {
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .lang-bar select {
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-input);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            outline: none;
+        }
+
+        /* ---- RTL Support ---- */
+        [dir="rtl"] .schedule-item { border-left: none; border-right: 3px solid var(--green); }
+        [dir="rtl"] .schedule-item.overdue { border-right-color: var(--red); }
+        [dir="rtl"] .schedule-item.imminent { border-right-color: var(--orange); }
+        [dir="rtl"] .rally-tracker { border-left: none; border-right: 3px solid var(--accent); }
+        [dir="rtl"] .rally-tracker.urgent { border-right-color: var(--orange); }
+        [dir="rtl"] .rally-tracker.landed { border-right-color: var(--text-muted); }
+        [dir="rtl"] .rt-countdown { margin-left: 0; margin-right: 8px; }
+        [dir="rtl"] .si-right { padding-left: 0; padding-right: 12px; }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 400px) {
+            .clock-time { font-size: 2.6rem; }
+            .arrival-time { font-size: 1.8rem; }
+            .si-time { font-size: 1.15rem; }
+            .qs-btn { padding: 7px 10px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-title" data-i18n="title">Viscount's Rally Spamulator</div>
+    <div class="lang-bar">
+        <select id="lang-select" onchange="setLang(this.value)">
+            <option value="en">English</option>
+            <option value="tr">Türkçe</option>
+            <option value="pl">Polski</option>
+            <option value="zh">中文</option>
+            <option value="ko">한국어</option>
+            <option value="ar">العربية</option>
+        </select>
+    </div>
+
+    <!-- UTC Clock (sticky) -->
+    <div class="clock">
+        <div class="clock-time" id="utc-clock">00:00:00</div>
+        <div class="clock-label" data-i18n="clock_label">Current UTC Time</div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="rally" data-i18n="tab_rally" onclick="switchTab('rally')">Rally Spam</button>
+        <button class="tab-btn" data-tab="garrison" data-i18n="tab_garrison" onclick="switchTab('garrison')">Garrison Defense</button>
+    </div>
+
+    <!-- ==================== TAB: RALLY SPAM ==================== -->
+    <div id="tab-rally" class="tab-panel active">
+
+    <!-- Quick Select + Buffer -->
+    <div class="section">
+        <div class="section-title" data-i18n="select_callers">Select Callers</div>
+        <div class="quick-select" id="quick-select"></div>
+        <div class="qs-actions">
+            <button class="qs-btn" data-i18n="all" onclick="selectAll()">All</button>
+            <button class="qs-btn" data-i18n="none_btn" onclick="selectNone()">None</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title" data-i18n="rally_settings">Rally Settings</div>
+        <div class="config-row" style="margin-bottom: 8px;">
+            <label data-i18n="rally_duration">Rally duration:</label>
+            <select id="rally-duration-select" onchange="updateRallyDuration()">
+                <option value="300" selected data-i18n="dur_5min">5 minutes</option>
+                <option value="600" data-i18n="dur_10min">10 minutes</option>
+            </select>
+        </div>
+        <div class="config-row">
+            <label data-i18n="reaction_time">Reaction time:</label>
+            <select id="buffer-select" onchange="updateBuffer()">
+                <option value="15" data-i18n="buf_15s">15 sec</option>
+                <option value="30" selected data-i18n="buf_30s">30 sec</option>
+                <option value="45" data-i18n="buf_45s">45 sec</option>
+                <option value="60" data-i18n="buf_1m">1 min</option>
+                <option value="90" data-i18n="buf_1m30s">1 min 30s</option>
+                <option value="120" data-i18n="buf_2m">2 min</option>
+                <option value="180" data-i18n="buf_3m">3 min</option>
+                <option value="300" data-i18n="buf_5m">5 min</option>
+            </select>
+            <button class="btn btn-lock" id="lock-btn" onclick="toggleLock()">LOCK</button>
+        </div>
+    </div>
+
+    <!-- Set-Off Schedule -->
+    <div class="section" id="schedule-section">
+        <div class="section-title" data-i18n="setoff_schedule">Set-Off Schedule</div>
+        <div id="schedule-warning"></div>
+        <div class="arrival-display" id="arrival-display">
+            <div class="arrival-label" data-i18n="arrival_label">All Rallies Arrive At (UTC)</div>
+            <div class="arrival-time" id="arrival-time">--:--:--</div>
+            <div class="locked-indicator" data-i18n="locked_ind">LOCKED</div>
+        </div>
+        <div id="schedule-list"></div>
+        <div id="no-callers" class="empty-msg" data-i18n="no_callers">Select callers above to see schedule</div>
+        <button class="btn btn-copy" id="copy-btn" onclick="copySchedule()" style="display:none;" data-i18n="copy_schedule">Copy Schedule</button>
+    </div>
+
+    <!-- Caller Management -->
+    <div class="section">
+        <div class="section-title" data-i18n="caller_setup">Caller Setup</div>
+        <div id="caller-list"></div>
+        <div class="caller-actions">
+            <button class="btn btn-ghost" data-i18n="add_caller" onclick="addCaller()">+ Add Caller</button>
+        </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="section">
+        <div class="section-title" data-i18n="presets">Presets</div>
+        <div class="preset-bar">
+            <select id="preset-select"><option value="" data-i18n="select_preset">-- Select Preset --</option></select>
+            <button class="btn btn-primary" data-i18n="load_btn" onclick="loadPreset()">Load</button>
+            <button class="btn btn-danger" data-i18n="del_btn" onclick="deletePreset()">Del</button>
+        </div>
+        <div class="preset-bar" style="margin-top: 6px;">
+            <input type="text" id="preset-name" data-i18n-ph="save_as" placeholder="Save current as...">
+            <button class="btn btn-primary" data-i18n="save_btn" onclick="savePreset()">Save</button>
+        </div>
+    </div>
+
+    </div><!-- end tab-rally -->
+
+    <!-- ==================== TAB: GARRISON DEFENSE ==================== -->
+    <div id="tab-garrison" class="tab-panel">
+
+    <!-- Your March Time -->
+    <div class="section">
+        <div class="section-title" data-i18n="your_march_time">Your March Time</div>
+        <div class="garrison-input-row">
+            <label data-i18n="your_march_label">Your march to building:</label>
+            <input type="text" id="your-march-input" class="march-input" value="0:20" placeholder="M:SS"
+                onchange="updateYourMarch()" onblur="formatYourMarchInput()">
+        </div>
+    </div>
+
+    <!-- Enemy Quick Select -->
+    <div class="section">
+        <div class="section-title" data-i18n="select_enemy">Select Enemy</div>
+        <div class="quick-select" id="enemy-quick-select"></div>
+        <div id="selected-enemy-display" class="empty-msg" style="padding: 8px;" data-i18n="tap_enemy">Tap an enemy to select</div>
+    </div>
+
+    <!-- Track Incoming Rally -->
+    <div class="section">
+        <div class="section-title" data-i18n="track_rally_title">Track Incoming Rally</div>
+        <div class="garrison-input-row">
+            <label data-i18n="rally_countdown">Rally countdown:</label>
+            <input type="text" id="rally-countdown-input" class="track-input" placeholder="M:SS"
+                onkeydown="if(event.key==='Enter')trackRally()">
+            <button class="btn btn-primary" data-i18n="track_btn" onclick="trackRally()">Track</button>
+        </div>
+    </div>
+
+    <!-- Active Incoming Rallies -->
+    <div class="section">
+        <div class="section-title" data-i18n="incoming_rallies">Incoming Rallies</div>
+        <div id="active-rallies-list"></div>
+        <div id="no-rallies" class="empty-msg" data-i18n="no_rallies">No rallies being tracked</div>
+    </div>
+
+    <!-- Enemy Roster Setup -->
+    <div class="section">
+        <div class="section-title" data-i18n="enemy_roster">Enemy Roster</div>
+        <div class="enemy-header">
+            <span data-i18n="col_name">Name</span>
+            <span data-i18n="col_alliance">Alliance</span>
+            <span data-i18n="col_march">March</span>
+            <span></span>
+        </div>
+        <div id="enemy-list"></div>
+        <div class="caller-actions">
+            <button class="btn btn-ghost" data-i18n="add_enemy" onclick="addEnemy()">+ Add Enemy</button>
+        </div>
+    </div>
+
+    </div><!-- end tab-garrison -->
+
+    <script>
+        // ===== i18n =====
+        const LANG = {
+            en: {
+                title: "Viscount's Rally Spamulator",
+                clock_label: "Current UTC Time",
+                tab_rally: "Rally Spam", tab_garrison: "Garrison Defense",
+                select_callers: "Select Callers", all: "All", none_btn: "None",
+                rally_settings: "Rally Settings", rally_duration: "Rally duration:",
+                reaction_time: "Reaction time:",
+                dur_5min: "5 minutes", dur_10min: "10 minutes",
+                buf_15s: "15 sec", buf_30s: "30 sec", buf_45s: "45 sec",
+                buf_1m: "1 min", buf_1m30s: "1 min 30s", buf_2m: "2 min",
+                buf_3m: "3 min", buf_5m: "5 min",
+                lock: "LOCK", unlock: "UNLOCK",
+                setoff_schedule: "Set-Off Schedule",
+                arrival_label: "All Rallies Arrive At (UTC)",
+                locked_ind: "LOCKED",
+                no_callers: "Select callers above to see schedule",
+                copy_schedule: "Copy Schedule", copied: "Copied!",
+                caller_setup: "Caller Setup", add_caller: "+ Add Caller",
+                presets: "Presets", select_preset: "-- Select Preset --",
+                load_btn: "Load", del_btn: "Del", save_btn: "Save",
+                save_as: "Save current as...",
+                your_march_time: "Your March Time",
+                your_march_label: "Your march to building:",
+                select_enemy: "Select Enemy", tap_enemy: "Tap an enemy to select",
+                track_rally_title: "Track Incoming Rally",
+                rally_countdown: "Rally countdown:", track_btn: "Track",
+                incoming_rallies: "Incoming Rallies",
+                no_rallies: "No rallies being tracked",
+                enemy_roster: "Enemy Roster",
+                col_name: "Name", col_alliance: "Alliance", col_march: "March",
+                add_enemy: "+ Add Enemy",
+                unnamed: "Unnamed", march_prefix: "March: ", march_word: "march",
+                ph_name: "Name", ph_enemy_name: "Enemy name", ph_alliance: "Alliance",
+                send_in: "SEND in", send_now: "SEND NOW!", landed: "LANDED",
+                rally_hits: "Rally hits", send_at: "Send at",
+                landed_lower: "landed", now_label: "NOW",
+                warning_overdue_1: "Some set-off times are in the past. Increase buffer or wait for the next cycle. Longest march caller needs at least ~",
+                warning_overdue_2: " before arrival.",
+                fmtCountdown: function(m, s) { return m > 0 ? 'in ' + m + 'm ' + s + 's' : 'in ' + parseInt(s) + 's'; },
+                fmtAgo: function(s) { return s + 's ago'; },
+                fmtInTime: function(t) { return 'in ' + t; }
+            },
+            tr: {
+                title: "Viscount'un Rally Spamulator'ı",
+                clock_label: "Geçerli UTC Saati",
+                tab_rally: "Rally Spam", tab_garrison: "Garnizon Savunması",
+                select_callers: "Çağrıcıları Seç", all: "Tümü", none_btn: "Hiçbiri",
+                rally_settings: "Rally Ayarları", rally_duration: "Rally süresi:",
+                reaction_time: "Tepki süresi:",
+                dur_5min: "5 dakika", dur_10min: "10 dakika",
+                buf_15s: "15 sn", buf_30s: "30 sn", buf_45s: "45 sn",
+                buf_1m: "1 dk", buf_1m30s: "1 dk 30sn", buf_2m: "2 dk",
+                buf_3m: "3 dk", buf_5m: "5 dk",
+                lock: "KİLİTLE", unlock: "KİLİDİ AÇ",
+                setoff_schedule: "Hareket Programı",
+                arrival_label: "Tüm Ralliler Varış (UTC)",
+                locked_ind: "KİLİTLİ",
+                no_callers: "Programı görmek için yukarıdan çağrıcı seçin",
+                copy_schedule: "Programı Kopyala", copied: "Kopyalandı!",
+                caller_setup: "Çağrıcı Ayarları", add_caller: "+ Çağrıcı Ekle",
+                presets: "Hazır Ayarlar", select_preset: "-- Hazır Ayar Seç --",
+                load_btn: "Yükle", del_btn: "Sil", save_btn: "Kaydet",
+                save_as: "Mevcut ayarı kaydet...",
+                your_march_time: "Yürüyüş Süreniz",
+                your_march_label: "Binaya yürüyüş süreniz:",
+                select_enemy: "Düşman Seç", tap_enemy: "Seçmek için düşmana dokunun",
+                track_rally_title: "Gelen Ralliyi Takip Et",
+                rally_countdown: "Rally geri sayımı:", track_btn: "Takip",
+                incoming_rallies: "Gelen Ralliler",
+                no_rallies: "Takip edilen rally yok",
+                enemy_roster: "Düşman Listesi",
+                col_name: "İsim", col_alliance: "İttifak", col_march: "Yürüyüş",
+                add_enemy: "+ Düşman Ekle",
+                unnamed: "İsimsiz", march_prefix: "Yürüyüş: ", march_word: "yürüyüş",
+                ph_name: "İsim", ph_enemy_name: "Düşman adı", ph_alliance: "İttifak",
+                send_in: "GÖNDER", send_now: "ŞİMDİ GÖNDER!", landed: "VARDI",
+                rally_hits: "Rally varışı", send_at: "Gönderim zamanı",
+                landed_lower: "vardı", now_label: "ŞİMDİ",
+                warning_overdue_1: "Bazı hareket zamanları geçmişte. Tamponu artırın veya sonraki döngüyü bekleyin. En uzun yürüyüşe sahip çağrıcının varıştan en az ~",
+                warning_overdue_2: " önce harekete geçmesi gerekir.",
+                fmtCountdown: function(m, s) { return m > 0 ? m + 'dk ' + s + 'sn sonra' : parseInt(s) + 'sn sonra'; },
+                fmtAgo: function(s) { return s + 'sn önce'; },
+                fmtInTime: function(t) { return t + ' sonra'; }
+            },
+            pl: {
+                title: "Rally Spamulator Viscounta",
+                clock_label: "Aktualny czas UTC",
+                tab_rally: "Rally Spam", tab_garrison: "Obrona Garnizonu",
+                select_callers: "Wybierz Graczy", all: "Wszyscy", none_btn: "Żaden",
+                rally_settings: "Ustawienia Rally", rally_duration: "Czas trwania rally:",
+                reaction_time: "Czas reakcji:",
+                dur_5min: "5 minut", dur_10min: "10 minut",
+                buf_15s: "15 sek", buf_30s: "30 sek", buf_45s: "45 sek",
+                buf_1m: "1 min", buf_1m30s: "1 min 30s", buf_2m: "2 min",
+                buf_3m: "3 min", buf_5m: "5 min",
+                lock: "ZABLOKUJ", unlock: "ODBLOKUJ",
+                setoff_schedule: "Harmonogram Wymarszu",
+                arrival_label: "Wszystkie Rally Przybywają (UTC)",
+                locked_ind: "ZABLOKOWANY",
+                no_callers: "Wybierz graczy powyżej aby zobaczyć harmonogram",
+                copy_schedule: "Kopiuj Harmonogram", copied: "Skopiowano!",
+                caller_setup: "Konfiguracja Graczy", add_caller: "+ Dodaj Gracza",
+                presets: "Szablony", select_preset: "-- Wybierz Szablon --",
+                load_btn: "Wczytaj", del_btn: "Usuń", save_btn: "Zapisz",
+                save_as: "Zapisz obecny jako...",
+                your_march_time: "Twój Czas Marszu",
+                your_march_label: "Twój marsz do budynku:",
+                select_enemy: "Wybierz Wroga", tap_enemy: "Kliknij wroga aby wybrać",
+                track_rally_title: "Śledź Nadchodzące Rally",
+                rally_countdown: "Odliczanie rally:", track_btn: "Śledź",
+                incoming_rallies: "Nadchodzące Rally",
+                no_rallies: "Brak śledzonych rally",
+                enemy_roster: "Lista Wrogów",
+                col_name: "Nazwa", col_alliance: "Sojusz", col_march: "Marsz",
+                add_enemy: "+ Dodaj Wroga",
+                unnamed: "Bez nazwy", march_prefix: "Marsz: ", march_word: "marsz",
+                ph_name: "Nazwa", ph_enemy_name: "Nazwa wroga", ph_alliance: "Sojusz",
+                send_in: "WYŚLIJ za", send_now: "WYŚLIJ TERAZ!", landed: "WYLĄDOWAŁ",
+                rally_hits: "Rally uderza", send_at: "Wyślij o",
+                landed_lower: "wylądował", now_label: "TERAZ",
+                warning_overdue_1: "Niektóre czasy wymarszu są w przeszłości. Zwiększ bufor lub poczekaj na następny cykl. Gracz z najdłuższym marszem potrzebuje co najmniej ~",
+                warning_overdue_2: " przed przybyciem.",
+                fmtCountdown: function(m, s) { return m > 0 ? 'za ' + m + 'm ' + s + 's' : 'za ' + parseInt(s) + 's'; },
+                fmtAgo: function(s) { return s + 's temu'; },
+                fmtInTime: function(t) { return 'za ' + t; }
+            },
+            zh: {
+                title: "Viscount 的集结工具",
+                clock_label: "当前 UTC 时间",
+                tab_rally: "集结召唤", tab_garrison: "驻防防御",
+                select_callers: "选择召唤者", all: "全选", none_btn: "全不选",
+                rally_settings: "集结设置", rally_duration: "集结时长：",
+                reaction_time: "反应时间：",
+                dur_5min: "5 分钟", dur_10min: "10 分钟",
+                buf_15s: "15 秒", buf_30s: "30 秒", buf_45s: "45 秒",
+                buf_1m: "1 分钟", buf_1m30s: "1 分 30 秒", buf_2m: "2 分钟",
+                buf_3m: "3 分钟", buf_5m: "5 分钟",
+                lock: "锁定", unlock: "解锁",
+                setoff_schedule: "出发时间表",
+                arrival_label: "所有集结到达时间 (UTC)",
+                locked_ind: "已锁定",
+                no_callers: "请在上方选择召唤者以查看时间表",
+                copy_schedule: "复制时间表", copied: "已复制！",
+                caller_setup: "召唤者设置", add_caller: "+ 添加召唤者",
+                presets: "预设", select_preset: "-- 选择预设 --",
+                load_btn: "加载", del_btn: "删除", save_btn: "保存",
+                save_as: "保存当前设置...",
+                your_march_time: "你的行军时间",
+                your_march_label: "你到建筑的行军时间：",
+                select_enemy: "选择敌人", tap_enemy: "点击敌人进行选择",
+                track_rally_title: "追踪来袭集结",
+                rally_countdown: "集结倒计时：", track_btn: "追踪",
+                incoming_rallies: "来袭集结",
+                no_rallies: "暂无追踪中的集结",
+                enemy_roster: "敌人名单",
+                col_name: "名称", col_alliance: "联盟", col_march: "行军",
+                add_enemy: "+ 添加敌人",
+                unnamed: "未命名", march_prefix: "行军：", march_word: "行军",
+                ph_name: "名称", ph_enemy_name: "敌人名称", ph_alliance: "联盟",
+                send_in: "发送倒计时", send_now: "立即发送！", landed: "已到达",
+                rally_hits: "集结命中", send_at: "发送时间",
+                landed_lower: "已到达", now_label: "现在",
+                warning_overdue_1: "部分出发时间已过。请增加缓冲时间或等待下一个周期。行军最长的召唤者需要至少 ~",
+                warning_overdue_2: " 才能到达。",
+                fmtCountdown: function(m, s) { return m > 0 ? m + '分' + s + '秒后' : parseInt(s) + '秒后'; },
+                fmtAgo: function(s) { return s + '秒前'; },
+                fmtInTime: function(t) { return t + '后'; }
+            },
+            ko: {
+                title: "Viscount의 랠리 스패뮬레이터",
+                clock_label: "현재 UTC 시간",
+                tab_rally: "랠리 스팸", tab_garrison: "수비대 방어",
+                select_callers: "소환자 선택", all: "전체", none_btn: "없음",
+                rally_settings: "랠리 설정", rally_duration: "랠리 지속시간:",
+                reaction_time: "반응 시간:",
+                dur_5min: "5분", dur_10min: "10분",
+                buf_15s: "15초", buf_30s: "30초", buf_45s: "45초",
+                buf_1m: "1분", buf_1m30s: "1분 30초", buf_2m: "2분",
+                buf_3m: "3분", buf_5m: "5분",
+                lock: "잠금", unlock: "잠금해제",
+                setoff_schedule: "출발 일정",
+                arrival_label: "모든 랠리 도착 시간 (UTC)",
+                locked_ind: "잠김",
+                no_callers: "일정을 보려면 위에서 소환자를 선택하세요",
+                copy_schedule: "일정 복사", copied: "복사됨!",
+                caller_setup: "소환자 설정", add_caller: "+ 소환자 추가",
+                presets: "프리셋", select_preset: "-- 프리셋 선택 --",
+                load_btn: "불러오기", del_btn: "삭제", save_btn: "저장",
+                save_as: "현재 설정 저장...",
+                your_march_time: "내 행군 시간",
+                your_march_label: "건물까지 행군 시간:",
+                select_enemy: "적 선택", tap_enemy: "적을 탭하여 선택",
+                track_rally_title: "수신 랠리 추적",
+                rally_countdown: "랠리 카운트다운:", track_btn: "추적",
+                incoming_rallies: "수신 랠리",
+                no_rallies: "추적 중인 랠리 없음",
+                enemy_roster: "적 명단",
+                col_name: "이름", col_alliance: "동맹", col_march: "행군",
+                add_enemy: "+ 적 추가",
+                unnamed: "이름없음", march_prefix: "행군: ", march_word: "행군",
+                ph_name: "이름", ph_enemy_name: "적 이름", ph_alliance: "동맹",
+                send_in: "발송까지", send_now: "지금 발송!", landed: "도착함",
+                rally_hits: "랠리 도착", send_at: "발송 시간",
+                landed_lower: "도착함", now_label: "지금",
+                warning_overdue_1: "일부 출발 시간이 지났습니다. 버퍼를 늘리거나 다음 주기를 기다리세요. 가장 긴 행군 소환자는 도착 전 최소 ~",
+                warning_overdue_2: " 이 필요합니다.",
+                fmtCountdown: function(m, s) { return m > 0 ? m + '분 ' + s + '초 후' : parseInt(s) + '초 후'; },
+                fmtAgo: function(s) { return s + '초 전'; },
+                fmtInTime: function(t) { return t + ' 후'; }
+            },
+            ar: {
+                title: "أداة تنسيق الحشد لـ Viscount",
+                clock_label: "التوقيت العالمي UTC",
+                tab_rally: "حشد الهجوم", tab_garrison: "دفاع الحامية",
+                select_callers: "اختر المنادين", all: "الكل", none_btn: "لا شيء",
+                rally_settings: "إعدادات الحشد", rally_duration: "مدة الحشد:",
+                reaction_time: "وقت التفاعل:",
+                dur_5min: "5 دقائق", dur_10min: "10 دقائق",
+                buf_15s: "15 ثانية", buf_30s: "30 ثانية", buf_45s: "45 ثانية",
+                buf_1m: "1 دقيقة", buf_1m30s: "1 دقيقة 30ث", buf_2m: "2 دقيقة",
+                buf_3m: "3 دقائق", buf_5m: "5 دقائق",
+                lock: "قفل", unlock: "فتح القفل",
+                setoff_schedule: "جدول الانطلاق",
+                arrival_label: "وصول جميع الحشود (UTC)",
+                locked_ind: "مقفل",
+                no_callers: "اختر المنادين أعلاه لعرض الجدول",
+                copy_schedule: "نسخ الجدول", copied: "تم النسخ!",
+                caller_setup: "إعداد المنادين", add_caller: "+ إضافة منادٍ",
+                presets: "القوالب", select_preset: "-- اختر قالب --",
+                load_btn: "تحميل", del_btn: "حذف", save_btn: "حفظ",
+                save_as: "حفظ الحالي باسم...",
+                your_march_time: "وقت مسيرتك",
+                your_march_label: "مسيرتك إلى المبنى:",
+                select_enemy: "اختر العدو", tap_enemy: "انقر على عدو للاختيار",
+                track_rally_title: "تتبع الحشد القادم",
+                rally_countdown: "العد التنازلي:", track_btn: "تتبع",
+                incoming_rallies: "الحشود القادمة",
+                no_rallies: "لا يوجد حشود قيد التتبع",
+                enemy_roster: "قائمة الأعداء",
+                col_name: "الاسم", col_alliance: "التحالف", col_march: "المسيرة",
+                add_enemy: "+ إضافة عدو",
+                unnamed: "بدون اسم", march_prefix: "المسيرة: ", march_word: "مسيرة",
+                ph_name: "الاسم", ph_enemy_name: "اسم العدو", ph_alliance: "التحالف",
+                send_in: "أرسل خلال", send_now: "أرسل الآن!", landed: "وصل",
+                rally_hits: "وصول الحشد", send_at: "أرسل في",
+                landed_lower: "وصل", now_label: "الآن",
+                warning_overdue_1: "بعض أوقات الانطلاق في الماضي. قم بزيادة الوقت الاحتياطي أو انتظر الدورة التالية. المنادي ذو أطول مسيرة يحتاج على الأقل ~",
+                warning_overdue_2: " قبل الوصول.",
+                fmtCountdown: function(m, s) { return m > 0 ? 'بعد ' + m + 'د ' + s + 'ث' : 'بعد ' + parseInt(s) + 'ث'; },
+                fmtAgo: function(s) { return 'قبل ' + s + 'ث'; },
+                fmtInTime: function(t) { return 'بعد ' + t; }
+            }
+        };
+
+        let currentLang = 'en';
+
+        function t(key) { return LANG[currentLang][key] || LANG.en[key] || key; }
+
+        function setLang(code) {
+            currentLang = code;
+            localStorage.setItem('app_lang', code);
+            document.getElementById('lang-select').value = code;
+            document.documentElement.dir = (code === 'ar') ? 'rtl' : 'ltr';
+            document.title = t('title');
+            // Update all data-i18n elements
+            document.querySelectorAll('[data-i18n]').forEach(function(el) {
+                el.textContent = t(el.dataset.i18n);
+            });
+            // Update all data-i18n-ph placeholders
+            document.querySelectorAll('[data-i18n-ph]').forEach(function(el) {
+                el.placeholder = t(el.dataset.i18nPh);
+            });
+            // Update lock button (dynamic state)
+            document.getElementById('lock-btn').textContent = locked ? t('unlock') : t('lock');
+            // Re-render dynamic content
+            renderCallers();
+            renderEnemies();
+            renderPresetSelect();
+        }
+
+        // ===== State =====
+        let callers = [];
+        let nextId = 1;
+        let bufferSeconds = 30;
+        let rallyDurationSeconds = 300;
+        let locked = false;
+        let lockedArrivalMs = null;
+
+        // ===== Utilities =====
+        function pad(n) { return String(n).padStart(2, '0'); }
+
+        function formatUTC(ms) {
+            const d = new Date(ms);
+            return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds());
+        }
+
+        function formatMarch(totalSec) {
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            return m + ':' + pad(s);
+        }
+
+        function parseMarch(str) {
+            str = (str || '').trim();
+            if (!str) return 0;
+            if (str.includes(':')) {
+                const parts = str.split(':');
+                return (parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0);
+            }
+            return parseInt(str) || 0;
+        }
+
+        function formatCountdown(secs) {
+            if (secs <= 0) return t('now_label');
+            const m = Math.floor(secs / 60);
+            const s = secs % 60;
+            return LANG[currentLang].fmtCountdown(m, pad(s));
+        }
+
+        function escHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+                      .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ===== Clock =====
+        function updateClock() {
+            document.getElementById('utc-clock').textContent = formatUTC(Date.now());
+        }
+
+        // ===== Arrival Calculation =====
+        // Rounding applies to the first departure (longest march),
+        // not to the arrival time. This makes the earliest set-off
+        // land on a clean boundary that's easy to communicate.
+        function getArrivalMs() {
+            if (locked && lockedArrivalMs !== null) return lockedArrivalMs;
+            const selected = callers.filter(c => c.selected);
+            const longestMarch = selected.length > 0
+                ? Math.max(...selected.map(c => c.marchSeconds))
+                : 0;
+            const now = Date.now();
+            const bufMs = bufferSeconds * 1000;
+            // Round the first departure up to the nearest buffer interval
+            const firstDeparture = Math.ceil((now + bufMs) / bufMs) * bufMs;
+            // Arrival = first departure + rally duration + longest march
+            return firstDeparture + rallyDurationSeconds * 1000 + longestMarch * 1000;
+        }
+
+        // ===== Quick Select Rendering =====
+        function renderQuickSelect() {
+            const container = document.getElementById('quick-select');
+            container.innerHTML = '';
+            callers.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'qs-btn' + (c.selected ? ' selected' : '');
+                if (c.arrivalOrder !== null) {
+                    btn.innerHTML = '<span class="order-badge">' + c.arrivalOrder + '</span>' + escHtml(c.name || t('unnamed'));
+                } else {
+                    btn.textContent = c.name || t('unnamed');
+                }
+                btn.onclick = () => { toggleCaller(c.id); };
+                container.appendChild(btn);
+            });
+        }
+
+        function toggleCaller(id) {
+            const c = callers.find(x => x.id === id);
+            if (!c) return;
+            if (c.selected) {
+                // Deselect: remove order and renumber remaining
+                const removed = c.arrivalOrder;
+                c.selected = false;
+                c.arrivalOrder = null;
+                callers.forEach(x => {
+                    if (x.arrivalOrder !== null && x.arrivalOrder > removed) {
+                        x.arrivalOrder--;
+                    }
+                });
+            } else {
+                // Select: assign next order number
+                const maxOrder = callers.reduce((m, x) =>
+                    x.arrivalOrder !== null ? Math.max(m, x.arrivalOrder) : m, 0);
+                c.selected = true;
+                c.arrivalOrder = maxOrder + 1;
+            }
+            renderQuickSelect();
+            saveState();
+        }
+
+        function selectAll() {
+            // Default order: longest march first
+            const sorted = [...callers].sort((a, b) => b.marchSeconds - a.marchSeconds);
+            sorted.forEach((c, i) => {
+                c.selected = true;
+                c.arrivalOrder = i + 1;
+            });
+            renderQuickSelect();
+            saveState();
+        }
+
+        function selectNone() {
+            callers.forEach(c => {
+                c.selected = false;
+                c.arrivalOrder = null;
+            });
+            renderQuickSelect();
+            saveState();
+        }
+
+        // ===== Caller Setup Rendering =====
+        function renderCallers() {
+            const container = document.getElementById('caller-list');
+            container.innerHTML = '';
+            callers.forEach(c => {
+                const row = document.createElement('div');
+                row.className = 'caller-row';
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.className = 'name-input';
+                nameInput.value = c.name;
+                nameInput.placeholder = t('ph_name');
+                nameInput.onchange = function() {
+                    c.name = this.value;
+                    renderQuickSelect();
+                    saveState();
+                };
+
+                const marchInput = document.createElement('input');
+                marchInput.type = 'text';
+                marchInput.className = 'march-input';
+                marchInput.value = formatMarch(c.marchSeconds);
+                marchInput.placeholder = 'M:SS';
+                marchInput.onchange = function() {
+                    const val = parseMarch(this.value);
+                    if (val > 0) c.marchSeconds = val;
+                    this.value = formatMarch(c.marchSeconds);
+                    saveState();
+                };
+                marchInput.onblur = function() {
+                    this.value = formatMarch(c.marchSeconds);
+                };
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-danger';
+                delBtn.textContent = 'X';
+                delBtn.onclick = function() { removeCaller(c.id); };
+
+                row.appendChild(nameInput);
+                row.appendChild(marchInput);
+                row.appendChild(delBtn);
+                container.appendChild(row);
+            });
+            renderQuickSelect();
+            saveState();
+        }
+
+        function addCaller(name, marchSec) {
+            callers.push({
+                id: nextId++,
+                name: name || '',
+                marchSeconds: marchSec || 180,
+                selected: false,
+                arrivalOrder: null
+            });
+            renderCallers();
+        }
+
+        function removeCaller(id) {
+            callers = callers.filter(c => c.id !== id);
+            renderCallers();
+        }
+
+        // ===== Rally Duration =====
+        function updateRallyDuration() {
+            rallyDurationSeconds = parseInt(document.getElementById('rally-duration-select').value);
+            localStorage.setItem('rally_duration', rallyDurationSeconds);
+            if (locked) {
+                locked = false;
+                lockedArrivalMs = null;
+                const btn = document.getElementById('lock-btn');
+                btn.classList.remove('active');
+                btn.textContent = t('lock');
+                document.getElementById('arrival-display').classList.remove('locked');
+            }
+        }
+
+        // ===== Buffer =====
+        function updateBuffer() {
+            bufferSeconds = parseInt(document.getElementById('buffer-select').value);
+            localStorage.setItem('rally_buffer', bufferSeconds);
+            if (locked) {
+                locked = false;
+                lockedArrivalMs = null;
+                const btn = document.getElementById('lock-btn');
+                btn.classList.remove('active');
+                btn.textContent = t('lock');
+                document.getElementById('arrival-display').classList.remove('locked');
+            }
+        }
+
+        function toggleLock() {
+            locked = !locked;
+            const btn = document.getElementById('lock-btn');
+            const disp = document.getElementById('arrival-display');
+            if (locked) {
+                lockedArrivalMs = getArrivalMs();
+                btn.classList.add('active');
+                btn.textContent = t('unlock');
+                disp.classList.add('locked');
+            } else {
+                lockedArrivalMs = null;
+                btn.classList.remove('active');
+                btn.textContent = t('lock');
+                disp.classList.remove('locked');
+            }
+        }
+
+        // ===== Schedule =====
+        function updateSchedule() {
+            const selected = callers.filter(c => c.selected);
+            const noCallersEl = document.getElementById('no-callers');
+            const listEl = document.getElementById('schedule-list');
+            const warningEl = document.getElementById('schedule-warning');
+            const copyBtn = document.getElementById('copy-btn');
+            const arrivalEl = document.getElementById('arrival-time');
+
+            if (selected.length === 0) {
+                noCallersEl.style.display = 'block';
+                listEl.innerHTML = '';
+                warningEl.innerHTML = '';
+                copyBtn.style.display = 'none';
+                arrivalEl.textContent = '--:--:--';
+                return;
+            }
+
+            noCallersEl.style.display = 'none';
+            copyBtn.style.display = 'block';
+
+            const arrivalMs = getArrivalMs();
+            const now = Date.now();
+            arrivalEl.textContent = formatUTC(arrivalMs);
+
+            // Sort by departure time (longest march leaves first)
+            const sorted = [...selected].sort((a, b) => b.marchSeconds - a.marchSeconds);
+
+            // Check for overdue set-off times
+            let hasOverdue = false;
+            sorted.forEach(c => {
+                if (arrivalMs - rallyDurationSeconds * 1000 - c.marchSeconds * 1000 < now) hasOverdue = true;
+            });
+
+            if (hasOverdue) {
+                const longestMarch = sorted[0].marchSeconds;
+                warningEl.innerHTML = '<div class="warning">' + t('warning_overdue_1')
+                    + formatMarch(longestMarch) + t('warning_overdue_2') + '</div>';
+            } else {
+                warningEl.innerHTML = '';
+            }
+
+            listEl.innerHTML = '';
+            sorted.forEach(c => {
+                const setOffMs = arrivalMs - rallyDurationSeconds * 1000 - c.marchSeconds * 1000;
+                const secsUntil = Math.floor((setOffMs - now) / 1000);
+                const isOverdue = secsUntil < 0;
+                const isImminent = !isOverdue && secsUntil <= 10;
+
+                const item = document.createElement('div');
+                item.className = 'schedule-item'
+                    + (isOverdue ? ' overdue' : '')
+                    + (isImminent ? ' imminent' : '');
+
+                item.innerHTML =
+                    '<div class="si-left">'
+                    + '<div class="si-name">' + escHtml(c.name || t('unnamed')) + '</div>'
+                    + '<div class="si-march">' + t('march_prefix') + formatMarch(c.marchSeconds) + '</div>'
+                    + '</div>'
+                    + '<div class="si-right">'
+                    + '<div class="si-time">' + formatUTC(setOffMs) + '</div>'
+                    + '<div class="si-countdown">'
+                    + (isOverdue ? LANG[currentLang].fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil))
+                    + '</div>'
+                    + '</div>';
+
+                listEl.appendChild(item);
+            });
+        }
+
+        // ===== Copy Schedule =====
+        function copySchedule() {
+            const selected = callers.filter(c => c.selected)
+                .sort((a, b) => b.marchSeconds - a.marchSeconds);
+            if (selected.length === 0) return;
+
+            const arrivalMs = getArrivalMs();
+            let text = '';
+            selected.forEach(c => {
+                const setOffMs = arrivalMs - rallyDurationSeconds * 1000 - c.marchSeconds * 1000;
+                text += formatUTC(setOffMs) + ' - '
+                    + escText(c.name || t('unnamed')) + ' (' + t('march_word') + ' ' + formatMarch(c.marchSeconds) + ')\n';
+            });
+
+            navigator.clipboard.writeText(text.trim()).then(() => {
+                const btn = document.getElementById('copy-btn');
+                btn.textContent = t('copied');
+                setTimeout(() => { btn.textContent = t('copy_schedule'); }, 1500);
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = text.trim();
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                const btn = document.getElementById('copy-btn');
+                btn.textContent = t('copied');
+                setTimeout(() => { btn.textContent = t('copy_schedule'); }, 1500);
+            });
+        }
+
+        function escText(str) {
+            return str.replace(/</g, '').replace(/>/g, '');
+        }
+
+        // ===== Persistence =====
+        function saveState() {
+            const data = callers.map(c => ({
+                name: c.name,
+                marchSeconds: c.marchSeconds,
+                selected: c.selected,
+                arrivalOrder: c.arrivalOrder
+            }));
+            localStorage.setItem('rally_callers', JSON.stringify(data));
+        }
+
+        function loadState() {
+            try {
+                const data = JSON.parse(localStorage.getItem('rally_callers'));
+                if (Array.isArray(data) && data.length > 0) {
+                    callers = data.map(c => ({
+                        id: nextId++,
+                        name: c.name || '',
+                        marchSeconds: c.marchSeconds || 180,
+                        selected: !!c.selected,
+                        arrivalOrder: c.arrivalOrder || null
+                    }));
+                }
+            } catch (e) { /* ignore */ }
+
+            const savedBuf = localStorage.getItem('rally_buffer');
+            if (savedBuf) {
+                bufferSeconds = parseInt(savedBuf) || 30;
+                document.getElementById('buffer-select').value = bufferSeconds;
+            }
+
+            const savedDur = localStorage.getItem('rally_duration');
+            if (savedDur) {
+                rallyDurationSeconds = parseInt(savedDur) || 300;
+                document.getElementById('rally-duration-select').value = rallyDurationSeconds;
+            }
+        }
+
+        // ===== Presets =====
+        function getPresets() {
+            try { return JSON.parse(localStorage.getItem('rally_presets')) || {}; }
+            catch (e) { return {}; }
+        }
+
+        function storePresets(p) {
+            localStorage.setItem('rally_presets', JSON.stringify(p));
+        }
+
+        function renderPresetSelect() {
+            const sel = document.getElementById('preset-select');
+            const presets = getPresets();
+            sel.innerHTML = '<option value="">' + escHtml(t('select_preset')) + '</option>';
+            Object.keys(presets).sort().forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name + ' (' + presets[name].length + ')';
+                sel.appendChild(opt);
+            });
+        }
+
+        function savePreset() {
+            const nameInput = document.getElementById('preset-name');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            const presets = getPresets();
+            presets[name] = callers.map(c => ({
+                name: c.name,
+                marchSeconds: c.marchSeconds
+            }));
+            storePresets(presets);
+            renderPresetSelect();
+            nameInput.value = '';
+            document.getElementById('preset-select').value = name;
+        }
+
+        function loadPreset() {
+            const name = document.getElementById('preset-select').value;
+            if (!name) return;
+            const presets = getPresets();
+            const data = presets[name];
+            if (!data) return;
+
+            callers = data.map(c => ({
+                id: nextId++,
+                name: c.name,
+                marchSeconds: c.marchSeconds,
+                selected: false,
+                arrivalOrder: null
+            }));
+            renderCallers();
+        }
+
+        function deletePreset() {
+            const sel = document.getElementById('preset-select');
+            const name = sel.value;
+            if (!name) return;
+
+            const presets = getPresets();
+            delete presets[name];
+            storePresets(presets);
+            renderPresetSelect();
+        }
+
+        // ===== Tab Switching =====
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                if (b.dataset.tab === tab) b.classList.add('active');
+            });
+        }
+
+        // ===== Garrison Defense State =====
+        let enemies = [];
+        let enemyNextId = 1;
+        let selectedEnemyId = null;
+        let yourMarchSeconds = 20;
+        let activeRallies = []; // { id, enemyName, enemyAlliance, enemyMarch, hitTimeMs }
+        let rallyTrackId = 1;
+
+        // ===== Garrison: Enemy Roster =====
+        function addEnemy(name, alliance, marchSec) {
+            enemies.push({
+                id: enemyNextId++,
+                name: name || '',
+                alliance: alliance || '',
+                marchSeconds: marchSec || 30
+            });
+            renderEnemies();
+        }
+
+        function removeEnemy(id) {
+            enemies = enemies.filter(e => e.id !== id);
+            if (selectedEnemyId === id) selectedEnemyId = null;
+            renderEnemies();
+        }
+
+        function renderEnemies() {
+            const container = document.getElementById('enemy-list');
+            container.innerHTML = '';
+            enemies.forEach(e => {
+                const row = document.createElement('div');
+                row.className = 'enemy-row';
+
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.className = 'name-input';
+                nameInput.value = e.name;
+                nameInput.placeholder = t('ph_enemy_name');
+                nameInput.onchange = function() {
+                    e.name = this.value;
+                    renderEnemyQuickSelect();
+                    saveGarrisonState();
+                };
+
+                const allianceInput = document.createElement('input');
+                allianceInput.type = 'text';
+                allianceInput.className = 'alliance-input';
+                allianceInput.value = e.alliance;
+                allianceInput.placeholder = t('ph_alliance');
+                allianceInput.onchange = function() {
+                    e.alliance = this.value;
+                    renderEnemyQuickSelect();
+                    saveGarrisonState();
+                };
+
+                const marchInput = document.createElement('input');
+                marchInput.type = 'text';
+                marchInput.className = 'march-input';
+                marchInput.value = formatMarch(e.marchSeconds);
+                marchInput.placeholder = 'M:SS';
+                marchInput.onchange = function() {
+                    const val = parseMarch(this.value);
+                    if (val > 0) e.marchSeconds = val;
+                    this.value = formatMarch(e.marchSeconds);
+                    saveGarrisonState();
+                };
+                marchInput.onblur = function() {
+                    this.value = formatMarch(e.marchSeconds);
+                };
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-danger';
+                delBtn.textContent = 'X';
+                delBtn.onclick = function() { removeEnemy(e.id); };
+
+                row.appendChild(nameInput);
+                row.appendChild(allianceInput);
+                row.appendChild(marchInput);
+                row.appendChild(delBtn);
+                container.appendChild(row);
+            });
+            renderEnemyQuickSelect();
+            saveGarrisonState();
+        }
+
+        // ===== Garrison: Enemy Quick Select =====
+        function renderEnemyQuickSelect() {
+            const container = document.getElementById('enemy-quick-select');
+            container.innerHTML = '';
+            enemies.forEach(e => {
+                const btn = document.createElement('button');
+                btn.className = 'qs-btn' + (selectedEnemyId === e.id ? ' selected' : '');
+                const label = e.alliance ? e.name + ' [' + escHtml(e.alliance) + ']' : (e.name || t('unnamed'));
+                btn.innerHTML = escHtml(e.name || t('unnamed')) +
+                    (e.alliance ? ' <span style="opacity:0.6;font-size:0.75rem">[' + escHtml(e.alliance) + ']</span>' : '');
+                btn.onclick = () => { selectEnemy(e.id); };
+                container.appendChild(btn);
+            });
+            updateSelectedEnemyDisplay();
+        }
+
+        function selectEnemy(id) {
+            selectedEnemyId = (selectedEnemyId === id) ? null : id;
+            renderEnemyQuickSelect();
+        }
+
+        function updateSelectedEnemyDisplay() {
+            const disp = document.getElementById('selected-enemy-display');
+            if (selectedEnemyId === null) {
+                disp.innerHTML = t('tap_enemy');
+                disp.className = 'empty-msg';
+                disp.style.padding = '8px';
+            } else {
+                const e = enemies.find(x => x.id === selectedEnemyId);
+                if (e) {
+                    disp.innerHTML = '<span class="selected-enemy-name">' + escHtml(e.name || t('unnamed')) +
+                        (e.alliance ? ' [' + escHtml(e.alliance) + ']' : '') +
+                        '</span> — ' + t('march_word') + ' ' + formatMarch(e.marchSeconds);
+                    disp.className = '';
+                    disp.style.padding = '8px';
+                    disp.style.fontSize = '0.9rem';
+                }
+            }
+        }
+
+        // ===== Garrison: Your March =====
+        function updateYourMarch() {
+            const val = parseMarch(document.getElementById('your-march-input').value);
+            if (val > 0) yourMarchSeconds = val;
+            localStorage.setItem('garrison_your_march', yourMarchSeconds);
+        }
+
+        function formatYourMarchInput() {
+            document.getElementById('your-march-input').value = formatMarch(yourMarchSeconds);
+        }
+
+        // ===== Garrison: Track Rally =====
+        function flashElement(el) {
+            el.style.outline = '2px solid var(--red)';
+            setTimeout(() => { el.style.outline = ''; }, 1200);
+        }
+
+        function trackRally() {
+            if (selectedEnemyId === null) {
+                const qs = document.getElementById('enemy-quick-select');
+                flashElement(qs);
+                return;
+            }
+            const enemy = enemies.find(e => e.id === selectedEnemyId);
+            if (!enemy) return;
+
+            const countdownInput = document.getElementById('rally-countdown-input');
+            const countdownSec = parseMarch(countdownInput.value);
+            if (countdownSec <= 0) {
+                flashElement(countdownInput);
+                countdownInput.focus();
+                return;
+            }
+
+            const now = Date.now();
+            const hitTimeMs = now + (countdownSec + enemy.marchSeconds) * 1000;
+
+            activeRallies.push({
+                id: rallyTrackId++,
+                enemyName: enemy.name || t('unnamed'),
+                enemyAlliance: enemy.alliance || '',
+                enemyMarch: enemy.marchSeconds,
+                hitTimeMs: hitTimeMs
+            });
+
+            countdownInput.value = '';
+            countdownInput.focus();
+        }
+
+        function dismissRally(id) {
+            activeRallies = activeRallies.filter(r => r.id !== id);
+        }
+
+        function updateActiveRallies() {
+            const container = document.getElementById('active-rallies-list');
+            const noRallies = document.getElementById('no-rallies');
+            const now = Date.now();
+
+            // Auto-remove rallies that landed more than 60s ago
+            activeRallies = activeRallies.filter(r => now - r.hitTimeMs < 60000);
+
+            if (activeRallies.length === 0) {
+                container.innerHTML = '';
+                noRallies.style.display = 'block';
+                return;
+            }
+            noRallies.style.display = 'none';
+
+            // Sort by hit time (most urgent first)
+            const sorted = [...activeRallies].sort((a, b) => a.hitTimeMs - b.hitTimeMs);
+
+            container.innerHTML = '';
+            sorted.forEach(r => {
+                const hitSecs = Math.floor((r.hitTimeMs - now) / 1000);
+                const sendTimeMs = r.hitTimeMs - yourMarchSeconds * 1000;
+                const sendSecs = Math.floor((sendTimeMs - now) / 1000);
+                const landed = hitSecs <= 0;
+                const sendUrgent = !landed && sendSecs <= 15 && sendSecs > 0;
+                const sendNow = !landed && sendSecs <= 0;
+
+                const div = document.createElement('div');
+                div.className = 'rally-tracker'
+                    + (sendUrgent || sendNow ? ' urgent' : '')
+                    + (landed ? ' landed' : '');
+
+                // Header
+                let header = '<div class="rt-header">'
+                    + '<span class="rt-enemy">' + escHtml(r.enemyName)
+                    + (r.enemyAlliance ? ' <span class="rt-alliance">[' + escHtml(r.enemyAlliance) + ']</span>' : '')
+                    + '</span>'
+                    + '<button class="btn btn-danger" onclick="dismissRally(' + r.id + ')" style="margin-left:8px">X</button>'
+                    + '</div>';
+
+                // Send reinforcements countdown (most prominent)
+                let sendCountdownClass = 'rt-send-countdown';
+                let sendCountdownText;
+                if (landed) {
+                    sendCountdownText = t('landed');
+                    sendCountdownClass += ' too-late';
+                } else if (sendSecs <= 0) {
+                    sendCountdownText = t('send_now');
+                    sendCountdownClass += ' go-now';
+                } else {
+                    sendCountdownText = t('send_in') + ' ' + Math.floor(sendSecs / 60) + ':' + pad(sendSecs % 60);
+                }
+                let sendLine = '<div class="' + sendCountdownClass + '">' + sendCountdownText + '</div>';
+
+                // Details rows
+                let hitLine = '<div class="rt-row">'
+                    + '<span class="rt-label">' + t('rally_hits') + '</span>'
+                    + '<span><span class="rt-time hit-time">' + formatUTC(r.hitTimeMs) + '</span>'
+                    + '<span class="rt-countdown">' + (landed ? t('landed_lower') : LANG[currentLang].fmtInTime(Math.floor(hitSecs / 60) + ':' + pad(hitSecs % 60))) + '</span></span>'
+                    + '</div>';
+
+                let sendDetailLine = '<div class="rt-row">'
+                    + '<span class="rt-label send-label">' + t('send_at') + '</span>'
+                    + '<span><span class="rt-time send-time">' + formatUTC(sendTimeMs) + '</span>'
+                    + '<span class="rt-countdown">' + (sendSecs <= 0 ? (landed ? '' : t('now_label')) : LANG[currentLang].fmtInTime(Math.floor(sendSecs / 60) + ':' + pad(sendSecs % 60))) + '</span></span>'
+                    + '</div>';
+
+                div.innerHTML = header + sendLine + sendDetailLine + hitLine;
+                container.appendChild(div);
+            });
+        }
+
+        // ===== Garrison: Persistence =====
+        function saveGarrisonState() {
+            const data = enemies.map(e => ({
+                name: e.name,
+                alliance: e.alliance,
+                marchSeconds: e.marchSeconds
+            }));
+            localStorage.setItem('garrison_enemies', JSON.stringify(data));
+        }
+
+        function loadGarrisonState() {
+            try {
+                const data = JSON.parse(localStorage.getItem('garrison_enemies'));
+                if (Array.isArray(data) && data.length > 0) {
+                    enemies = data.map(e => ({
+                        id: enemyNextId++,
+                        name: e.name || '',
+                        alliance: e.alliance || '',
+                        marchSeconds: e.marchSeconds || 30
+                    }));
+                }
+            } catch (e) { /* ignore */ }
+
+            const savedMarch = localStorage.getItem('garrison_your_march');
+            if (savedMarch) {
+                yourMarchSeconds = parseInt(savedMarch) || 20;
+                document.getElementById('your-march-input').value = formatMarch(yourMarchSeconds);
+            }
+        }
+
+        // ===== Init =====
+        // Load saved language
+        const savedLang = localStorage.getItem('app_lang');
+        if (savedLang && LANG[savedLang]) {
+            currentLang = savedLang;
+            document.getElementById('lang-select').value = savedLang;
+        }
+
+        loadState();
+        renderCallers();
+        renderPresetSelect();
+        loadGarrisonState();
+        renderEnemies();
+        updateClock();
+        updateSchedule();
+        updateActiveRallies();
+
+        // Apply translations (after DOM is populated)
+        if (currentLang !== 'en') setLang(currentLang);
+
+        setInterval(updateClock, 100);
+        setInterval(updateSchedule, 250);
+        setInterval(updateActiveRallies, 250);
+    </script>
+</body>
+</html>
