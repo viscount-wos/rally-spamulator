@@ -6,7 +6,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const {
-  upsertUser, getUser, getAllUsers, setUserRole, bootstrapAdmin,
+  upsertUser, getUser, getAllUsers, setUserRole, deleteUser, bootstrapAdmin,
   setWosProfile, getRegisteredCallers,
   createRally, getActiveRallies, getRallyWithCallers, getRallyCallers, cancelRally, cleanupExpiredRallies
 } = require('./db');
@@ -208,6 +208,7 @@ app.put('/api/profile', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Invalid march_seconds' });
   }
   const updated = setWosProfile(req.session.userId, wos_name, march_seconds);
+  broadcastSSE({ type: 'profile_updated' });
   res.json({ wos_name: updated.wos_name, march_seconds: updated.march_seconds });
 });
 
@@ -331,7 +332,51 @@ app.put('/api/users/:id/profile', requireAuth, requireRole('r5', 'admin'), (req,
     return res.status(400).json({ error: 'Invalid march_seconds' });
   }
   const updated = setWosProfile(id, wos_name, march_seconds);
+  broadcastSSE({ type: 'profile_updated' });
   res.json(updated);
+});
+
+app.delete('/api/users/:id', requireAuth, requireRole('r5', 'admin'), (req, res) => {
+  const { id } = req.params;
+
+  // Cannot delete yourself
+  if (id === req.session.userId) {
+    return res.status(400).json({ error: 'Cannot delete yourself' });
+  }
+
+  const currentUser = getUser(req.session.userId);
+  const targetUser = getUser(id);
+  if (!targetUser) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  // Only admin can delete other admins
+  if (targetUser.role === 'admin' && currentUser.role !== 'admin') {
+    return res.status(403).json({ error: 'Only admins can delete other admins' });
+  }
+
+  try {
+    const cancelledRallyIds = deleteUser(id);
+
+    // Broadcast rally cancellations
+    cancelledRallyIds.forEach(rallyId => {
+      broadcastSSE({ type: 'rally_cancelled', rally_id: rallyId });
+    });
+
+    // Broadcast user deletion
+    broadcastSSE({ type: 'user_deleted', discord_id: id });
+
+    // Close deleted user's SSE connection if they're connected
+    const deletedClient = sseClients.get(id);
+    if (deletedClient) {
+      try { deletedClient.end(); } catch (e) { /* ignore */ }
+      sseClients.delete(id);
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ===== Static Files (behind auth) =====

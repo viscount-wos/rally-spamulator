@@ -114,6 +114,28 @@ function bootstrapAdmin() {
   }
 }
 
+// Delete user and cascade cleanup
+const unlinkCallerStmt = db.prepare('UPDATE rally_callers SET discord_id = NULL WHERE discord_id = ?');
+const cancelUserRalliesStmt = db.prepare("UPDATE rallies SET status = 'cancelled' WHERE creator_id = ? AND status = 'active'");
+const getActiveRalliesByCreatorStmt = db.prepare("SELECT id FROM rallies WHERE creator_id = ? AND status = 'active'");
+const deleteUserStmt = db.prepare('DELETE FROM users WHERE discord_id = ?');
+
+const deleteUserTx = db.transaction((discordId) => {
+  // Get rally IDs that will be cancelled (to broadcast cancellations)
+  const cancelledRallies = getActiveRalliesByCreatorStmt.all(discordId).map(r => r.id);
+  // Unlink this user from rally_callers (keep history, just null out discord_id)
+  unlinkCallerStmt.run(discordId);
+  // Cancel active rallies created by this user
+  cancelUserRalliesStmt.run(discordId);
+  // Delete the user
+  deleteUserStmt.run(discordId);
+  return cancelledRallies;
+});
+
+function deleteUser(discordId) {
+  return deleteUserTx(discordId);
+}
+
 // ===== WOS Profile Functions =====
 
 const setWosProfileStmt = db.prepare('UPDATE users SET wos_name = ?, march_seconds = ? WHERE discord_id = ?');
@@ -193,7 +215,7 @@ function cleanupExpiredRallies() {
 }
 
 module.exports = {
-  upsertUser, getUser, getAllUsers, setUserRole, bootstrapAdmin,
+  upsertUser, getUser, getAllUsers, setUserRole, deleteUser, bootstrapAdmin,
   setWosProfile, getRegisteredCallers,
   createRally, getActiveRallies, getRallyWithCallers, getRallyCallers, cancelRally, cleanupExpiredRallies
 };

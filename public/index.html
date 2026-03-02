@@ -1121,7 +1121,7 @@
                 user_mgmt_title: "User Management",
                 role_pending: "Pending", role_r123: "Member", role_r4: "Captain", role_r5: "R5", role_admin: "Admin",
                 col_user: "User", col_role: "Role", col_wos_name: "WOS Name", col_march: "March", col_joined: "Joined",
-                save_role: "Save",
+                save_role: "Save", delete_user: "Delete", confirm_delete_user: "Delete this user? This cannot be undone.",
                 wos_profile: "Game Profile", wos_name_label: "WOS Name:", wos_march_label: "March Time:",
                 wos_save_profile: "Save", wos_profile_saved: "Saved!", wos_name_ph: "Your in-game name",
                 alliance_members: "Alliance Members", no_registered: "No alliance members have registered yet",
@@ -1177,7 +1177,7 @@
                 user_mgmt_title: "Kullanıcı Yönetimi",
                 role_pending: "Beklemede", role_r123: "Üye", role_r4: "Kaptan", role_r5: "R5", role_admin: "Yönetici",
                 col_user: "Kullanıcı", col_role: "Rol", col_wos_name: "WOS Adı", col_march: "Yürüyüş", col_joined: "Katılım",
-                save_role: "Kaydet",
+                save_role: "Kaydet", delete_user: "Sil", confirm_delete_user: "Bu kullanıcı silinsin mi? Bu işlem geri alınamaz.",
                 wos_profile: "Oyun Profili", wos_name_label: "WOS Adı:", wos_march_label: "Yürüyüş Süresi:",
                 wos_save_profile: "Kaydet", wos_profile_saved: "Kaydedildi!", wos_name_ph: "Oyun içi adınız",
                 alliance_members: "İttifak Üyeleri", no_registered: "Henüz kayıtlı ittifak üyesi yok",
@@ -1233,7 +1233,7 @@
                 user_mgmt_title: "Zarządzanie użytkownikami",
                 role_pending: "Oczekujący", role_r123: "Członek", role_r4: "Kapitan", role_r5: "R5", role_admin: "Admin",
                 col_user: "Użytkownik", col_role: "Rola", col_wos_name: "Nazwa WOS", col_march: "Marsz", col_joined: "Dołączył",
-                save_role: "Zapisz",
+                save_role: "Zapisz", delete_user: "Usuń", confirm_delete_user: "Usunąć tego użytkownika? Tej operacji nie można cofnąć.",
                 wos_profile: "Profil Gry", wos_name_label: "Nazwa WOS:", wos_march_label: "Czas Marszu:",
                 wos_save_profile: "Zapisz", wos_profile_saved: "Zapisano!", wos_name_ph: "Twoja nazwa w grze",
                 alliance_members: "Członkowie Sojuszu", no_registered: "Brak zarejestrowanych członków sojuszu",
@@ -1289,7 +1289,7 @@
                 user_mgmt_title: "用户管理",
                 role_pending: "待审批", role_r123: "成员", role_r4: "队长", role_r5: "R5", role_admin: "管理员",
                 col_user: "用户", col_role: "角色", col_wos_name: "WOS名称", col_march: "行军", col_joined: "加入时间",
-                save_role: "保存",
+                save_role: "保存", delete_user: "删除", confirm_delete_user: "确定删除此用户？此操作无法撤销。",
                 wos_profile: "游戏资料", wos_name_label: "WOS名称：", wos_march_label: "行军时间：",
                 wos_save_profile: "保存", wos_profile_saved: "已保存！", wos_name_ph: "你的游戏内名称",
                 alliance_members: "联盟成员", no_registered: "暂无联盟成员注册",
@@ -1345,7 +1345,7 @@
                 user_mgmt_title: "사용자 관리",
                 role_pending: "대기중", role_r123: "멤버", role_r4: "캡틴", role_r5: "R5", role_admin: "관리자",
                 col_user: "사용자", col_role: "역할", col_wos_name: "WOS 이름", col_march: "행군", col_joined: "가입일",
-                save_role: "저장",
+                save_role: "저장", delete_user: "삭제", confirm_delete_user: "이 사용자를 삭제하시겠습니까? 되돌릴 수 없습니다.",
                 wos_profile: "게임 프로필", wos_name_label: "WOS 이름:", wos_march_label: "행군 시간:",
                 wos_save_profile: "저장", wos_profile_saved: "저장됨!", wos_name_ph: "게임 내 이름",
                 alliance_members: "동맹 멤버", no_registered: "등록된 동맹 멤버가 없습니다",
@@ -1401,7 +1401,7 @@
                 user_mgmt_title: "إدارة المستخدمين",
                 role_pending: "معلق", role_r123: "عضو", role_r4: "قائد", role_r5: "R5", role_admin: "مشرف",
                 col_user: "المستخدم", col_role: "الدور", col_wos_name: "اسم WOS", col_march: "المسيرة", col_joined: "تاريخ الانضمام",
-                save_role: "حفظ",
+                save_role: "حفظ", delete_user: "حذف", confirm_delete_user: "حذف هذا المستخدم؟ لا يمكن التراجع عن هذا.",
                 wos_profile: "ملف اللعبة", wos_name_label: "اسم WOS:", wos_march_label: "وقت المسيرة:",
                 wos_save_profile: "حفظ", wos_profile_saved: "تم الحفظ!", wos_name_ph: "اسمك في اللعبة",
                 alliance_members: "أعضاء التحالف", no_registered: "لم يسجل أي عضو في التحالف بعد",
@@ -2277,7 +2277,10 @@
                     '<td><input type="text" id="wosname-' + u.discord_id + '" value="' + wosNameVal + '" style="width:80px;font-size:0.8rem;padding:3px 5px;"></td>' +
                     '<td><input type="text" id="wosmarch-' + u.discord_id + '" value="' + marchVal + '" placeholder="M:SS" style="width:55px;font-size:0.8rem;padding:3px 5px;"></td>' +
                     '<td>' + joined + '</td>' +
-                    '<td>' + (isSelf ? '' : '<button class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;" onclick="saveUserAdmin(\'' + u.discord_id + '\')">' + t('save_role') + '</button>') + '</td>' +
+                    '<td>' + (isSelf ? '' :
+                        '<button class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;" onclick="saveUserAdmin(\'' + u.discord_id + '\')">' + t('save_role') + '</button> ' +
+                        '<button class="btn btn-danger" style="padding:3px 8px;font-size:0.75rem;" onclick="deleteUserAdmin(\'' + u.discord_id + '\')">' + t('delete_user') + '</button>'
+                    ) + '</td>' +
                     '</tr>';
             });
 
@@ -2319,6 +2322,15 @@
                 fetchRegisteredCallers();
             }).catch(function(err) {
                 alert(err.message);
+            });
+        }
+
+        function deleteUserAdmin(discordId) {
+            if (!confirm(t('confirm_delete_user'))) return;
+            fetch('/api/users/' + discordId, { method: 'DELETE' }).then(function(r) {
+                if (!r.ok) return r.json().then(function(d) { alert(d.error); });
+                renderAdminTab();
+                fetchRegisteredCallers();
             });
         }
 
@@ -2569,6 +2581,22 @@
                     } else if (data.type === 'rally_cancelled') {
                         activeBroadcasts = activeBroadcasts.filter(function(r) { return r.id !== data.rally_id; });
                         renderBroadcasts();
+                    } else if (data.type === 'user_deleted') {
+                        // Remove deleted user's callers from local state
+                        var hadLinked = false;
+                        callers = callers.filter(function(c) {
+                            if (c.wosDiscordId === data.discord_id) { hadLinked = true; return false; }
+                            return true;
+                        });
+                        if (hadLinked) { renderCallers(); saveState(); }
+                        // Refresh alliance members list
+                        fetchRegisteredCallers();
+                        // Refresh admin tab if visible
+                        var adminActive = document.getElementById('tab-admin').classList.contains('active');
+                        if (adminActive) renderAdminTab();
+                    } else if (data.type === 'profile_updated') {
+                        // Refresh alliance members list for all clients
+                        fetchRegisteredCallers();
                     }
                 } catch (e) {
                     console.error('SSE parse error:', e);
