@@ -631,15 +631,242 @@
             font-size: 0.8rem;
             padding: 4px 6px;
         }
+        .user-table input[type="text"] {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
         [dir="rtl"] .user-table th { text-align: right; }
         [dir="rtl"] .user-row-avatar { margin-right: 0; margin-left: 6px; }
 
-        /* ---- Responsive ---- */
+        /* ---- WOS Profile Bar ---- */
+        .wos-profile-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .wos-profile-bar label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .wos-profile-bar input {
+            flex: 1;
+            min-width: 70px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        .wos-profile-bar .march-input {
+            flex: 0;
+            width: 60px;
+            text-align: center;
+        }
+        .wos-profile-bar .btn {
+            padding: 4px 12px;
+            font-size: 0.8rem;
+        }
+        .wos-profile-status {
+            font-size: 0.75rem;
+            color: var(--green);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .wos-profile-status.visible { opacity: 1; }
+
+        /* ---- Broadcast Button ---- */
+        .btn-broadcast {
+            background: rgba(105, 240, 174, 0.15);
+            color: var(--green);
+            border: 1px solid rgba(105, 240, 174, 0.3);
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-broadcast:hover { background: rgba(105, 240, 174, 0.25); }
+        .btn-broadcast:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ---- Live Broadcast Cards ---- */
+        .broadcast-card {
+            background: var(--bg-card);
+            border: 1px solid var(--green);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .broadcast-card.expired {
+            border-color: var(--text-muted);
+            opacity: 0.5;
+        }
+        .broadcast-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .broadcast-creator {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .broadcast-arrival {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .broadcast-arrival .arrival-label {
+            font-size: 0.75rem;
+        }
+        .broadcast-arrival .arrival-time {
+            font-size: 1.4rem;
+        }
+        .btn-cancel-broadcast {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 3px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .btn-cancel-broadcast:hover { color: var(--red); border-color: var(--red); }
+
+        /* ---- Highlight "YOU" in broadcast schedule ---- */
+        .schedule-item.highlight-you {
+            border-left-color: var(--accent);
+            background: rgba(100, 181, 246, 0.1);
+            border-left-width: 4px;
+        }
+        .schedule-item.highlight-you .si-name { color: var(--accent); }
+        .you-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--bg-dark);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            margin-left: 6px;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+
+        /* ---- Registered Caller Buttons ---- */
+        .registered-caller-btn {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 16px;
+            background: rgba(100, 181, 246, 0.1);
+            color: var(--accent);
+            border: 1px dashed rgba(100, 181, 246, 0.4);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.15s;
+            margin: 2px;
+        }
+        .registered-caller-btn:hover { background: rgba(100, 181, 246, 0.2); }
+        .registered-caller-btn.added {
+            background: rgba(100, 181, 246, 0.2);
+            border-style: solid;
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        /* ---- Notification Dot on Tab ---- */
+        .tab-btn { position: relative; }
+        .notif-dot {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 8px;
+            height: 8px;
+            background: var(--red);
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        /* ---- RTL additions for new features ---- */
+        [dir="rtl"] .schedule-item.highlight-you { border-left: none; border-right: 4px solid var(--accent); }
+        [dir="rtl"] .you-badge { margin-left: 0; margin-right: 6px; }
+        [dir="rtl"] .notif-dot { right: auto; left: 4px; }
+
+        /* ---- Column wrappers — invisible on mobile ---- */
+        .panel-left, .panel-right {
+            display: contents;
+        }
+
+        /* ---- Responsive: Small phones ---- */
         @media (max-width: 400px) {
             .clock-time { font-size: 2.6rem; }
             .arrival-time { font-size: 1.8rem; }
             .si-time { font-size: 1.15rem; }
             .qs-btn { padding: 7px 10px; font-size: 0.8rem; }
+        }
+
+        /* ---- Responsive: Desktop (≥900px) ---- */
+        @media (min-width: 900px) {
+            body {
+                max-width: 1200px;
+                padding: 16px 32px 40px;
+            }
+            .app-title { font-size: 1.6rem; }
+            .clock-time { font-size: 4rem; }
+
+            /* Two-column grid for active tab panel */
+            .tab-panel.active {
+                display: grid;
+                grid-template-columns: 2fr 3fr;
+                gap: 16px;
+                align-items: start;
+            }
+
+            /* Wrappers become real block elements on desktop */
+            .panel-left, .panel-right {
+                display: block;
+                min-width: 0;
+            }
+
+            /* Sticky right column — schedule stays visible */
+            .panel-right {
+                position: sticky;
+                top: 20px;
+            }
+
+            /* Admin tab stays single column (full width) */
+            #tab-admin.active {
+                display: block;
+            }
+
+            /* Wider spacing on desktop */
+            .section { padding: 16px; margin-bottom: 12px; }
+            .tab-bar { gap: 8px; }
+            .tab-btn { padding: 12px 20px; font-size: 1rem; }
+            .wos-profile-bar { padding: 8px 14px; gap: 10px; }
+
+            /* Larger user table elements */
+            .user-table td { padding: 10px 8px; }
+            .user-row-avatar { width: 32px; height: 32px; }
+            .user-table input[type="text"] { font-size: 0.85rem; }
+
+            /* Wider schedule items */
+            .schedule-item { padding: 12px 16px; }
+            .si-time { font-size: 1.4rem; }
+            .arrival-time { font-size: 2.4rem; }
+
+            /* Broadcast cards */
+            .broadcast-card { padding: 16px; }
         }
     </style>
 </head>
@@ -668,6 +895,16 @@
         </select>
     </div>
 
+    <!-- WOS Profile Bar -->
+    <div class="wos-profile-bar" id="wos-profile-section" style="display:none;">
+        <label data-i18n="wos_name_label">WOS Name:</label>
+        <input type="text" id="wos-name-input" data-i18n-ph="wos_name_ph" placeholder="Your in-game name">
+        <label data-i18n="wos_march_label">March Time:</label>
+        <input type="text" id="wos-march-input" class="march-input" placeholder="M:SS">
+        <button class="btn btn-primary" data-i18n="wos_save_profile" onclick="saveWosProfile()">Save</button>
+        <span class="wos-profile-status" id="wos-profile-status" data-i18n="wos_profile_saved">Saved!</span>
+    </div>
+
     <!-- UTC Clock (sticky) -->
     <div class="clock">
         <div class="clock-time" id="utc-clock">00:00:00</div>
@@ -683,6 +920,7 @@
     <!-- ==================== TAB: RALLY SPAM ==================== -->
     <div id="tab-rally" class="tab-panel active">
 
+    <div class="panel-left">
     <!-- Quick Select + Buffer -->
     <div class="section">
         <div class="section-title" data-i18n="select_callers">Select Callers</div>
@@ -718,26 +956,16 @@
         </div>
     </div>
 
-    <!-- Set-Off Schedule -->
-    <div class="section" id="schedule-section">
-        <div class="section-title" data-i18n="setoff_schedule">Set-Off Schedule</div>
-        <div id="schedule-warning"></div>
-        <div class="arrival-display" id="arrival-display">
-            <div class="arrival-label" data-i18n="arrival_label">All Rallies Arrive At (UTC)</div>
-            <div class="arrival-time" id="arrival-time">--:--:--</div>
-            <div class="locked-indicator" data-i18n="locked_ind">LOCKED</div>
-        </div>
-        <div id="schedule-list"></div>
-        <div id="no-callers" class="empty-msg" data-i18n="no_callers">Select callers above to see schedule</div>
-        <button class="btn btn-copy" id="copy-btn" onclick="copySchedule()" style="display:none;" data-i18n="copy_schedule">Copy Schedule</button>
-    </div>
-
     <!-- Caller Management -->
     <div class="section">
         <div class="section-title" data-i18n="caller_setup">Caller Setup</div>
         <div id="caller-list"></div>
         <div class="caller-actions">
             <button class="btn btn-ghost" data-i18n="add_caller" onclick="addCaller()">+ Add Caller</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <div class="section-title" style="font-size:0.8rem;" data-i18n="alliance_members">Alliance Members</div>
+            <div id="registered-callers-list" class="quick-select"></div>
         </div>
     </div>
 
@@ -754,12 +982,32 @@
             <button class="btn btn-primary" data-i18n="save_btn" onclick="savePreset()">Save</button>
         </div>
     </div>
+    </div><!-- end panel-left -->
+
+    <div class="panel-right">
+    <!-- Set-Off Schedule + Live Broadcasts -->
+    <div class="section" id="schedule-section">
+        <div class="section-title" data-i18n="setoff_schedule">Set-Off Schedule</div>
+        <div id="broadcast-list"></div>
+        <div id="schedule-warning"></div>
+        <div class="arrival-display" id="arrival-display">
+            <div class="arrival-label" data-i18n="arrival_label">All Rallies Arrive At (UTC)</div>
+            <div class="arrival-time" id="arrival-time">--:--:--</div>
+            <div class="locked-indicator" data-i18n="locked_ind">LOCKED</div>
+        </div>
+        <div id="schedule-list"></div>
+        <div id="no-callers" class="empty-msg" data-i18n="no_callers">Select callers above to see schedule</div>
+        <button class="btn btn-copy" id="copy-btn" onclick="copySchedule()" style="display:none;" data-i18n="copy_schedule">Copy Schedule</button>
+        <button class="btn-broadcast" id="broadcast-btn" onclick="broadcastRally()" style="display:none;" data-i18n="broadcast_rally">Broadcast Rally</button>
+    </div>
+    </div><!-- end panel-right -->
 
     </div><!-- end tab-rally -->
 
     <!-- ==================== TAB: GARRISON DEFENSE ==================== -->
     <div id="tab-garrison" class="tab-panel">
 
+    <div class="panel-left">
     <!-- Your March Time -->
     <div class="section">
         <div class="section-title" data-i18n="your_march_time">Your March Time</div>
@@ -788,13 +1036,6 @@
         </div>
     </div>
 
-    <!-- Active Incoming Rallies -->
-    <div class="section">
-        <div class="section-title" data-i18n="incoming_rallies">Incoming Rallies</div>
-        <div id="active-rallies-list"></div>
-        <div id="no-rallies" class="empty-msg" data-i18n="no_rallies">No rallies being tracked</div>
-    </div>
-
     <!-- Enemy Roster Setup -->
     <div class="section">
         <div class="section-title" data-i18n="enemy_roster">Enemy Roster</div>
@@ -809,6 +1050,16 @@
             <button class="btn btn-ghost" data-i18n="add_enemy" onclick="addEnemy()">+ Add Enemy</button>
         </div>
     </div>
+    </div><!-- end panel-left -->
+
+    <div class="panel-right">
+    <!-- Active Incoming Rallies -->
+    <div class="section">
+        <div class="section-title" data-i18n="incoming_rallies">Incoming Rallies</div>
+        <div id="active-rallies-list"></div>
+        <div id="no-rallies" class="empty-msg" data-i18n="no_rallies">No rallies being tracked</div>
+    </div>
+    </div><!-- end panel-right -->
 
     </div><!-- end tab-garrison -->
 
@@ -869,8 +1120,14 @@
                 users_tab: "Users",
                 user_mgmt_title: "User Management",
                 role_pending: "Pending", role_r123: "Member", role_r4: "Captain", role_r5: "R5", role_admin: "Admin",
-                col_user: "User", col_role: "Role", col_joined: "Joined",
+                col_user: "User", col_role: "Role", col_wos_name: "WOS Name", col_march: "March", col_joined: "Joined",
                 save_role: "Save",
+                wos_profile: "Game Profile", wos_name_label: "WOS Name:", wos_march_label: "March Time:",
+                wos_save_profile: "Save", wos_profile_saved: "Saved!", wos_name_ph: "Your in-game name",
+                alliance_members: "Alliance Members", no_registered: "No alliance members have registered yet",
+                broadcast_rally: "Broadcast Rally", live_broadcasts: "Live Rally Broadcasts",
+                no_broadcasts: "No active rally broadcasts", broadcast_by: "Called by",
+                cancel_broadcast: "Cancel", broadcast_you: "YOU", call_at: "Call at:",
                 fmtCountdown: function(m, s) { return m > 0 ? 'in ' + m + 'm ' + s + 's' : 'in ' + parseInt(s) + 's'; },
                 fmtAgo: function(s) { return s + 's ago'; },
                 fmtInTime: function(t) { return 'in ' + t; }
@@ -919,8 +1176,14 @@
                 users_tab: "Kullanıcılar",
                 user_mgmt_title: "Kullanıcı Yönetimi",
                 role_pending: "Beklemede", role_r123: "Üye", role_r4: "Kaptan", role_r5: "R5", role_admin: "Yönetici",
-                col_user: "Kullanıcı", col_role: "Rol", col_joined: "Katılım",
+                col_user: "Kullanıcı", col_role: "Rol", col_wos_name: "WOS Adı", col_march: "Yürüyüş", col_joined: "Katılım",
                 save_role: "Kaydet",
+                wos_profile: "Oyun Profili", wos_name_label: "WOS Adı:", wos_march_label: "Yürüyüş Süresi:",
+                wos_save_profile: "Kaydet", wos_profile_saved: "Kaydedildi!", wos_name_ph: "Oyun içi adınız",
+                alliance_members: "İttifak Üyeleri", no_registered: "Henüz kayıtlı ittifak üyesi yok",
+                broadcast_rally: "Rally Yayınla", live_broadcasts: "Canlı Rally Yayınları",
+                no_broadcasts: "Aktif rally yayını yok", broadcast_by: "Çağıran",
+                cancel_broadcast: "İptal", broadcast_you: "SEN", call_at: "Çağrı:",
                 fmtCountdown: function(m, s) { return m > 0 ? m + 'dk ' + s + 'sn sonra' : parseInt(s) + 'sn sonra'; },
                 fmtAgo: function(s) { return s + 'sn önce'; },
                 fmtInTime: function(t) { return t + ' sonra'; }
@@ -969,8 +1232,14 @@
                 users_tab: "Użytkownicy",
                 user_mgmt_title: "Zarządzanie użytkownikami",
                 role_pending: "Oczekujący", role_r123: "Członek", role_r4: "Kapitan", role_r5: "R5", role_admin: "Admin",
-                col_user: "Użytkownik", col_role: "Rola", col_joined: "Dołączył",
+                col_user: "Użytkownik", col_role: "Rola", col_wos_name: "Nazwa WOS", col_march: "Marsz", col_joined: "Dołączył",
                 save_role: "Zapisz",
+                wos_profile: "Profil Gry", wos_name_label: "Nazwa WOS:", wos_march_label: "Czas Marszu:",
+                wos_save_profile: "Zapisz", wos_profile_saved: "Zapisano!", wos_name_ph: "Twoja nazwa w grze",
+                alliance_members: "Członkowie Sojuszu", no_registered: "Brak zarejestrowanych członków sojuszu",
+                broadcast_rally: "Nadaj Rally", live_broadcasts: "Rally na Żywo",
+                no_broadcasts: "Brak aktywnych transmisji rally", broadcast_by: "Wywołane przez",
+                cancel_broadcast: "Anuluj", broadcast_you: "TY", call_at: "Wywołaj o:",
                 fmtCountdown: function(m, s) { return m > 0 ? 'za ' + m + 'm ' + s + 's' : 'za ' + parseInt(s) + 's'; },
                 fmtAgo: function(s) { return s + 's temu'; },
                 fmtInTime: function(t) { return 'za ' + t; }
@@ -1019,8 +1288,14 @@
                 users_tab: "用户",
                 user_mgmt_title: "用户管理",
                 role_pending: "待审批", role_r123: "成员", role_r4: "队长", role_r5: "R5", role_admin: "管理员",
-                col_user: "用户", col_role: "角色", col_joined: "加入时间",
+                col_user: "用户", col_role: "角色", col_wos_name: "WOS名称", col_march: "行军", col_joined: "加入时间",
                 save_role: "保存",
+                wos_profile: "游戏资料", wos_name_label: "WOS名称：", wos_march_label: "行军时间：",
+                wos_save_profile: "保存", wos_profile_saved: "已保存！", wos_name_ph: "你的游戏内名称",
+                alliance_members: "联盟成员", no_registered: "暂无联盟成员注册",
+                broadcast_rally: "广播集结", live_broadcasts: "实时集结广播",
+                no_broadcasts: "暂无活跃的集结广播", broadcast_by: "发起者",
+                cancel_broadcast: "取消", broadcast_you: "你", call_at: "发起时间：",
                 fmtCountdown: function(m, s) { return m > 0 ? m + '分' + s + '秒后' : parseInt(s) + '秒后'; },
                 fmtAgo: function(s) { return s + '秒前'; },
                 fmtInTime: function(t) { return t + '后'; }
@@ -1069,8 +1344,14 @@
                 users_tab: "사용자",
                 user_mgmt_title: "사용자 관리",
                 role_pending: "대기중", role_r123: "멤버", role_r4: "캡틴", role_r5: "R5", role_admin: "관리자",
-                col_user: "사용자", col_role: "역할", col_joined: "가입일",
+                col_user: "사용자", col_role: "역할", col_wos_name: "WOS 이름", col_march: "행군", col_joined: "가입일",
                 save_role: "저장",
+                wos_profile: "게임 프로필", wos_name_label: "WOS 이름:", wos_march_label: "행군 시간:",
+                wos_save_profile: "저장", wos_profile_saved: "저장됨!", wos_name_ph: "게임 내 이름",
+                alliance_members: "동맹 멤버", no_registered: "등록된 동맹 멤버가 없습니다",
+                broadcast_rally: "랠리 방송", live_broadcasts: "실시간 랠리 방송",
+                no_broadcasts: "활성 랠리 방송 없음", broadcast_by: "소환자",
+                cancel_broadcast: "취소", broadcast_you: "나", call_at: "호출 시간:",
                 fmtCountdown: function(m, s) { return m > 0 ? m + '분 ' + s + '초 후' : parseInt(s) + '초 후'; },
                 fmtAgo: function(s) { return s + '초 전'; },
                 fmtInTime: function(t) { return t + ' 후'; }
@@ -1119,8 +1400,14 @@
                 users_tab: "المستخدمون",
                 user_mgmt_title: "إدارة المستخدمين",
                 role_pending: "معلق", role_r123: "عضو", role_r4: "قائد", role_r5: "R5", role_admin: "مشرف",
-                col_user: "المستخدم", col_role: "الدور", col_joined: "تاريخ الانضمام",
+                col_user: "المستخدم", col_role: "الدور", col_wos_name: "اسم WOS", col_march: "المسيرة", col_joined: "تاريخ الانضمام",
                 save_role: "حفظ",
+                wos_profile: "ملف اللعبة", wos_name_label: "اسم WOS:", wos_march_label: "وقت المسيرة:",
+                wos_save_profile: "حفظ", wos_profile_saved: "تم الحفظ!", wos_name_ph: "اسمك في اللعبة",
+                alliance_members: "أعضاء التحالف", no_registered: "لم يسجل أي عضو في التحالف بعد",
+                broadcast_rally: "بث الحشد", live_broadcasts: "بث الحشد المباشر",
+                no_broadcasts: "لا يوجد بث حشد نشط", broadcast_by: "بواسطة",
+                cancel_broadcast: "إلغاء", broadcast_you: "أنت", call_at: "نادِ في:",
                 fmtCountdown: function(m, s) { return m > 0 ? 'بعد ' + m + 'د ' + s + 'ث' : 'بعد ' + parseInt(s) + 'ث'; },
                 fmtAgo: function(s) { return 'قبل ' + s + 'ث'; },
                 fmtInTime: function(t) { return 'بعد ' + t; }
@@ -1333,7 +1620,7 @@
             callers.push({
                 id: nextId++,
                 name: name || '',
-                marchSeconds: marchSec || 180,
+                marchSeconds: marchSec || 45,
                 selected: false,
                 arrivalOrder: null
             });
@@ -1450,6 +1737,7 @@
                     + '<div class="si-march">' + t('march_prefix') + formatMarch(c.marchSeconds) + '</div>'
                     + '</div>'
                     + '<div class="si-right">'
+                    + '<div class="si-label" style="font-size:0.65rem;color:var(--text-muted);text-align:right;">' + t('call_at') + '</div>'
                     + '<div class="si-time">' + formatUTC(setOffMs) + '</div>'
                     + '<div class="si-countdown">'
                     + (isOverdue ? LANG[currentLang].fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil))
@@ -1501,7 +1789,8 @@
                 name: c.name,
                 marchSeconds: c.marchSeconds,
                 selected: c.selected,
-                arrivalOrder: c.arrivalOrder
+                arrivalOrder: c.arrivalOrder,
+                wosDiscordId: c.wosDiscordId || null
             }));
             localStorage.setItem('rally_callers', JSON.stringify(data));
         }
@@ -1513,9 +1802,10 @@
                     callers = data.map(c => ({
                         id: nextId++,
                         name: c.name || '',
-                        marchSeconds: c.marchSeconds || 180,
+                        marchSeconds: c.marchSeconds || 45,
                         selected: !!c.selected,
-                        arrivalOrder: c.arrivalOrder || null
+                        arrivalOrder: c.arrivalOrder || null,
+                        wosDiscordId: c.wosDiscordId || null
                     }));
                 }
             } catch (e) { /* ignore */ }
@@ -1607,6 +1897,8 @@
             document.querySelectorAll('.tab-btn').forEach(b => {
                 if (b.dataset.tab === tab) b.classList.add('active');
             });
+            // Clear notification dot when switching to rally tab
+            if (tab === 'rally') clearRallyDot();
         }
 
         // ===== Garrison Defense State =====
@@ -1957,6 +2249,8 @@
             var html = '<table class="user-table"><thead><tr>' +
                 '<th>' + t('col_user') + '</th>' +
                 '<th>' + t('col_role') + '</th>' +
+                '<th>' + t('col_wos_name') + '</th>' +
+                '<th>' + t('col_march') + '</th>' +
                 '<th>' + t('col_joined') + '</th>' +
                 '<th></th>' +
                 '</tr></thead><tbody>';
@@ -1974,11 +2268,16 @@
                     return '<option value="' + opt.value + '"' + selected + '>' + opt.label + '</option>';
                 }).join('');
 
+                var wosNameVal = u.wos_name ? escHtml(u.wos_name) : '';
+                var marchVal = u.march_seconds ? formatMarch(u.march_seconds) : '';
+
                 html += '<tr>' +
                     '<td><img class="user-row-avatar" src="' + avatarUrl + '">' + displayName + '</td>' +
                     '<td><select id="role-' + u.discord_id + '"' + (isSelf ? ' disabled' : '') + '>' + options + '</select></td>' +
+                    '<td><input type="text" id="wosname-' + u.discord_id + '" value="' + wosNameVal + '" style="width:80px;font-size:0.8rem;padding:3px 5px;"></td>' +
+                    '<td><input type="text" id="wosmarch-' + u.discord_id + '" value="' + marchVal + '" placeholder="M:SS" style="width:55px;font-size:0.8rem;padding:3px 5px;"></td>' +
                     '<td>' + joined + '</td>' +
-                    '<td>' + (isSelf ? '' : '<button class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;" onclick="changeUserRole(\'' + u.discord_id + '\')">' + t('save_role') + '</button>') + '</td>' +
+                    '<td>' + (isSelf ? '' : '<button class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;" onclick="saveUserAdmin(\'' + u.discord_id + '\')">' + t('save_role') + '</button>') + '</td>' +
                     '</tr>';
             });
 
@@ -1986,17 +2285,40 @@
             container.innerHTML = html;
         }
 
-        function changeUserRole(discordId) {
+        function saveUserAdmin(discordId) {
             var select = document.getElementById('role-' + discordId);
             var newRole = select.value || null;
-            fetch('/api/users/' + discordId + '/role', {
+            var wosNameInput = document.getElementById('wosname-' + discordId);
+            var wosMarchInput = document.getElementById('wosmarch-' + discordId);
+            var wosName = wosNameInput.value.trim() || null;
+            var marchSec = parseMarch(wosMarchInput.value) || null;
+
+            // Save role
+            var rolePromise = fetch('/api/users/' + discordId + '/role', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ role: newRole })
             }).then(function(r) {
-                if (!r.ok) return r.json().then(function(d) { alert(d.error); });
-                // Refresh user list
+                if (!r.ok) return r.json().then(function(d) { throw new Error(d.error); });
+                return r.json();
+            });
+
+            // Save WOS profile
+            var profilePromise = fetch('/api/users/' + discordId + '/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ wos_name: wosName, march_seconds: marchSec })
+            }).then(function(r) {
+                if (!r.ok) return r.json().then(function(d) { throw new Error(d.error); });
+                return r.json();
+            });
+
+            Promise.all([rolePromise, profilePromise]).then(function() {
                 renderAdminTab();
+                // Also refresh registered callers in case profile changed
+                fetchRegisteredCallers();
+            }).catch(function(err) {
+                alert(err.message);
             });
         }
 
@@ -2004,6 +2326,283 @@
             fetch('/auth/logout', { method: 'POST' }).then(function() {
                 window.location.href = '/login';
             });
+        }
+
+        // ===== WOS Profile & Broadcasting =====
+        let registeredCallers = [];
+        let activeBroadcasts = [];
+        let sseSource = null;
+        let hasNewBroadcast = false;
+
+        // --- WOS Profile ---
+        function loadWosProfile() {
+            if (currentUser.wos_name) {
+                document.getElementById('wos-name-input').value = currentUser.wos_name;
+            }
+            if (currentUser.march_seconds) {
+                document.getElementById('wos-march-input').value = formatMarch(currentUser.march_seconds);
+            }
+            document.getElementById('wos-profile-section').style.display = 'flex';
+        }
+
+        function saveWosProfile() {
+            var wosName = document.getElementById('wos-name-input').value.trim();
+            var marchStr = document.getElementById('wos-march-input').value;
+            var marchSeconds = parseMarch(marchStr);
+
+            fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    wos_name: wosName || null,
+                    march_seconds: marchSeconds || null
+                })
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                currentUser.wos_name = data.wos_name;
+                currentUser.march_seconds = data.march_seconds;
+                // Update any linked callers in the local callers list
+                var changed = false;
+                callers.forEach(function(c) {
+                    if (c.wosDiscordId === currentUser.discord_id) {
+                        if (data.wos_name) c.name = data.wos_name;
+                        if (data.march_seconds) c.marchSeconds = data.march_seconds;
+                        changed = true;
+                    }
+                });
+                if (changed) renderCallers();
+                // Flash saved indicator
+                var status = document.getElementById('wos-profile-status');
+                status.classList.add('visible');
+                setTimeout(function() { status.classList.remove('visible'); }, 2000);
+                // Refresh registered callers list
+                fetchRegisteredCallers();
+            });
+        }
+
+        // --- Registered Callers ---
+        function fetchRegisteredCallers() {
+            fetch('/api/callers').then(function(r) { return r.json(); }).then(function(data) {
+                registeredCallers = data;
+                renderRegisteredCallers();
+            });
+        }
+
+        function renderRegisteredCallers() {
+            var container = document.getElementById('registered-callers-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (registeredCallers.length === 0) {
+                container.innerHTML = '<div class="empty-msg" style="font-size:0.8rem;padding:6px 0;">' + t('no_registered') + '</div>';
+                return;
+            }
+
+            registeredCallers.forEach(function(rc) {
+                var btn = document.createElement('button');
+                var alreadyAdded = callers.some(function(c) { return c.wosDiscordId === rc.discord_id; });
+                btn.className = 'registered-caller-btn' + (alreadyAdded ? ' added' : '');
+                btn.textContent = rc.wos_name + ' (' + formatMarch(rc.march_seconds) + ')';
+                if (!alreadyAdded) {
+                    btn.onclick = (function(rcRef) {
+                        return function() { addRegisteredCaller(rcRef); };
+                    })(rc);
+                }
+                container.appendChild(btn);
+            });
+        }
+
+        function addRegisteredCaller(rc) {
+            callers.push({
+                id: nextId++,
+                name: rc.wos_name,
+                marchSeconds: rc.march_seconds,
+                selected: false,
+                arrivalOrder: null,
+                wosDiscordId: rc.discord_id
+            });
+            renderCallers();
+            renderRegisteredCallers();
+        }
+
+        // --- Broadcasting ---
+        function canBroadcast() {
+            return currentUser && ['r4', 'r5', 'admin'].includes(currentUser.role);
+        }
+
+        function updateBroadcastButton() {
+            var btn = document.getElementById('broadcast-btn');
+            if (!canBroadcast()) {
+                btn.style.display = 'none';
+                return;
+            }
+            var selected = callers.filter(function(c) { return c.selected; });
+            btn.style.display = selected.length > 0 ? 'block' : 'none';
+        }
+
+        function broadcastRally() {
+            var selected = callers.filter(function(c) { return c.selected; });
+            if (selected.length === 0) return;
+
+            var arrivalMs = getArrivalMs();
+            var callerData = selected
+                .sort(function(a, b) { return b.marchSeconds - a.marchSeconds; })
+                .map(function(c, i) {
+                    return {
+                        discord_id: c.wosDiscordId || null,
+                        caller_name: c.name || t('unnamed'),
+                        march_seconds: c.marchSeconds,
+                        arrival_order: i + 1
+                    };
+                });
+
+            fetch('/api/rallies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    arrival_ms: arrivalMs,
+                    rally_duration_seconds: rallyDurationSeconds,
+                    callers: callerData
+                })
+            }).then(function(r) {
+                if (!r.ok) return r.json().then(function(d) { alert(d.error); });
+                return r.json();
+            }).then(function(rally) {
+                if (rally && rally.id) {
+                    fetchActiveBroadcasts();
+                }
+            });
+        }
+
+        function cancelBroadcast(rallyId) {
+            fetch('/api/rallies/' + rallyId, { method: 'DELETE' }).then(function(r) {
+                if (r.ok) fetchActiveBroadcasts();
+            });
+        }
+
+        // --- Live Broadcast Display ---
+        function fetchActiveBroadcasts() {
+            fetch('/api/rallies').then(function(r) { return r.json(); }).then(function(data) {
+                activeBroadcasts = data;
+                renderBroadcasts();
+            });
+        }
+
+        function renderBroadcasts() {
+            var container = document.getElementById('broadcast-list');
+            if (!container) return;
+
+            var now = Date.now();
+            var live = activeBroadcasts.filter(function(r) { return r.arrival_ms > now - 60000; });
+
+            if (live.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            live.forEach(function(rally) {
+                var card = document.createElement('div');
+                card.className = 'broadcast-card' + (rally.arrival_ms < now ? ' expired' : '');
+
+                var creatorName = rally.creator_global_name || rally.creator_name;
+                var canCancel = (rally.creator_id === currentUser.discord_id ||
+                                 currentUser.role === 'r5' || currentUser.role === 'admin');
+
+                var headerHtml = '<div class="broadcast-header">' +
+                    '<span class="broadcast-creator">' + t('broadcast_by') + ': ' + escHtml(creatorName) + '</span>' +
+                    (canCancel ? '<button class="btn-cancel-broadcast" onclick="cancelBroadcast(' + rally.id + ')">' + t('cancel_broadcast') + '</button>' : '') +
+                    '</div>';
+
+                var arrivalHtml = '<div class="broadcast-arrival">' +
+                    '<div class="arrival-label">' + t('arrival_label') + '</div>' +
+                    '<div class="arrival-time">' + formatUTC(rally.arrival_ms) + '</div>' +
+                    '</div>';
+
+                var scheduleHtml = '';
+                var sortedCallers = rally.callers.slice().sort(function(a, b) { return b.march_seconds - a.march_seconds; });
+                sortedCallers.forEach(function(c) {
+                    var setOffMs = rally.arrival_ms - rally.rally_duration_seconds * 1000 - c.march_seconds * 1000;
+                    var secsUntil = Math.floor((setOffMs - now) / 1000);
+                    var isOverdue = secsUntil < 0;
+                    var isImminent = !isOverdue && secsUntil <= 10;
+                    var isYou = c.discord_id && c.discord_id === currentUser.discord_id;
+
+                    var classes = 'schedule-item'
+                        + (isOverdue ? ' overdue' : '')
+                        + (isImminent ? ' imminent' : '')
+                        + (isYou ? ' highlight-you' : '');
+
+                    var youBadge = isYou ? '<span class="you-badge">' + t('broadcast_you') + '</span>' : '';
+
+                    scheduleHtml += '<div class="' + classes + '">' +
+                        '<div class="si-left">' +
+                            '<div class="si-name">' + escHtml(c.caller_name) + youBadge + '</div>' +
+                            '<div class="si-march">' + t('march_prefix') + formatMarch(c.march_seconds) + '</div>' +
+                        '</div>' +
+                        '<div class="si-right">' +
+                            '<div style="font-size:0.65rem;color:var(--text-muted);text-align:right;">' + t('call_at') + '</div>' +
+                            '<div class="si-time">' + formatUTC(setOffMs) + '</div>' +
+                            '<div class="si-countdown">' +
+                                (isOverdue ? LANG[currentLang].fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil)) +
+                            '</div>' +
+                        '</div>' +
+                        '</div>';
+                });
+
+                card.innerHTML = headerHtml + arrivalHtml + scheduleHtml;
+                container.appendChild(card);
+            });
+        }
+
+        // --- SSE Connection ---
+        function connectSSE() {
+            if (sseSource) { sseSource.close(); }
+            sseSource = new EventSource('/api/events');
+
+            sseSource.onmessage = function(event) {
+                try {
+                    var data = JSON.parse(event.data);
+                    if (data.type === 'rally_created') {
+                        fetchActiveBroadcasts();
+                        showRallyDot();
+                    } else if (data.type === 'rally_cancelled') {
+                        activeBroadcasts = activeBroadcasts.filter(function(r) { return r.id !== data.rally_id; });
+                        renderBroadcasts();
+                    }
+                } catch (e) {
+                    console.error('SSE parse error:', e);
+                }
+            };
+
+            sseSource.onerror = function() {
+                // EventSource auto-reconnects. Refetch state on reconnection.
+                setTimeout(function() {
+                    if (sseSource && sseSource.readyState === EventSource.OPEN) {
+                        fetchActiveBroadcasts();
+                    }
+                }, 1000);
+            };
+        }
+
+        // --- Notification Dot ---
+        function showRallyDot() {
+            // Only show dot if not already on rally tab
+            var rallyTabActive = document.getElementById('tab-rally').classList.contains('active');
+            if (rallyTabActive) return;
+            hasNewBroadcast = true;
+            var rallyBtn = document.querySelector('.tab-btn[data-tab="rally"]');
+            if (rallyBtn && !rallyBtn.querySelector('.notif-dot')) {
+                var dot = document.createElement('span');
+                dot.className = 'notif-dot';
+                rallyBtn.appendChild(dot);
+            }
+        }
+
+        function clearRallyDot() {
+            hasNewBroadcast = false;
+            var dot = document.querySelector('.tab-btn[data-tab="rally"] .notif-dot');
+            if (dot) dot.remove();
         }
 
         // ===== Auth Boot =====
@@ -2053,11 +2652,21 @@
             updateSchedule();
             updateActiveRallies();
 
+            // Load WOS profile and fetch data
+            loadWosProfile();
+            fetchRegisteredCallers();
+            fetchActiveBroadcasts();
+            connectSSE();
+
             // Apply translations (after DOM is populated)
             if (currentLang !== 'en') setLang(currentLang);
 
             setInterval(updateClock, 100);
-            setInterval(updateSchedule, 250);
+            setInterval(function() {
+                updateSchedule();
+                updateBroadcastButton();
+                renderBroadcasts();
+            }, 250);
             setInterval(updateActiveRallies, 250);
 
             // Render admin tab if authorized

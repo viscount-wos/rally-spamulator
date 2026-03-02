@@ -5,7 +5,11 @@ const SqliteStore = require('better-sqlite3-session-store')(session);
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
-const { upsertUser, getUser, getAllUsers, setUserRole, bootstrapAdmin } = require('./db');
+const {
+  upsertUser, getUser, getAllUsers, setUserRole, bootstrapAdmin,
+  setWosProfile, getRegisteredCallers,
+  createRally, getActiveRallies, getRallyWithCallers, getRallyCallers, cancelRally, cleanupExpiredRallies
+} = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -30,7 +34,7 @@ const sessionDb = new Database(path.join(dataDir, 'sessions.db'));
 
 app.use(express.json());
 
-app.use(session({
+const sessionMiddleware = session({
   store: new SqliteStore({ client: sessionDb }),
   secret: SESSION_SECRET,
   resave: false,
@@ -40,7 +44,9 @@ app.use(session({
     httpOnly: true,
     secure: false // set true in production with HTTPS
   }
-}));
+});
+
+app.use(sessionMiddleware);
 
 // ===== Auth Middleware =====
 
@@ -63,6 +69,21 @@ function requireRole(...roles) {
     }
     next();
   };
+}
+
+// ===== SSE (Server-Sent Events) Infrastructure =====
+
+const sseClients = new Map(); // userId -> response
+
+function broadcastSSE(data) {
+  const message = 'data: ' + JSON.stringify(data) + '\n\n';
+  for (const [userId, res] of sseClients) {
+    try {
+      res.write(message);
+    } catch (e) {
+      sseClients.delete(userId);
+    }
+  }
 }
 
 // ===== Public Routes =====
@@ -146,7 +167,7 @@ app.get('/auth/discord/callback', async (req, res) => {
 
 // ===== Protected Routes =====
 
-// Auth status check
+// Auth status check (includes WOS profile fields)
 app.get('/auth/status', requireAuth, (req, res) => {
   const user = getUser(req.session.userId);
   if (!user) {
@@ -158,7 +179,9 @@ app.get('/auth/status', requireAuth, (req, res) => {
     username: user.username,
     global_name: user.global_name,
     avatar: user.avatar,
-    role: user.role
+    role: user.role,
+    wos_name: user.wos_name,
+    march_seconds: user.march_seconds
   });
 });
 
@@ -166,6 +189,105 @@ app.get('/auth/status', requireAuth, (req, res) => {
 app.post('/auth/logout', (req, res) => {
   req.session.destroy(() => {
     res.json({ ok: true });
+  });
+});
+
+// ===== WOS Profile API =====
+
+app.get('/api/profile', requireAuth, (req, res) => {
+  const user = getUser(req.session.userId);
+  res.json({ wos_name: user.wos_name, march_seconds: user.march_seconds });
+});
+
+app.put('/api/profile', requireAuth, (req, res) => {
+  const { wos_name, march_seconds } = req.body;
+  if (wos_name !== undefined && wos_name !== null && typeof wos_name !== 'string') {
+    return res.status(400).json({ error: 'Invalid wos_name' });
+  }
+  if (march_seconds !== undefined && march_seconds !== null && (typeof march_seconds !== 'number' || march_seconds < 0 || march_seconds > 3600)) {
+    return res.status(400).json({ error: 'Invalid march_seconds' });
+  }
+  const updated = setWosProfile(req.session.userId, wos_name, march_seconds);
+  res.json({ wos_name: updated.wos_name, march_seconds: updated.march_seconds });
+});
+
+// ===== Registered Callers API =====
+
+app.get('/api/callers', requireAuth, (req, res) => {
+  const callers = getRegisteredCallers();
+  res.json(callers);
+});
+
+// ===== Rally Broadcasting API =====
+
+app.post('/api/rallies', requireAuth, requireRole('r4', 'r5', 'admin'), (req, res) => {
+  const { arrival_ms, rally_duration_seconds, callers } = req.body;
+  if (!arrival_ms || !rally_duration_seconds || !Array.isArray(callers) || callers.length === 0) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  if (arrival_ms < Date.now()) {
+    return res.status(400).json({ error: 'Arrival time is in the past' });
+  }
+  try {
+    const rallyId = createRally(req.session.userId, arrival_ms, rally_duration_seconds, callers);
+    const rally = getRallyWithCallers(rallyId);
+    broadcastSSE({ type: 'rally_created', rally });
+    res.json(rally);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/rallies', requireAuth, (req, res) => {
+  cleanupExpiredRallies();
+  const rallies = getActiveRallies();
+  const result = rallies.map(r => {
+    r.callers = getRallyCallers(r.id);
+    return r;
+  });
+  res.json(result);
+});
+
+app.delete('/api/rallies/:id', requireAuth, (req, res) => {
+  const rally = getRallyWithCallers(parseInt(req.params.id));
+  if (!rally) return res.status(404).json({ error: 'Rally not found' });
+  const user = getUser(req.session.userId);
+  // Only creator, R5, or admin can cancel
+  if (rally.creator_id !== req.session.userId && user.role !== 'r5' && user.role !== 'admin') {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+  cancelRally(rally.id);
+  broadcastSSE({ type: 'rally_cancelled', rally_id: rally.id });
+  res.json({ ok: true });
+});
+
+// ===== SSE Endpoint =====
+
+app.get('/api/events', requireAuth, (req, res) => {
+  const userId = req.session.userId;
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+
+  // Send initial connection confirmation
+  res.write('data: ' + JSON.stringify({ type: 'connected' }) + '\n\n');
+
+  // Store client connection
+  sseClients.set(userId, res);
+
+  // Heartbeat every 30s to keep connection alive
+  const heartbeat = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch (e) { /* ignore */ }
+  }, 30000);
+
+  // Cleanup on disconnect
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    sseClients.delete(userId);
   });
 });
 
@@ -197,6 +319,19 @@ app.put('/api/users/:id/role', requireAuth, requireRole('r5', 'admin'), (req, re
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+app.put('/api/users/:id/profile', requireAuth, requireRole('r5', 'admin'), (req, res) => {
+  const { id } = req.params;
+  const { wos_name, march_seconds } = req.body;
+  if (wos_name !== undefined && wos_name !== null && typeof wos_name !== 'string') {
+    return res.status(400).json({ error: 'Invalid wos_name' });
+  }
+  if (march_seconds !== undefined && march_seconds !== null && (typeof march_seconds !== 'number' || march_seconds < 0 || march_seconds > 3600)) {
+    return res.status(400).json({ error: 'Invalid march_seconds' });
+  }
+  const updated = setWosProfile(id, wos_name, march_seconds);
+  res.json(updated);
 });
 
 // ===== Static Files (behind auth) =====

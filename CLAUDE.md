@@ -1,6 +1,6 @@
 # Viscount's Rally Spamulator
 
-A web tool for the game **Whiteout Survival**. The frontend (CSS, HTML, JS) lives in `public/index.html` (~1900 lines). Served by an Express server (`server.js`) with Discord OAuth2 authentication and role-based access control. Deployed to Google Cloud Run via Docker.
+A web tool for the game **Whiteout Survival**. The frontend (CSS, HTML, JS) lives in `public/index.html` (~2200 lines). Served by an Express server (`server.js`) with Discord OAuth2 authentication, role-based access control, and Server-Sent Events for real-time rally broadcasting. Deployed to Google Cloud Run via Docker.
 
 ## Project Structure
 
@@ -16,8 +16,8 @@ rally-spamulator/
   README.md
   package.json
   package-lock.json
-  db.js                   # SQLite database layer (users, roles)
-  server.js               # Express server with auth + API routes (~170 lines)
+  db.js                   # SQLite database layer (users, roles, rallies)
+  server.js               # Express server with auth + API routes + SSE (~280 lines)
   data/                   # SQLite database files (not committed)
     rally.db
     sessions.db
@@ -34,13 +34,18 @@ Three tabs (third only visible to R5/Admin):
 Coordinates multiple rally callers so all rallies arrive at the same target simultaneously.
 
 - Users add **callers** with name + march time, then click them in desired arrival order.
+- **WOS Profile**: Each user can register their in-game name and march time (saved server-side, linked to Discord account).
+- **Alliance Members**: Registered users appear as quick-add buttons in Caller Setup so coordinators can add them as callers with one click.
 - Math: `firstDeparture = ceil((now + bufferMs) / bufferMs) * bufferMs` (rounds up to next buffer interval).
 - `arrival = firstDeparture + rallyDuration + longestMarch`
 - Each caller's set-off: `setOff = arrival - rallyDuration - marchTime`
 - Displays a live departure schedule with countdowns, copy-to-clipboard.
+- **Broadcast Rally**: R4/R5/Admin can broadcast the rally schedule to all connected users via SSE. Each user sees the schedule with their own departure time highlighted ("YOU" badge).
+- **Live Broadcasts section**: Shows active broadcasted rallies at the top of the Rally tab with live countdowns.
+- **Notification dot**: Red dot on Rally tab button when a new broadcast arrives while on another tab.
 - Supports caller presets saved to localStorage.
 - Rally duration toggle: 5 min or 10 min.
-- Buffer/rounding on first departure (default 5 min).
+- Buffer/rounding on first departure (default 30s).
 - Lock button freezes the arrival time so the schedule doesn't drift.
 
 ### Tab 2 — Garrison Defense (دفاع الحامية)
@@ -68,13 +73,13 @@ User management panel. Only visible to users with R5 or Admin role.
 3. User authorizes → Discord redirects to `/auth/discord/callback` with auth code
 4. Server exchanges code for access token, fetches user profile from Discord API
 5. User upserted in SQLite database, session created
-6. Redirected to `/` → frontend calls `/auth/status` to get user info + role
+6. Redirected to `/` → frontend calls `/auth/status` to get user info + role + WOS profile
 
 ### Roles
 - **Pending** (role=null) — new users, can see "Waiting for Approval" screen only
 - **R1/2/3** (role='r123') — Members, can use Rally Spam + Garrison Defense
-- **R4** (role='r4') — Captains, same as member (future features may differentiate)
-- **R5** (role='r5') — Alliance Leader, full access + user management
+- **R4** (role='r4') — Captains, can broadcast rallies + all member features
+- **R5** (role='r5') — Alliance Leader, full access + user management + broadcast
 - **Admin** (role='admin') — Full access to everything
 
 ### Admin Bootstrap
@@ -84,26 +89,45 @@ Set `ADMIN_DISCORD_ID` in `.env` to auto-promote that Discord user to admin on f
 
 ### Frontend (`public/index.html`)
 - **Auth boot**: `authBoot()` runs first, calls `/auth/status`. If 401 → redirect to login. If pending → show pending screen. If approved → show app via `initApp()`.
-- **State variables**: `currentUser`, `callers[]`, `enemies[]`, `activeRallies[]`, `selectedEnemyId`, `locked`, `lockedArrivalMs`, etc.
+- **State variables**: `currentUser`, `callers[]`, `enemies[]`, `activeRallies[]`, `registeredCallers[]`, `activeBroadcasts[]`, `sseSource`, `hasNewBroadcast`, `selectedEnemyId`, `locked`, `lockedArrivalMs`, etc.
+- **Caller objects**: `{ id, name, marchSeconds, selected, arrivalOrder, wosDiscordId }` — `wosDiscordId` links to a Discord user account (null for manual callers).
 - **Persistence**: All state saved to localStorage (`rally_callers`, `rally_enemies`, `garrison_enemies`, `garrison_your_march`, `rally_settings`, `rally_presets`, `app_lang`).
-- **Live updates**: Three `setInterval` loops at 100ms (clock) and 250ms (schedule + active rallies).
-- **Tab switching**: Uses `data-tab` attributes on tab buttons (not text content), so it works across all languages.
+- **Live updates**: Three `setInterval` loops at 100ms (clock) and 250ms (schedule/broadcasts + active rallies).
+- **Tab switching**: Uses `data-tab` attributes on tab buttons (not text content), so it works across all languages. Clears notification dot when switching to rally tab.
 - **Click-to-order**: Callers are selected by clicking; each gets a numbered badge for arrival order.
-- **Validation feedback**: `flashElement()` shows a red outline flash when Track is clicked without selecting an enemy or entering a countdown.
+- **SSE connection**: `connectSSE()` opens an EventSource to `/api/events` for real-time rally broadcast notifications. Auto-reconnects on drop.
+- **Broadcast rendering**: `renderBroadcasts()` runs every 250ms to update live countdowns. Highlights the current user's row with "YOU" badge.
 - **Admin tab**: Dynamically added by `renderAdminTab()` only for R5/Admin users.
 
 ### Server (`server.js`)
 - Discord OAuth2 routes: `/auth/discord`, `/auth/discord/callback`, `/auth/status`, `/auth/logout`
+- WOS Profile API: `GET /api/profile`, `PUT /api/profile`
+- Registered Callers API: `GET /api/callers`
+- Rally Broadcasting API: `POST /api/rallies` (R4/R5/Admin), `GET /api/rallies`, `DELETE /api/rallies/:id`
+- SSE endpoint: `GET /api/events` — streams rally_created/rally_cancelled events to all connected clients
 - User management API: `GET /api/users`, `PUT /api/users/:id/role` (R5/Admin only)
 - Auth middleware gates all static files — unauthenticated requests redirect to `/login`
 - Session management via `express-session` + `better-sqlite3-session-store`
+- `broadcastSSE(data)` sends JSON messages to all connected SSE clients via `sseClients` Map.
 - Reads `PORT` from environment variable (default 8080) for Cloud Run compatibility.
 
 ### Database (`db.js`)
 - SQLite via `better-sqlite3` (synchronous, fast)
-- `users` table: `discord_id` (PK), `username`, `global_name`, `avatar`, `email`, `role`, `created_at`, `last_login`
-- Functions: `upsertUser()`, `getUser()`, `getAllUsers()`, `setUserRole()`, `bootstrapAdmin()`
+- **`users` table**: `discord_id` (PK), `username`, `global_name`, `avatar`, `email`, `role`, `wos_name`, `march_seconds`, `created_at`, `last_login`
+- **`rallies` table**: `id` (PK), `creator_id`, `arrival_ms`, `rally_duration_seconds`, `status`, `created_at`
+- **`rally_callers` table**: `id` (PK), `rally_id`, `discord_id` (nullable), `caller_name`, `march_seconds`, `arrival_order`
+- User functions: `upsertUser()`, `getUser()`, `getAllUsers()`, `setUserRole()`, `bootstrapAdmin()`
+- Profile functions: `setWosProfile()`, `getRegisteredCallers()`
+- Rally functions: `createRally()`, `getActiveRallies()`, `getRallyWithCallers()`, `getRallyCallers()`, `cancelRally()`, `cleanupExpiredRallies()`
 - DB file at `data/rally.db` (configurable via `DB_PATH` env var)
+- Safe migrations for adding WOS columns via ALTER TABLE with try/catch
+
+### SSE (Server-Sent Events)
+- **Why SSE**: Unidirectional server→client push is all that's needed. No extra dependencies (works natively with Express + EventSource API). Auto-reconnects.
+- **Connection**: `GET /api/events` with 30s heartbeat to keep alive.
+- **Events**: `rally_created` (includes full rally object), `rally_cancelled` (includes rally_id).
+- **Cloud Run**: SSE connections may drop after ~300s timeout. EventSource auto-reconnects and the client refetches active rallies on reconnection.
+- **Client tracking**: `sseClients` Map keyed by userId. Cleaned up on disconnect.
 
 ### Environment Variables
 - `DISCORD_CLIENT_ID` — from Discord Developer Portal
@@ -126,7 +150,7 @@ Six languages: English (`en`), Turkish (`tr`), Polish (`pl`), Chinese (`zh`), Ko
 ## RTL Support (Arabic)
 
 - `setLang()` sets `document.documentElement.dir = 'rtl'` for Arabic, `'ltr'` for others.
-- CSS `[dir="rtl"]` selectors flip: border-left to border-right on schedule items and rally trackers, margin-left/right and padding-left/right on countdown and info elements.
+- CSS `[dir="rtl"]` selectors flip: border-left to border-right on schedule items, rally trackers, and broadcast highlight items; margin-left/right and padding-left/right on countdown and info elements; notification dot position.
 
 ## Dev Server
 
@@ -175,4 +199,7 @@ Note: SQLite requires persistent storage. For Cloud Run, use a GCS FUSE volume m
 - **RTL**: If adding new styled elements with directional borders/margins/padding, add corresponding `[dir="rtl"]` CSS overrides.
 - **Server routes**: API routes in `server.js` must be added **before** the auth gate middleware and wildcard catch-all.
 - **Auth middleware**: The auth gate in server.js protects all static files. Public paths (`/login`, `/login.html`, `/auth/*`) are whitelisted.
-- **Role checks**: Use `requireRole('r5', 'admin')` middleware for admin-only API routes.
+- **Role checks**: Use `requireRole('r5', 'admin')` middleware for admin-only API routes. R4/R5/Admin for broadcast routes.
+- **Caller objects**: Include `wosDiscordId` field when linked to a registered user (null for manual callers). This field is persisted in localStorage and presets.
+- **Broadcast snapshots**: Broadcasted rallies store a snapshot of caller names and march times at broadcast time. Profile changes do not retroactively modify existing broadcasts.
+- **SSE resilience**: EventSource auto-reconnects. On reconnection, the client fetches full state via `GET /api/rallies`. Expired rallies are cleaned up server-side (>10min past arrival) and client-side (>60s past arrival).
