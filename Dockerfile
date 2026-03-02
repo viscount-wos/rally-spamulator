@@ -16,6 +16,9 @@ COPY public/ ./public/
 # Create data directory for SQLite
 RUN mkdir -p /data && chown node:node /data
 
+# Point SQLite databases to the writable /data directory
+ENV DB_PATH=/data/rally.db
+
 # Cloud Run sets PORT env var (default 8080)
 EXPOSE 8080
 
