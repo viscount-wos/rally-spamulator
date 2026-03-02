@@ -1,6 +1,6 @@
 # Viscount's Rally Spamulator
 
-A web tool for the game **Whiteout Survival**. The frontend (CSS, HTML, JS) lives in `public/index.html` (~1740 lines). Served by a minimal Express server (`server.js`). Deployed to Google Cloud Run via Docker.
+A web tool for the game **Whiteout Survival**. The frontend (CSS, HTML, JS) lives in `public/index.html` (~1900 lines). Served by an Express server (`server.js`) with Discord OAuth2 authentication and role-based access control. Deployed to Google Cloud Run via Docker.
 
 ## Project Structure
 
@@ -8,20 +8,27 @@ A web tool for the game **Whiteout Survival**. The frontend (CSS, HTML, JS) live
 rally-spamulator/
   .claude/launch.json     # Dev server config (node server.js, port 8080)
   .dockerignore
+  .env                    # Local env vars (not committed)
+  .env.example            # Template for env vars
   .gitignore
   CLAUDE.md
   Dockerfile
   README.md
   package.json
   package-lock.json
-  server.js               # Express static server (~15 lines)
+  db.js                   # SQLite database layer (users, roles)
+  server.js               # Express server with auth + API routes (~170 lines)
+  data/                   # SQLite database files (not committed)
+    rally.db
+    sessions.db
   public/
     index.html            # The entire frontend application
+    login.html            # Discord OAuth login page
 ```
 
 ## What It Does
 
-Two tabs:
+Three tabs (third only visible to R5/Admin):
 
 ### Tab 1 — Rally Spam (حشد الهجوم)
 Coordinates multiple rally callers so all rallies arrive at the same target simultaneously.
@@ -45,21 +52,66 @@ Tracks incoming enemy rallies and tells defenders when to send reinforcements.
 - Shows live countdowns for each tracked rally with "SEND NOW" / "LANDED" states.
 - Auto-removes rallies 30s after landing.
 
+### Tab 3 — Users (R5/Admin only)
+User management panel. Only visible to users with R5 or Admin role.
+
+- View all registered users with Discord avatar, name, role, join date.
+- Change user roles via dropdown (Pending, Member, Captain, R5, Admin).
+- Only Admin can assign the Admin role. R5 can assign up to R5.
+- Cannot change your own role.
+
+## Authentication & Roles
+
+### Discord OAuth2 Flow
+1. User visits app → redirected to `/login` (login.html)
+2. Clicks "Login with Discord" → redirected to Discord OAuth2 authorize endpoint
+3. User authorizes → Discord redirects to `/auth/discord/callback` with auth code
+4. Server exchanges code for access token, fetches user profile from Discord API
+5. User upserted in SQLite database, session created
+6. Redirected to `/` → frontend calls `/auth/status` to get user info + role
+
+### Roles
+- **Pending** (role=null) — new users, can see "Waiting for Approval" screen only
+- **R1/2/3** (role='r123') — Members, can use Rally Spam + Garrison Defense
+- **R4** (role='r4') — Captains, same as member (future features may differentiate)
+- **R5** (role='r5') — Alliance Leader, full access + user management
+- **Admin** (role='admin') — Full access to everything
+
+### Admin Bootstrap
+Set `ADMIN_DISCORD_ID` in `.env` to auto-promote that Discord user to admin on first login.
+
 ## Architecture
 
 ### Frontend (`public/index.html`)
-- **State variables**: `callers[]`, `enemies[]`, `activeRallies[]`, `selectedEnemyId`, `locked`, `lockedArrivalMs`, etc.
+- **Auth boot**: `authBoot()` runs first, calls `/auth/status`. If 401 → redirect to login. If pending → show pending screen. If approved → show app via `initApp()`.
+- **State variables**: `currentUser`, `callers[]`, `enemies[]`, `activeRallies[]`, `selectedEnemyId`, `locked`, `lockedArrivalMs`, etc.
 - **Persistence**: All state saved to localStorage (`rally_callers`, `rally_enemies`, `garrison_enemies`, `garrison_your_march`, `rally_settings`, `rally_presets`, `app_lang`).
 - **Live updates**: Three `setInterval` loops at 100ms (clock) and 250ms (schedule + active rallies).
 - **Tab switching**: Uses `data-tab` attributes on tab buttons (not text content), so it works across all languages.
 - **Click-to-order**: Callers are selected by clicking; each gets a numbered badge for arrival order.
 - **Validation feedback**: `flashElement()` shows a red outline flash when Track is clicked without selecting an enemy or entering a countdown.
+- **Admin tab**: Dynamically added by `renderAdminTab()` only for R5/Admin users.
 
 ### Server (`server.js`)
-- Minimal Express server serving `public/` as static files.
-- Wildcard fallback to `index.html` for any unmatched route.
+- Discord OAuth2 routes: `/auth/discord`, `/auth/discord/callback`, `/auth/status`, `/auth/logout`
+- User management API: `GET /api/users`, `PUT /api/users/:id/role` (R5/Admin only)
+- Auth middleware gates all static files — unauthenticated requests redirect to `/login`
+- Session management via `express-session` + `better-sqlite3-session-store`
 - Reads `PORT` from environment variable (default 8080) for Cloud Run compatibility.
-- Future API routes go **before** the wildcard catch-all.
+
+### Database (`db.js`)
+- SQLite via `better-sqlite3` (synchronous, fast)
+- `users` table: `discord_id` (PK), `username`, `global_name`, `avatar`, `email`, `role`, `created_at`, `last_login`
+- Functions: `upsertUser()`, `getUser()`, `getAllUsers()`, `setUserRole()`, `bootstrapAdmin()`
+- DB file at `data/rally.db` (configurable via `DB_PATH` env var)
+
+### Environment Variables
+- `DISCORD_CLIENT_ID` — from Discord Developer Portal
+- `DISCORD_CLIENT_SECRET` — from Discord Developer Portal
+- `DISCORD_REDIRECT_URI` — callback URL (e.g. `http://localhost:8080/auth/discord/callback`)
+- `SESSION_SECRET` — random string for signing session cookies
+- `ADMIN_DISCORD_ID` — (optional) Discord user ID to auto-promote as first admin
+- `DB_PATH` — (optional) path to SQLite file, defaults to `./data/rally.db`
 
 ## i18n System
 
@@ -80,6 +132,7 @@ Six languages: English (`en`), Turkish (`tr`), Polish (`pl`), Chinese (`zh`), Ko
 
 ```bash
 npm install
+cp .env.example .env  # Fill in Discord credentials
 node server.js
 ```
 
@@ -89,7 +142,11 @@ Then open `http://localhost:8080`. Launch config is in `.claude/launch.json`.
 
 ```bash
 docker build -t rally-spamulator .
-docker run --rm -p 8080:8080 rally-spamulator
+docker run --rm -p 8080:8080 \
+  -e DISCORD_CLIENT_ID=... \
+  -e DISCORD_CLIENT_SECRET=... \
+  -e SESSION_SECRET=... \
+  rally-spamulator
 ```
 
 ## Cloud Run Deployment
@@ -102,8 +159,11 @@ gcloud run deploy rally-spamulator \
   --port 8080 \
   --memory 256Mi \
   --min-instances 0 \
-  --max-instances 3
+  --max-instances 3 \
+  --set-env-vars DISCORD_CLIENT_ID=...,DISCORD_CLIENT_SECRET=...,DISCORD_REDIRECT_URI=https://hunterisadonkey.com/auth/discord/callback,SESSION_SECRET=...
 ```
+
+Note: SQLite requires persistent storage. For Cloud Run, use a GCS FUSE volume mount for the `/data` directory.
 
 ## Key Patterns to Preserve
 
@@ -113,4 +173,6 @@ gcloud run deploy rally-spamulator \
 - **Buffer rounding**: First departure is always rounded up to the next buffer interval — this is intentional so callers have clean departure times.
 - **i18n keys**: When adding new UI text, add a key to every language in the `LANG` object, add `data-i18n` to the HTML element, and use `t('key')` in any JS that renders that text dynamically.
 - **RTL**: If adding new styled elements with directional borders/margins/padding, add corresponding `[dir="rtl"]` CSS overrides.
-- **Server routes**: Future API routes in `server.js` must be added **before** the wildcard `app.get('*', ...)` catch-all.
+- **Server routes**: API routes in `server.js` must be added **before** the auth gate middleware and wildcard catch-all.
+- **Auth middleware**: The auth gate in server.js protects all static files. Public paths (`/login`, `/login.html`, `/auth/*`) are whitelisted.
+- **Role checks**: Use `requireRole('r5', 'admin')` middleware for admin-only API routes.

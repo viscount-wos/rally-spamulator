@@ -528,6 +528,112 @@
         [dir="rtl"] .rt-countdown { margin-left: 0; margin-right: 8px; }
         [dir="rtl"] .si-right { padding-left: 0; padding-right: 12px; }
 
+        /* ---- Auth Bar ---- */
+        .auth-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .auth-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .auth-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+        }
+        .auth-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .role-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .role-badge.role-r123 { background: rgba(100,181,246,0.2); color: var(--accent); }
+        .role-badge.role-r4 { background: rgba(255,171,64,0.2); color: var(--orange); }
+        .role-badge.role-r5 { background: rgba(105,240,174,0.2); color: var(--green); }
+        .role-badge.role-admin { background: rgba(255,82,82,0.2); color: var(--red); }
+        .btn-logout {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .btn-logout:hover { color: var(--red); border-color: var(--red); }
+
+        /* ---- Pending Screen ---- */
+        .pending-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 60vh;
+            padding: 40px 20px;
+        }
+        .pending-screen h2 {
+            color: var(--orange);
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+        }
+        .pending-screen p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            max-width: 320px;
+            line-height: 1.5;
+        }
+
+        /* ---- Admin Panel ---- */
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .user-table th {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            padding: 6px 4px;
+            border-bottom: 1px solid var(--border);
+        }
+        .user-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid rgba(42, 58, 92, 0.4);
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+        .user-row-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .user-table select {
+            font-size: 0.8rem;
+            padding: 4px 6px;
+        }
+        [dir="rtl"] .user-table th { text-align: right; }
+        [dir="rtl"] .user-row-avatar { margin-right: 0; margin-left: 6px; }
+
         /* ---- Responsive ---- */
         @media (max-width: 400px) {
             .clock-time { font-size: 2.6rem; }
@@ -538,6 +644,18 @@
     </style>
 </head>
 <body>
+    <!-- Auth bar (populated by JS after login) -->
+    <div class="auth-bar" id="auth-bar" style="display:none;"></div>
+
+    <!-- Pending approval screen -->
+    <div class="pending-screen" id="pending-screen">
+        <h2 data-i18n="pending_title">Waiting for Approval</h2>
+        <p data-i18n="pending_msg">Your account is pending approval from alliance leadership.</p>
+        <button class="btn-logout" style="margin-top:20px;" onclick="logout()" data-i18n="logout">Logout</button>
+    </div>
+
+    <!-- Main app (hidden until auth verified) -->
+    <div id="app-container" style="display:none;">
     <div class="app-title" data-i18n="title">Viscount's Rally Spamulator</div>
     <div class="lang-bar">
         <select id="lang-select" onchange="setLang(this.value)">
@@ -694,6 +812,16 @@
 
     </div><!-- end tab-garrison -->
 
+    <!-- Admin tab (rendered by JS for R5/Admin only) -->
+    <div id="tab-admin" class="tab-panel">
+        <div class="section">
+            <div class="section-title" data-i18n="user_mgmt_title">User Management</div>
+            <div id="user-list"></div>
+        </div>
+    </div>
+
+    </div><!-- end app-container -->
+
     <script>
         // ===== i18n =====
         const LANG = {
@@ -735,6 +863,14 @@
                 landed_lower: "landed", now_label: "NOW",
                 warning_overdue_1: "Some set-off times are in the past. Increase buffer or wait for the next cycle. Longest march caller needs at least ~",
                 warning_overdue_2: " before arrival.",
+                pending_title: "Waiting for Approval",
+                pending_msg: "Your account is pending approval from alliance leadership.",
+                logout: "Logout",
+                users_tab: "Users",
+                user_mgmt_title: "User Management",
+                role_pending: "Pending", role_r123: "Member", role_r4: "Captain", role_r5: "R5", role_admin: "Admin",
+                col_user: "User", col_role: "Role", col_joined: "Joined",
+                save_role: "Save",
                 fmtCountdown: function(m, s) { return m > 0 ? 'in ' + m + 'm ' + s + 's' : 'in ' + parseInt(s) + 's'; },
                 fmtAgo: function(s) { return s + 's ago'; },
                 fmtInTime: function(t) { return 'in ' + t; }
@@ -777,6 +913,14 @@
                 landed_lower: "vardı", now_label: "ŞİMDİ",
                 warning_overdue_1: "Bazı hareket zamanları geçmişte. Tamponu artırın veya sonraki döngüyü bekleyin. En uzun yürüyüşe sahip çağrıcının varıştan en az ~",
                 warning_overdue_2: " önce harekete geçmesi gerekir.",
+                pending_title: "Onay Bekleniyor",
+                pending_msg: "Hesabınız ittifak liderliğinden onay bekliyor.",
+                logout: "Çıkış",
+                users_tab: "Kullanıcılar",
+                user_mgmt_title: "Kullanıcı Yönetimi",
+                role_pending: "Beklemede", role_r123: "Üye", role_r4: "Kaptan", role_r5: "R5", role_admin: "Yönetici",
+                col_user: "Kullanıcı", col_role: "Rol", col_joined: "Katılım",
+                save_role: "Kaydet",
                 fmtCountdown: function(m, s) { return m > 0 ? m + 'dk ' + s + 'sn sonra' : parseInt(s) + 'sn sonra'; },
                 fmtAgo: function(s) { return s + 'sn önce'; },
                 fmtInTime: function(t) { return t + ' sonra'; }
@@ -819,6 +963,14 @@
                 landed_lower: "wylądował", now_label: "TERAZ",
                 warning_overdue_1: "Niektóre czasy wymarszu są w przeszłości. Zwiększ bufor lub poczekaj na następny cykl. Gracz z najdłuższym marszem potrzebuje co najmniej ~",
                 warning_overdue_2: " przed przybyciem.",
+                pending_title: "Oczekiwanie na zatwierdzenie",
+                pending_msg: "Twoje konto czeka na zatwierdzenie przez kierownictwo sojuszu.",
+                logout: "Wyloguj",
+                users_tab: "Użytkownicy",
+                user_mgmt_title: "Zarządzanie użytkownikami",
+                role_pending: "Oczekujący", role_r123: "Członek", role_r4: "Kapitan", role_r5: "R5", role_admin: "Admin",
+                col_user: "Użytkownik", col_role: "Rola", col_joined: "Dołączył",
+                save_role: "Zapisz",
                 fmtCountdown: function(m, s) { return m > 0 ? 'za ' + m + 'm ' + s + 's' : 'za ' + parseInt(s) + 's'; },
                 fmtAgo: function(s) { return s + 's temu'; },
                 fmtInTime: function(t) { return 'za ' + t; }
@@ -861,6 +1013,14 @@
                 landed_lower: "已到达", now_label: "现在",
                 warning_overdue_1: "部分出发时间已过。请增加缓冲时间或等待下一个周期。行军最长的召唤者需要至少 ~",
                 warning_overdue_2: " 才能到达。",
+                pending_title: "等待审批",
+                pending_msg: "您的账号正在等待联盟领导层的审批。",
+                logout: "退出",
+                users_tab: "用户",
+                user_mgmt_title: "用户管理",
+                role_pending: "待审批", role_r123: "成员", role_r4: "队长", role_r5: "R5", role_admin: "管理员",
+                col_user: "用户", col_role: "角色", col_joined: "加入时间",
+                save_role: "保存",
                 fmtCountdown: function(m, s) { return m > 0 ? m + '分' + s + '秒后' : parseInt(s) + '秒后'; },
                 fmtAgo: function(s) { return s + '秒前'; },
                 fmtInTime: function(t) { return t + '后'; }
@@ -903,6 +1063,14 @@
                 landed_lower: "도착함", now_label: "지금",
                 warning_overdue_1: "일부 출발 시간이 지났습니다. 버퍼를 늘리거나 다음 주기를 기다리세요. 가장 긴 행군 소환자는 도착 전 최소 ~",
                 warning_overdue_2: " 이 필요합니다.",
+                pending_title: "승인 대기 중",
+                pending_msg: "귀하의 계정은 동맹 리더십의 승인을 기다리고 있습니다.",
+                logout: "로그아웃",
+                users_tab: "사용자",
+                user_mgmt_title: "사용자 관리",
+                role_pending: "대기중", role_r123: "멤버", role_r4: "캡틴", role_r5: "R5", role_admin: "관리자",
+                col_user: "사용자", col_role: "역할", col_joined: "가입일",
+                save_role: "저장",
                 fmtCountdown: function(m, s) { return m > 0 ? m + '분 ' + s + '초 후' : parseInt(s) + '초 후'; },
                 fmtAgo: function(s) { return s + '초 전'; },
                 fmtInTime: function(t) { return t + ' 후'; }
@@ -945,6 +1113,14 @@
                 landed_lower: "وصل", now_label: "الآن",
                 warning_overdue_1: "بعض أوقات الانطلاق في الماضي. قم بزيادة الوقت الاحتياطي أو انتظر الدورة التالية. المنادي ذو أطول مسيرة يحتاج على الأقل ~",
                 warning_overdue_2: " قبل الوصول.",
+                pending_title: "في انتظار الموافقة",
+                pending_msg: "حسابك في انتظار الموافقة من قيادة التحالف.",
+                logout: "تسجيل الخروج",
+                users_tab: "المستخدمون",
+                user_mgmt_title: "إدارة المستخدمين",
+                role_pending: "معلق", role_r123: "عضو", role_r4: "قائد", role_r5: "R5", role_admin: "مشرف",
+                col_user: "المستخدم", col_role: "الدور", col_joined: "تاريخ الانضمام",
+                save_role: "حفظ",
                 fmtCountdown: function(m, s) { return m > 0 ? 'بعد ' + m + 'د ' + s + 'ث' : 'بعد ' + parseInt(s) + 'ث'; },
                 fmtAgo: function(s) { return 'قبل ' + s + 'ث'; },
                 fmtInTime: function(t) { return 'بعد ' + t; }
@@ -1712,29 +1888,184 @@
             }
         }
 
-        // ===== Init =====
-        // Load saved language
-        const savedLang = localStorage.getItem('app_lang');
-        if (savedLang && LANG[savedLang]) {
-            currentLang = savedLang;
-            document.getElementById('lang-select').value = savedLang;
+        // ===== Auth =====
+        let currentUser = null;
+
+        function getAvatarUrl(user) {
+            if (user.avatar) {
+                return 'https://cdn.discordapp.com/avatars/' + user.discord_id + '/' + user.avatar + '.png?size=64';
+            }
+            // Default Discord avatar
+            var idx = (parseInt(user.discord_id) >> 22) % 6;
+            return 'https://cdn.discordapp.com/embed/avatars/' + idx + '.png';
         }
 
-        loadState();
-        renderCallers();
-        renderPresetSelect();
-        loadGarrisonState();
-        renderEnemies();
-        updateClock();
-        updateSchedule();
-        updateActiveRallies();
+        function getRoleName(role) {
+            var map = { r123: 'role_r123', r4: 'role_r4', r5: 'role_r5', admin: 'role_admin' };
+            return map[role] ? t(map[role]) : t('role_pending');
+        }
 
-        // Apply translations (after DOM is populated)
-        if (currentLang !== 'en') setLang(currentLang);
+        function getRoleClass(role) {
+            return role ? 'role-' + role : 'role-pending';
+        }
 
-        setInterval(updateClock, 100);
-        setInterval(updateSchedule, 250);
-        setInterval(updateActiveRallies, 250);
+        function renderAuthBar() {
+            var bar = document.getElementById('auth-bar');
+            var displayName = currentUser.global_name || currentUser.username;
+            bar.innerHTML =
+                '<div class="auth-user">' +
+                    '<img class="auth-avatar" src="' + getAvatarUrl(currentUser) + '" alt="">' +
+                    '<span class="auth-name">' + displayName + '</span>' +
+                    '<span class="role-badge ' + getRoleClass(currentUser.role) + '">' + getRoleName(currentUser.role) + '</span>' +
+                '</div>' +
+                '<button class="btn-logout" onclick="logout()">' + t('logout') + '</button>';
+            bar.style.display = 'flex';
+        }
+
+        function renderAdminTab() {
+            if (!currentUser || (currentUser.role !== 'r5' && currentUser.role !== 'admin')) return;
+            // Add the tab button if not already present
+            var tabBar = document.querySelector('.tab-bar');
+            if (!tabBar.querySelector('[data-tab="admin"]')) {
+                var btn = document.createElement('button');
+                btn.className = 'tab-btn';
+                btn.dataset.tab = 'admin';
+                btn.dataset.i18n = 'users_tab';
+                btn.textContent = t('users_tab');
+                btn.onclick = function() { switchTab('admin'); };
+                tabBar.appendChild(btn);
+            }
+            // Fetch and render user list
+            fetch('/api/users').then(function(r) { return r.json(); }).then(function(users) {
+                renderUserList(users);
+            });
+        }
+
+        function renderUserList(users) {
+            var container = document.getElementById('user-list');
+            var isAdmin = currentUser.role === 'admin';
+            var roleOptions = [
+                { value: '', label: t('role_pending') },
+                { value: 'r123', label: t('role_r123') },
+                { value: 'r4', label: t('role_r4') },
+                { value: 'r5', label: t('role_r5') }
+            ];
+            if (isAdmin) {
+                roleOptions.push({ value: 'admin', label: t('role_admin') });
+            }
+
+            var html = '<table class="user-table"><thead><tr>' +
+                '<th>' + t('col_user') + '</th>' +
+                '<th>' + t('col_role') + '</th>' +
+                '<th>' + t('col_joined') + '</th>' +
+                '<th></th>' +
+                '</tr></thead><tbody>';
+
+            users.forEach(function(u) {
+                var avatarUrl = u.avatar
+                    ? 'https://cdn.discordapp.com/avatars/' + u.discord_id + '/' + u.avatar + '.png?size=48'
+                    : 'https://cdn.discordapp.com/embed/avatars/' + ((parseInt(u.discord_id) >> 22) % 6) + '.png';
+                var displayName = u.global_name || u.username;
+                var isSelf = u.discord_id === currentUser.discord_id;
+                var joined = u.created_at ? u.created_at.split('T')[0] : '';
+
+                var options = roleOptions.map(function(opt) {
+                    var selected = (opt.value === (u.role || '')) ? ' selected' : '';
+                    return '<option value="' + opt.value + '"' + selected + '>' + opt.label + '</option>';
+                }).join('');
+
+                html += '<tr>' +
+                    '<td><img class="user-row-avatar" src="' + avatarUrl + '">' + displayName + '</td>' +
+                    '<td><select id="role-' + u.discord_id + '"' + (isSelf ? ' disabled' : '') + '>' + options + '</select></td>' +
+                    '<td>' + joined + '</td>' +
+                    '<td>' + (isSelf ? '' : '<button class="btn btn-primary" style="padding:3px 8px;font-size:0.75rem;" onclick="changeUserRole(\'' + u.discord_id + '\')">' + t('save_role') + '</button>') + '</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function changeUserRole(discordId) {
+            var select = document.getElementById('role-' + discordId);
+            var newRole = select.value || null;
+            fetch('/api/users/' + discordId + '/role', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: newRole })
+            }).then(function(r) {
+                if (!r.ok) return r.json().then(function(d) { alert(d.error); });
+                // Refresh user list
+                renderAdminTab();
+            });
+        }
+
+        function logout() {
+            fetch('/auth/logout', { method: 'POST' }).then(function() {
+                window.location.href = '/login';
+            });
+        }
+
+        // ===== Auth Boot =====
+        function authBoot() {
+            fetch('/auth/status').then(function(r) {
+                if (!r.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+                return r.json();
+            }).then(function(user) {
+                if (!user) return;
+                currentUser = user;
+
+                // Apply saved language first
+                var savedLang = localStorage.getItem('app_lang');
+                if (savedLang && LANG[savedLang]) {
+                    currentLang = savedLang;
+                    document.getElementById('lang-select').value = savedLang;
+                }
+
+                renderAuthBar();
+
+                if (!user.role) {
+                    // Pending user — show pending screen
+                    document.getElementById('pending-screen').style.display = 'flex';
+                    // Still apply translations to pending screen
+                    if (currentLang !== 'en') setLang(currentLang);
+                    return;
+                }
+
+                // Approved user — show app
+                document.getElementById('app-container').style.display = 'block';
+                initApp();
+            }).catch(function() {
+                window.location.href = '/login';
+            });
+        }
+
+        function initApp() {
+            loadState();
+            renderCallers();
+            renderPresetSelect();
+            loadGarrisonState();
+            renderEnemies();
+            updateClock();
+            updateSchedule();
+            updateActiveRallies();
+
+            // Apply translations (after DOM is populated)
+            if (currentLang !== 'en') setLang(currentLang);
+
+            setInterval(updateClock, 100);
+            setInterval(updateSchedule, 250);
+            setInterval(updateActiveRallies, 250);
+
+            // Render admin tab if authorized
+            renderAdminTab();
+        }
+
+        // Start auth boot
+        authBoot();
     </script>
 </body>
 </html>

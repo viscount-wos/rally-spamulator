@@ -1,6 +1,9 @@
 .git
 .claude
 node_modules
+data
 *.md
+.env
+.env.example
 .gitignore
 .dockerignore
