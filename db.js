@@ -29,6 +29,11 @@ db.exec(`
 // Migration: add WOS profile columns (safe — SQLite throws if column exists)
 try { db.exec('ALTER TABLE users ADD COLUMN wos_name TEXT DEFAULT NULL'); } catch (e) {}
 try { db.exec('ALTER TABLE users ADD COLUMN march_seconds INTEGER DEFAULT NULL'); } catch (e) {}
+// Medium-depth profile fields
+try { db.exec('ALTER TABLE users ADD COLUMN city_level TEXT DEFAULT NULL'); } catch (e) {}
+try { db.exec('ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT NULL'); } catch (e) {}
+try { db.exec('ALTER TABLE users ADD COLUMN main_troop_type TEXT DEFAULT NULL'); } catch (e) {}
+try { db.exec('ALTER TABLE users ADD COLUMN notes TEXT DEFAULT NULL'); } catch (e) {}
 
 // Create rallies table for broadcasted rallies
 db.exec(`
@@ -52,6 +57,21 @@ db.exec(`
     march_seconds INTEGER NOT NULL,
     arrival_order INTEGER NOT NULL,
     FOREIGN KEY (rally_id) REFERENCES rallies(id)
+  )
+`);
+
+// Alliance docs / notices
+db.exec(`
+  CREATE TABLE IF NOT EXISTS docs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    category TEXT,
+    audience TEXT NOT NULL DEFAULT 'all',
+    pinned INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
   )
 `);
 
@@ -138,9 +158,21 @@ function deleteUser(discordId) {
 
 // ===== WOS Profile Functions =====
 
-const setWosProfileStmt = db.prepare('UPDATE users SET wos_name = ?, march_seconds = ? WHERE discord_id = ?');
-function setWosProfile(discordId, wosName, marchSeconds) {
-  setWosProfileStmt.run(wosName || null, marchSeconds || null, discordId);
+const setWosProfileStmt = db.prepare(
+  `UPDATE users
+   SET wos_name = ?, march_seconds = ?, city_level = ?, timezone = ?, main_troop_type = ?, notes = ?
+   WHERE discord_id = ?`
+);
+function setWosProfile(discordId, wosName, marchSeconds, cityLevel, timezone, mainTroopType, notes) {
+  setWosProfileStmt.run(
+    wosName || null,
+    (typeof marchSeconds === 'number' ? marchSeconds : (marchSeconds || null)),
+    cityLevel || null,
+    timezone || null,
+    mainTroopType || null,
+    notes || null,
+    discordId
+  );
   return getUser(discordId);
 }
 
@@ -214,8 +246,46 @@ function cleanupExpiredRallies() {
   db.prepare("UPDATE rallies SET status = 'expired' WHERE status = 'active' AND arrival_ms < ?").run(cutoff);
 }
 
+// ===== Docs / Notices Functions =====
+
+const insertDocStmt = db.prepare(
+  `INSERT INTO docs (title, body, category, audience, pinned, created_by)
+   VALUES (?, ?, ?, ?, ?, ?)`
+);
+const updateDocStmt = db.prepare(
+  `UPDATE docs
+   SET title = ?, body = ?, category = ?, audience = ?, pinned = ?, updated_at = datetime('now')
+   WHERE id = ?`
+);
+const deleteDocStmt = db.prepare('DELETE FROM docs WHERE id = ?');
+const getDocStmt = db.prepare('SELECT * FROM docs WHERE id = ?');
+const getAllDocsStmt = db.prepare('SELECT * FROM docs ORDER BY pinned DESC, updated_at DESC');
+
+function createDoc(title, body, category, audience, pinned, createdBy) {
+  const res = insertDocStmt.run(title, body, category || null, audience, pinned ? 1 : 0, createdBy);
+  return Number(res.lastInsertRowid);
+}
+
+function updateDoc(id, title, body, category, audience, pinned) {
+  updateDocStmt.run(title, body, category || null, audience, pinned ? 1 : 0, id);
+  return getDoc(id);
+}
+
+function deleteDoc(id) {
+  deleteDocStmt.run(id);
+}
+
+function getDoc(id) {
+  return getDocStmt.get(id);
+}
+
+function getAllDocs() {
+  return getAllDocsStmt.all();
+}
+
 module.exports = {
   upsertUser, getUser, getAllUsers, setUserRole, deleteUser, bootstrapAdmin,
   setWosProfile, getRegisteredCallers,
-  createRally, getActiveRallies, getRallyWithCallers, getRallyCallers, cancelRally, cleanupExpiredRallies
+  createRally, getActiveRallies, getRallyWithCallers, getRallyCallers, cancelRally, cleanupExpiredRallies,
+  createDoc, updateDoc, deleteDoc, getDoc, getAllDocs
 };

@@ -8,7 +8,8 @@ const fs = require('fs');
 const {
   upsertUser, getUser, getAllUsers, setUserRole, deleteUser, bootstrapAdmin,
   setWosProfile, getRegisteredCallers,
-  createRally, getActiveRallies, getRallyWithCallers, getRallyCallers, cancelRally, cleanupExpiredRallies
+  createRally, getActiveRallies, getRallyWithCallers, getRallyCallers, cancelRally, cleanupExpiredRallies,
+  createDoc, updateDoc, deleteDoc, getDoc, getAllDocs
 } = require('./db');
 
 const app = express();
@@ -181,7 +182,11 @@ app.get('/auth/status', requireAuth, (req, res) => {
     avatar: user.avatar,
     role: user.role,
     wos_name: user.wos_name,
-    march_seconds: user.march_seconds
+    march_seconds: user.march_seconds,
+    city_level: user.city_level,
+    timezone: user.timezone,
+    main_troop_type: user.main_troop_type,
+    notes: user.notes
   });
 });
 
@@ -196,20 +201,54 @@ app.post('/auth/logout', (req, res) => {
 
 app.get('/api/profile', requireAuth, (req, res) => {
   const user = getUser(req.session.userId);
-  res.json({ wos_name: user.wos_name, march_seconds: user.march_seconds });
+  res.json({
+    wos_name: user.wos_name,
+    march_seconds: user.march_seconds,
+    city_level: user.city_level,
+    timezone: user.timezone,
+    main_troop_type: user.main_troop_type,
+    notes: user.notes
+  });
 });
 
 app.put('/api/profile', requireAuth, (req, res) => {
-  const { wos_name, march_seconds } = req.body;
+  const { wos_name, march_seconds, city_level, timezone, main_troop_type, notes } = req.body;
   if (wos_name !== undefined && wos_name !== null && typeof wos_name !== 'string') {
     return res.status(400).json({ error: 'Invalid wos_name' });
   }
   if (march_seconds !== undefined && march_seconds !== null && (typeof march_seconds !== 'number' || march_seconds < 0 || march_seconds > 3600)) {
     return res.status(400).json({ error: 'Invalid march_seconds' });
   }
-  const updated = setWosProfile(req.session.userId, wos_name, march_seconds);
+  if (city_level !== undefined && city_level !== null && typeof city_level !== 'string') {
+    return res.status(400).json({ error: 'Invalid city_level' });
+  }
+  if (timezone !== undefined && timezone !== null && typeof timezone !== 'string') {
+    return res.status(400).json({ error: 'Invalid timezone' });
+  }
+  if (main_troop_type !== undefined && main_troop_type !== null && typeof main_troop_type !== 'string') {
+    return res.status(400).json({ error: 'Invalid main_troop_type' });
+  }
+  if (notes !== undefined && notes !== null && typeof notes !== 'string') {
+    return res.status(400).json({ error: 'Invalid notes' });
+  }
+  const updated = setWosProfile(
+    req.session.userId,
+    wos_name,
+    march_seconds,
+    city_level,
+    timezone,
+    main_troop_type,
+    notes
+  );
   broadcastSSE({ type: 'profile_updated' });
-  res.json({ wos_name: updated.wos_name, march_seconds: updated.march_seconds });
+  res.json({
+    wos_name: updated.wos_name,
+    march_seconds: updated.march_seconds,
+    city_level: updated.city_level,
+    timezone: updated.timezone,
+    main_troop_type: updated.main_troop_type,
+    notes: updated.notes
+  });
 });
 
 // ===== Registered Callers API =====
@@ -324,16 +363,129 @@ app.put('/api/users/:id/role', requireAuth, requireRole('r5', 'admin'), (req, re
 
 app.put('/api/users/:id/profile', requireAuth, requireRole('r5', 'admin'), (req, res) => {
   const { id } = req.params;
-  const { wos_name, march_seconds } = req.body;
+  const { wos_name, march_seconds, city_level, timezone, main_troop_type, notes } = req.body;
   if (wos_name !== undefined && wos_name !== null && typeof wos_name !== 'string') {
     return res.status(400).json({ error: 'Invalid wos_name' });
   }
   if (march_seconds !== undefined && march_seconds !== null && (typeof march_seconds !== 'number' || march_seconds < 0 || march_seconds > 3600)) {
     return res.status(400).json({ error: 'Invalid march_seconds' });
   }
-  const updated = setWosProfile(id, wos_name, march_seconds);
+  if (city_level !== undefined && city_level !== null && typeof city_level !== 'string') {
+    return res.status(400).json({ error: 'Invalid city_level' });
+  }
+  if (timezone !== undefined && timezone !== null && typeof timezone !== 'string') {
+    return res.status(400).json({ error: 'Invalid timezone' });
+  }
+  if (main_troop_type !== undefined && main_troop_type !== null && typeof main_troop_type !== 'string') {
+    return res.status(400).json({ error: 'Invalid main_troop_type' });
+  }
+  if (notes !== undefined && notes !== null && typeof notes !== 'string') {
+    return res.status(400).json({ error: 'Invalid notes' });
+  }
+  const updated = setWosProfile(id, wos_name, march_seconds, city_level, timezone, main_troop_type, notes);
   broadcastSSE({ type: 'profile_updated' });
   res.json(updated);
+});
+
+// ===== Players list (R4/R5/Admin) =====
+
+app.get('/api/players', requireAuth, requireRole('r4', 'r5', 'admin'), (req, res) => {
+  const users = getAllUsers();
+  res.json(users);
+});
+
+// ===== Alliance Docs / Notices =====
+
+function canSeeDoc(user, doc) {
+  if (!doc) return false;
+  const role = user.role || null;
+  if (doc.audience === 'all') return true;
+  if (doc.audience === 'r4plus') return role === 'r4' || role === 'r5' || role === 'admin';
+  if (doc.audience === 'r5plus') return role === 'r5' || role === 'admin';
+  if (doc.audience === 'admin') return role === 'admin';
+  return false;
+}
+
+function sanitizeDocAudience(audience) {
+  const allowed = ['all', 'r4plus', 'r5plus', 'admin'];
+  return allowed.includes(audience) ? audience : 'all';
+}
+
+app.get('/api/docs', requireAuth, (req, res) => {
+  const user = getUser(req.session.userId);
+  const docs = getAllDocs().filter(d => canSeeDoc(user, d));
+  res.json(docs);
+});
+
+app.get('/api/docs/:id', requireAuth, (req, res) => {
+  const user = getUser(req.session.userId);
+  const doc = getDoc(parseInt(req.params.id, 10));
+  if (!doc || !canSeeDoc(user, doc)) {
+    return res.status(404).json({ error: 'Doc not found' });
+  }
+  res.json(doc);
+});
+
+app.post('/api/docs', requireAuth, requireRole('r4', 'r5', 'admin'), (req, res) => {
+  const { title, body, category, audience, pinned } = req.body;
+  if (!title || typeof title !== 'string' || title.length > 200) {
+    return res.status(400).json({ error: 'Invalid title' });
+  }
+  if (!body || typeof body !== 'string') {
+    return res.status(400).json({ error: 'Invalid body' });
+  }
+  if (category !== undefined && category !== null && typeof category !== 'string') {
+    return res.status(400).json({ error: 'Invalid category' });
+  }
+  const safeAudience = sanitizeDocAudience(audience || 'all');
+  const pinFlag = !!pinned;
+  try {
+    const id = createDoc(title.trim(), body.trim(), category ? category.trim() : null, safeAudience, pinFlag, req.session.userId);
+    const doc = getDoc(id);
+    res.json(doc);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/docs/:id', requireAuth, requireRole('r4', 'r5', 'admin'), (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const existing = getDoc(id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Doc not found' });
+  }
+  const { title, body, category, audience, pinned } = req.body;
+  if (!title || typeof title !== 'string' || title.length > 200) {
+    return res.status(400).json({ error: 'Invalid title' });
+  }
+  if (!body || typeof body !== 'string') {
+    return res.status(400).json({ error: 'Invalid body' });
+  }
+  if (category !== undefined && category !== null && typeof category !== 'string') {
+    return res.status(400).json({ error: 'Invalid category' });
+  }
+  const safeAudience = sanitizeDocAudience(audience || existing.audience || 'all');
+  const pinFlag = !!pinned;
+  try {
+    const updated = updateDoc(id, title.trim(), body.trim(), category ? category.trim() : null, safeAudience, pinFlag);
+    res.json(updated);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/docs/:id', requireAuth, requireRole('r5', 'admin'), (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const existing = getDoc(id);
+  if (!existing) {
+    return res.status(404).json({ error: 'Doc not found' });
+  }
+  try {
+    deleteDoc(id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.delete('/api/users/:id', requireAuth, requireRole('r5', 'admin'), (req, res) => {

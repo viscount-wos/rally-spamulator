@@ -1,13 +1,21 @@
-# Viscount's Rally Spamulator
+# Viscount's Alliance Hub
 
-A browser-based coordination tool for **Whiteout Survival** — no install, no dependencies, just open `index.html`.
+An alliance management shell for **Whiteout Survival**, built around Viscount's Rally Spamulator. Players log in with Discord, land in a unified web app, and then open different **modules** (sub‑apps) for combat tools, documentation, and player information.
 
-## Features
+Current modules:
+
+- **Combat Tools (Rally Spam + Garrison Defense)** — the original Rally Spamulator experience for synchronised rallies and defensive timing.
+- **Alliance Docs & Notices** — lightweight wiki / bulletin board for rules, war plans, trap schedules, and announcements, with audience controls (All / R4+ / R5+ / Admin).
+- **Player Profiles** — richer player profiles tied to Discord, including WOS name, march time, city level, timezone, main troop type, and notes.
+
+The backend is a small Node/Express app with SQLite, and the entire frontend lives in a single, framework‑free `public/index.html`.
+
+## Combat Tools (Rally Spam + Garrison)
 
 ### Rally Spam
 Coordinate multiple rally callers so all rallies land on the same target at the same time.
 
-- Add callers with name and march time
+- Add callers with name and march time (or one‑click from registered alliance members)
 - Click callers in your desired arrival order
 - Automatically calculates staggered departure times so everyone arrives together
 - Live UTC countdown to each caller's set-off time
@@ -15,6 +23,7 @@ Coordinate multiple rally callers so all rallies land on the same target at the 
 - Save and load caller presets
 - 5-minute or 10-minute rally duration
 - Lock button to freeze the arrival time
+- R4/R5/Admin can broadcast rally schedules to all online members via SSE, with per‑caller “YOU” highlights
 
 ### Garrison Defense
 Track incoming enemy rallies and know exactly when to send reinforcements.
@@ -25,6 +34,34 @@ Track incoming enemy rallies and know exactly when to send reinforcements.
 - Shows when to send your reinforcements based on your march time
 - Live countdown with SEND NOW and LANDED alerts
 - Auto-clears rallies after landing
+
+## Alliance Docs & Notices
+
+The **Docs** module acts as a simple alliance knowledge base.
+
+- Create documents with:
+  - **Title**
+  - Optional **category** (Rules, War, Events, Traps, etc.)
+  - Markdown-style free‑text body (stored as plain text, rendered as pre‑wrapped text)
+  - **Audience**: All members, R4+, R5+/Admin, or Admin only
+  - Optional **pinned** flag to keep critical docs at the top
+- Documents are filtered per user based on their role.
+- R4/R5/Admin can create and edit docs; only R5/Admin can delete them.
+
+## Player Profiles
+
+Player information is attached to Discord accounts and can be viewed/edited in the **Profiles** module.
+
+Fields:
+
+- WOS name
+- March time (seconds)
+- City level
+- Timezone (e.g. `UTC+2`)
+- Main troop type (e.g. Cav / Inf / Ranged)
+- Free‑form notes (gear, strengths, alt accounts, etc.)
+
+Members can edit their own profile; R5/Admin can adjust others via the existing Users tab and server‑side APIs.
 
 ## Languages
 
@@ -43,9 +80,13 @@ Arabic includes full RTL (right-to-left) layout support.
 
 ## Usage
 
-Open `index.html` in any browser. That's it — everything runs client-side with no server required.
+See `USAGE.md` for end‑user, step‑by‑step instructions. At a high level:
 
-All your callers, enemies, presets, and settings are saved to your browser's localStorage.
+- Run the Node server (`node server.js`) with the required Discord OAuth env vars.
+- Users log in with Discord and, once approved, see the alliance hub with module navigation.
+- State is split between:
+  - **Server**: users, profiles, rallies, docs.
+  - **Client**: caller/enemy presets and display preferences in `localStorage`.
 
 ## How It Works
 
