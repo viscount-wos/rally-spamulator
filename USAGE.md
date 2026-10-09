@@ -9,7 +9,7 @@ Choose your language from the menu at the top right (English, Türkçe, Polski, 
 ## 1. Rally Spam: make several rallies land together
 
 ### Set up your callers (once)
-1. In **Caller Setup**, press **+ Add Caller**. Type the player's name and their march time to the target as `M:SS` (e.g. `1:45`) or in seconds (`105`).
+1. In **Caller Setup**, press **Add/Edit**. It adds a new caller row and opens the list for editing. Type the player's name and their march time to the target as `M:SS` (e.g. `1:45`) or in seconds (`105`).
 2. Repeat for each caller, then press **Done**.
 
 Faster: open **Import / export list**, paste one caller per line and press **Replace list** (or **Add to list**):

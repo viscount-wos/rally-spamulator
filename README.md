@@ -8,7 +8,7 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 
 **Rally Spam**
 - Callers (name + march time) are remembered in your browser (localStorage). Tap a caller to tick them in or out of this rally.
-- *Edit list*: rename, change march time, move up/down, remove. *Clear list* asks first.
+- *Add/Edit* adds a caller row and opens the list for editing; *Edit list* opens it without adding: rename, change march time, move up/down, remove. *Clear list* asks first.
 - *Import / export list*: paste one caller per line (`Alpha, 1:45`, `Alpha 1:45`, `Alpha;105` all work) to replace or add to the list. *Export list* copies the list back out in the same format, so leaders can share caller lists.
 - Rally duration 5 or 10 minutes.
 - **LIVE** by default: the first start is now + reaction time and every time counts up with the clock once a second (the chat preview too).

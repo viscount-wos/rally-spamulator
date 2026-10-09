@@ -90,7 +90,8 @@ def run(pw, label, ctx_args):
     page.reload()
     expect(page.locator("#utc-clock")).to_have_text("23:50:00")
 
-    # --- add 3 callers (edit mode opens automatically) ---
+    # --- add 3 callers with Add/Edit (edit mode opens automatically) ---
+    expect(page.locator("#add-caller-btn")).to_have_text("Add/Edit")
     for name, march in [("Bravo", "0:55"), ("Alpha", "1:45"), ("Charlie", "30")]:
         page.click("#add-caller-btn")
         row = page.locator("#caller-list li").last
@@ -198,6 +199,7 @@ def run(pw, label, ctx_args):
     page.select_option("#lang-select", "ar")
     check(f"[{label}] RTL", page.evaluate("document.documentElement.dir") == "rtl")
     expect(page.locator("#copy-btn")).to_have_text("نسخ الجدول")
+    expect(page.locator("#add-caller-btn")).to_have_text("إضافة/تعديل")
     page.click("#copy-btn")
     expect(page.locator("#copy-btn")).to_have_text("تم النسخ!")
     clip_ar = page.evaluate("navigator.clipboard.readText()")
