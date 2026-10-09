@@ -183,7 +183,7 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
 .arrival-display.live { background: rgba(105, 240, 174, 0.06); border-color: rgba(105, 240, 174, 0.3); }
 .arrival-display.live .arrival-time { color: var(--green); }
 /* fixed height in both states, so LIVE <-> LOCKED + Reset doesn't move the list */
-.plan-row { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; }
+.plan-row { display: flex; align-items: center; justify-content: center; gap: 12px; height: 56px; }
 .plan-status {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 3px 10px; border-radius: 999px;
@@ -198,7 +198,7 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
 .btn-reset {
     min-height: 48px; min-width: 120px; padding: 8px 22px;
     background: var(--orange); color: var(--bg-dark);
-    font-size: 1.05rem; font-weight: 800;
+    font-size: 1.05rem; font-weight: 800; line-height: 1.2;
 }
 .btn-reset.attention { background: var(--red); color: #fff; box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.35); animation: pulse 1s infinite; }
 .plan-hint { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
