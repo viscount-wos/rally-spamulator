@@ -54,21 +54,38 @@
                     <option value="300" data-i18n="buf_5m">5 min</option>
                 </select>
             </div>
+            <div class="config-row waves-row">
+                <span class="cfg-label" data-i18n="waves_label">Waves:</span>
+                <span class="wave-stepper">
+                    <button type="button" class="btn btn-ghost" id="remove-wave-btn" aria-label="Remove last wave">&minus;</button>
+                    <span class="wave-count" id="wave-count" aria-live="polite">1</span>
+                    <button type="button" class="btn btn-ghost" id="add-wave-btn" data-i18n="add_wave">+ Add wave</button>
+                </span>
+            </div>
+            <div class="config-row inline" id="wave-delay-row" hidden>
+                <label for="wave-delay-input" data-i18n="wave_delay">Delay between waves:</label>
+                <span class="sec-wrap">
+                    <input type="text" id="wave-delay-input" class="sec-input" inputmode="numeric" autocomplete="off" maxlength="4" value="10">
+                    <span class="sec-unit" data-i18n="sec_unit">s</span>
+                </span>
+            </div>
+            <ul id="gap-list" class="gap-list" hidden></ul>
             <div class="config-row">
                 <label for="target-input" data-i18n="land_at">Land at (UTC):</label>
                 <input type="text" id="target-input" class="time-input" inputmode="numeric" autocomplete="off"
-                       data-i18n-ph="land_at_ph" placeholder="auto" maxlength="8">
+                       data-i18n-ph="land_at_ph" placeholder="auto" maxlength="80">
                 <button type="button" class="btn btn-lock" id="lock-btn" data-i18n="lock">LOCK</button>
             </div>
-            <div id="target-error" class="field-error" hidden data-i18n="bad_time">Use HH:MM or HH:MM:SS (UTC)</div>
+            <div id="target-error" class="field-error" hidden role="alert"></div>
         </section>
 
         <section class="section area-schedule" id="schedule-section">
             <h2 class="section-title" data-i18n="setoff_schedule">Set-Off Schedule</h2>
             <div id="schedule-warning" class="warning" hidden></div>
             <div class="arrival-display" id="arrival-display">
-                <div class="arrival-label" data-i18n="arrival_label">All Rallies Arrive At (UTC)</div>
+                <div class="arrival-label" id="arrival-label">All Rallies Arrive At (UTC)</div>
                 <div class="arrival-time" id="arrival-time">--:--:--</div>
+                <div class="wave-landings" id="wave-landings" hidden></div>
                 <div class="plan-row">
                     <span class="plan-status" id="plan-status" role="status">LIVE</span>
                     <button type="button" class="btn btn-reset" id="reset-btn" hidden data-i18n="reset_btn">Reset</button>
@@ -91,6 +108,7 @@
                 <button type="button" class="btn btn-ghost" id="select-none-btn" data-i18n="none_btn">None</button>
                 <button type="button" class="btn btn-ghost btn-edit" id="edit-btn" data-i18n="edit_list">Edit list</button>
             </div>
+            <p id="wave-help" class="wave-help" hidden data-i18n="wave_help"></p>
             <ul id="caller-list" class="caller-list"></ul>
             <div class="caller-actions">
                 <button type="button" class="btn btn-primary" id="add-caller-btn" data-i18n="add_caller">Add/Edit</button>

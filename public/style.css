@@ -366,12 +366,84 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
 .enemy-header span:nth-child(3) { width: 72px; text-align: center; }
 .enemy-header span:nth-child(4) { width: var(--tap); }
 
+/* ---- Waves ----
+ * Okabe-Ito colours (distinguishable with the common colour-vision
+ * deficiencies) and the wave number is always printed in the badge. */
+.w1 { --wave: #56B4E9; }
+.w2 { --wave: #E69F00; }
+.w3 { --wave: #CC79A7; }
+.w4 { --wave: #009E73; }
+.w5 { --wave: #F0E442; }
+.w6 { --wave: #D55E00; }
+.wave-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 26px; height: 26px; padding: 0 4px; flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--wave, transparent); color: #0a0e1a;
+    border: 2px solid var(--wave, var(--border));
+    font-weight: 900; font-size: 0.9rem; line-height: 1; font-family: var(--mono);
+}
+.wave-badge.off { background: transparent; color: var(--text-muted); border-style: dashed; }
+.wave-badge.mini { min-width: 20px; height: 20px; font-size: 0.75rem; border-width: 1px; }
+.caller-toggle.multi .box { border-radius: 50%; width: 28px; height: 28px; }
+.caller-toggle.in-wave { color: var(--text); border-color: var(--wave); background: rgba(255, 255, 255, 0.04); border-inline-start-width: 5px; }
+.wave-help { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 8px; }
+.wave-select { min-width: 64px; flex: 0 0 auto; }
+
+.waves-row .cfg-label { font-size: 0.9rem; color: var(--text-muted); min-width: 120px; }
+.wave-stepper { display: inline-flex; align-items: center; gap: 6px; }
+.wave-count { font-family: var(--mono); font-weight: 800; font-size: 1.2rem; min-width: 1.5em; text-align: center; }
+.waves-row .btn { padding: 8px 10px; }
+#remove-wave-btn { font-size: 1.2rem; }
+.btn-randomise { margin-inline-start: auto; }
+.config-row.inline label { min-width: 120px; flex-basis: auto; }
+.toast {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 4px 4px 4px 12px; margin-bottom: 8px; border-radius: 8px;
+    background: rgba(100, 181, 246, 0.12); border: 1px solid var(--accent); font-size: 0.9rem;
+}
+.btn-link { background: transparent; color: var(--accent); text-decoration: underline; }
+.btn:disabled { opacity: 0.35; cursor: default; }
+.sec-wrap { display: inline-flex; align-items: center; gap: 4px; }
+.sec-input { width: 64px; text-align: center; font-family: var(--mono); direction: ltr; }
+.sec-unit { color: var(--text-muted); font-size: 0.85rem; }
+.gap-list { list-style: none; margin: 0 0 8px; padding: 0; }
+.gap-row {
+    display: flex; align-items: center; gap: 6px 8px;
+    padding: 4px 8px; margin-bottom: 6px; min-height: 52px;
+    background: var(--bg-dark); border-radius: 8px; border: 1px solid transparent;
+}
+.gap-row.custom { border-color: var(--orange); }
+.gap-row.fixed { border-style: dashed; border-color: var(--border); }
+.gap-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; flex: 1; min-width: 0; font-size: 0.85rem; color: var(--text-muted); }
+.gap-slot { width: var(--tap); flex-shrink: 0; }
+.sec-input.custom { border-color: var(--orange); color: var(--orange); font-weight: 700; }
+.gap-custom { font-size: 0.7rem; font-weight: 700; color: var(--orange); text-transform: uppercase; letter-spacing: 0.5px; }
+.gap-fixed { font-family: var(--mono); font-size: 0.85rem; color: var(--text-muted); }
+.gap-reset { font-size: 1.1rem; }
+
+.wave-landings { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; margin-top: 4px; font-size: 0.85rem; }
+.wl-chip { display: inline-flex; align-items: center; gap: 5px; }
+.wl-time { direction: ltr; unicode-bidi: isolate; }
+.wl-time { font-family: var(--mono); font-weight: 700; }
+.wl-gap { color: var(--text-muted); font-family: var(--mono); font-size: 0.75rem; }
+
+.schedule-list.waves > .wave-section {
+    margin-bottom: 10px; padding: 6px 6px 0;
+    border-radius: 10px; border: 1px solid var(--border);
+    border-inline-start: 5px solid var(--wave);
+}
+.wave-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 8px; }
+.wave-title { font-weight: 700; font-size: 0.95rem; color: var(--wave); }
+.wave-empty { padding: 6px 8px 10px; font-size: 0.8rem; }
+
 /* ---- Small phones ---- */
 @media (max-width: 400px) {
     .clock-time { font-size: 2.5rem; }
     .arrival-time { font-size: 1.8rem; }
     .si-time { font-size: 1.15rem; }
     .config-row label { min-width: 0; flex-basis: 100%; }
+    .config-row.inline label, .waves-row .cfg-label { min-width: 0; flex-basis: auto; }
     .app-title { font-size: 0.9rem; }
 }
 

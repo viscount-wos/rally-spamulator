@@ -42,6 +42,7 @@
         document.querySelectorAll('[data-i18n]').forEach(function (e) { e.textContent = t(e.dataset.i18n); });
         document.querySelectorAll('[data-i18n-ph]').forEach(function (e) { e.placeholder = t(e.dataset.i18nPh); });
         renderLock();
+        renderWaves();
         $('edit-btn').textContent = editMode ? t('done_btn') : t('edit_list');
         renderCallers();
         renderEnemies();
@@ -51,37 +52,44 @@
     }
 
     // ===== Rally Spam state =====
-    var callers = [];          // { id, name, marchSeconds, selected }
+    var callers = [];          // { id, name, marchSeconds, wave }  wave: 0 = off, 1..waves.count
+    // Waves: { count, defaultDelay, gaps: [s | null] } (see RallyCore.normalizeWaves).
+    var waves = C.normalizeWaves({});
+    var targetError = null;    // parse error from the Land at box, shown translated
     var nextId = 1;
     var bufferSeconds = 30;
     var rallyDurationSeconds = 300;
-    // { mode: 'live' } | { mode: 'frozen', firstStartMs } | { mode: 'fixed', arrivalMs }
+    // { mode: 'live' } | { mode: 'frozen', firstStartMs } | { mode: 'fixed', arrivalMs, landMs: [per wave] }
     // (see RallyCore.planArrivalMs). LIVE follows the clock; Copy Schedule or
     // LOCK freezes it; a typed "Land at" time fixes it; Reset goes back to LIVE.
     var plan = { mode: 'live' };
     var editMode = false;
     var lastPreview = null;
 
-    function selectedCallers() { return callers.filter(function (c) { return c.selected; }); }
+    function selectedCallers() { return C.includedCallers(callers, waves); }
+    function multiWave() { return waves.count > 1; }
 
-    function getArrivalMs(now) {
-        return C.planArrivalMs(plan, now, selectedCallers(), bufferSeconds, rallyDurationSeconds);
+    // Landing time of each wave (index 0 = wave 1).
+    function getLandings(now) {
+        return C.planLandingsMs(plan, now, callers, bufferSeconds, rallyDurationSeconds, waves);
     }
 
     function saveState() {
+        // `selected` is kept so an older version of the page still reads the list.
         store('rally_callers', JSON.stringify(callers.map(function (c) {
-            return { name: c.name, marchSeconds: c.marchSeconds, selected: c.selected };
+            return { name: c.name, marchSeconds: c.marchSeconds, selected: c.wave > 0, wave: c.wave };
         })));
     }
 
+    function saveWaves() { store('rally_waves', JSON.stringify(waves)); }
+
     function loadState() {
+        try { waves = C.normalizeWaves(JSON.parse(read('rally_waves'))); } catch (e) { waves = C.normalizeWaves({}); }
         try {
-            var data = JSON.parse(read('rally_callers'));
-            if (Array.isArray(data)) {
-                callers = data.map(function (c) {
-                    return { id: nextId++, name: c.name || '', marchSeconds: c.marchSeconds || 45, selected: !!c.selected };
-                });
-            }
+            // Old saved lists ({selected}) become wave 1 / off.
+            callers = C.migrateCallers(JSON.parse(read('rally_callers')), waves.count).map(function (c) {
+                return { id: nextId++, name: c.name, marchSeconds: c.marchSeconds, wave: c.wave };
+            });
         } catch (e) { /* ignore */ }
         var b = parseInt(read('rally_buffer'), 10);
         if (b) { bufferSeconds = b; $('buffer-select').value = String(b); }
@@ -89,7 +97,10 @@
         if (d) { rallyDurationSeconds = d; $('rally-duration-select').value = String(d); }
         var a = parseInt(read('rally_arrival_ms'), 10);
         var f = parseInt(read('rally_frozen_ms'), 10);
-        if (a && a > Date.now() - 3600 * 1000) plan = { mode: 'fixed', arrivalMs: a };
+        var lands = null;
+        try { lands = JSON.parse(read('rally_land_ms')); } catch (e) { lands = null; }
+        if (!Array.isArray(lands) || lands[0] !== a) lands = [a];
+        if (a && a > Date.now() - 3600 * 1000) plan = { mode: 'fixed', arrivalMs: a, landMs: lands.slice(0, waves.count) };
         else if (f && f > Date.now() - 3600 * 1000) plan = { mode: 'frozen', firstStartMs: f };
     }
 
@@ -102,16 +113,29 @@
             if (!editMode) {
                 var b = el('button', 'caller-toggle');
                 b.type = 'button';
-                b.setAttribute('role', 'checkbox');
-                b.setAttribute('aria-checked', c.selected ? 'true' : 'false');
-                b.appendChild(el('span', 'box', c.selected ? '\u2713' : ''));
+                if (!multiWave()) {
+                    // one wave: a plain tick box, exactly as before waves
+                    b.setAttribute('role', 'checkbox');
+                    b.setAttribute('aria-checked', c.wave ? 'true' : 'false');
+                    b.appendChild(el('span', 'box', c.wave ? '\u2713' : ''));
+                } else {
+                    // waves: each tap moves the caller to the next wave (off -> 1 -> ... -> n -> off)
+                    b.classList.add('multi');
+                    if (c.wave) b.classList.add('in-wave', 'w' + c.wave);
+                    b.dataset.wave = String(c.wave);
+                    b.setAttribute('aria-label', LANG[currentLang].wave_aria(c.name || t('unnamed'), c.wave));
+                    b.appendChild(el('span', 'box wave-badge' + (c.wave ? ' w' + c.wave : ' off'), c.wave ? String(c.wave) : '\u2013'));
+                }
                 b.appendChild(el('span', 'ct-name', c.name || t('unnamed')));
                 b.appendChild(el('span', 'ct-march', formatMarch(c.marchSeconds)));
                 b.addEventListener('click', function () {
-                    c.selected = !c.selected;
+                    c.wave = multiWave() ? C.nextWave(c.wave, waves.count) : (c.wave ? 0 : 1);
                     saveState();
                     renderCallers();
                     updateSchedule();
+                    // keep keyboard focus on the same caller after the re-render
+                    var again = $('caller-list').children[idx];
+                    if (again && again.firstChild && document.activeElement === document.body) again.firstChild.focus();
                 });
                 li.appendChild(b);
             } else {
@@ -139,6 +163,19 @@
 
                 li.appendChild(name);
                 li.appendChild(march);
+                if (multiWave()) {
+                    // a non-tap way to pick the wave directly
+                    var ws = el('select', 'wave-select');
+                    ws.setAttribute('aria-label', t('col_wave'));
+                    for (var k = 0; k <= waves.count; k++) {
+                        var o = el('option', null, k ? String(k) : t('wave_off'));
+                        o.value = String(k);
+                        ws.appendChild(o);
+                    }
+                    ws.value = String(c.wave);
+                    ws.addEventListener('change', function () { c.wave = parseInt(this.value, 10) || 0; saveState(); updateSchedule(); });
+                    li.appendChild(ws);
+                }
                 li.appendChild(iconBtn('\u25B2', t('move_up'), idx === 0, function () { move(idx, -1); }));
                 li.appendChild(iconBtn('\u25BC', t('move_down'), idx === callers.length - 1, function () { move(idx, 1); }));
                 var del = iconBtn('\u2715', t('remove'), false, function () {
@@ -177,7 +214,7 @@
     }
 
     function addCaller() {
-        callers.push({ id: nextId++, name: '', marchSeconds: 45, selected: true });
+        callers.push({ id: nextId++, name: '', marchSeconds: 45, wave: 1 });
         saveState();
         setEditMode(true);
         updateSchedule();
@@ -197,7 +234,113 @@
         $('reset-btn').hidden = live;
         $('plan-hint').textContent = live ? t('hint_live') : t('hint_locked');
         var input = $('target-input');
-        if (document.activeElement !== input) input.value = plan.mode === 'fixed' ? formatUTC(plan.arrivalMs) : '';
+        if (document.activeElement !== input) input.value = plan.mode === 'fixed' ? fixedLandings().map(formatUTC).join(', ') : '';
+        renderTargetError();
+    }
+
+    function fixedLandings() { return plan.landMs && plan.landMs.length ? plan.landMs : [plan.arrivalMs]; }
+
+    function renderTargetError() {
+        var e = $('target-error');
+        e.hidden = !targetError;
+        if (targetError) e.textContent = targetError.error === 'too_many' ? LANG[currentLang].land_too_many(targetError.max) : t('bad_time');
+    }
+
+    // ===== Waves =====
+    function renderWaves() {
+        var multi = multiWave();
+        $('wave-count').textContent = String(waves.count);
+        $('remove-wave-btn').disabled = waves.count <= 1;
+        $('remove-wave-btn').setAttribute('aria-label', t('remove_wave'));
+        $('remove-wave-btn').title = t('remove_wave');
+        $('add-wave-btn').disabled = waves.count >= C.MAX_WAVES;
+        $('wave-delay-row').hidden = !multi;
+        $('wave-help').hidden = !multi;
+        var d = $('wave-delay-input');
+        if (document.activeElement !== d) d.value = String(waves.defaultDelay);
+        var list = $('gap-list');
+        list.hidden = !multi;
+        list.textContent = '';
+        if (!multi) return;
+        var L = LANG[currentLang];
+        var given = plan.mode === 'fixed' ? fixedLandings() : [];
+        for (var i = 0; i < waves.count - 1; i++) list.appendChild(gapRow(i, given, L));
+    }
+
+    function gapRow(i, given, L) {
+        var li = el('li', 'gap-row');
+        var lab = el('span', 'gap-label');
+        lab.appendChild(el('span', 'gap-text', L.gap_label(i + 1, i + 2)));
+        li.appendChild(lab);
+        if (given.length > i + 1) {
+            // both waves have a typed Land at time: the gap is implied by them
+            li.classList.add('fixed');
+            li.appendChild(el('span', 'gap-fixed', L.gap_fixed(Math.round((given[i + 1] - given[i]) / 1000))));
+            return li;
+        }
+        var custom = waves.gaps[i] !== null;
+        if (custom) lab.appendChild(el('span', 'gap-custom', t('gap_custom')));
+        var wrap = el('span', 'sec-wrap');
+        var inp = el('input', 'sec-input' + (custom ? ' custom' : ''));
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.maxLength = 4;
+        inp.autocomplete = 'off';
+        inp.value = String(C.gapSeconds(waves, i));
+        inp.setAttribute('aria-label', L.gap_label(i + 1, i + 2) + ' (' + t('sec_unit') + ')' + (custom ? ', ' + t('gap_custom') : ''));
+        inp.addEventListener('change', function () {
+            var v = C.toDelay(this.value);
+            if (v !== null) waves.gaps[i] = v === waves.defaultDelay ? null : v;
+            wavesChanged();
+        });
+        wrap.appendChild(inp);
+        wrap.appendChild(el('span', 'sec-unit', t('sec_unit')));
+        li.appendChild(wrap);
+        // fixed-width slot so every row's input lines up; holds the reset when custom
+        var slot = el('span', 'gap-slot');
+        if (custom) {
+            li.classList.add('custom');
+            var r = iconBtn('\u21BA', t('gap_reset') + ' (' + waves.defaultDelay + t('sec_unit') + ')', false, function () {
+                waves.gaps[i] = null;
+                wavesChanged();
+            });
+            r.classList.add('gap-reset');
+            slot.appendChild(r);
+        }
+        li.appendChild(slot);
+        return li;
+    }
+
+    function wavesChanged() {
+        waves = C.normalizeWaves(waves);
+        saveWaves();
+        renderWaves();
+        renderCallers();
+        updateSchedule();
+    }
+
+    function addWave() {
+        if (waves.count >= C.MAX_WAVES) return;
+        waves.count += 1;
+        waves.gaps.push(null);
+        wavesChanged();
+    }
+
+    // Removing the last wave sends its callers to off.
+    function removeWave() {
+        if (waves.count <= 1) return;
+        var gone = waves.count;
+        callers.forEach(function (c) { if (c.wave >= gone) c.wave = 0; });
+        waves.count -= 1;
+        waves.gaps = waves.gaps.slice(0, waves.count - 1);
+        saveState();
+        if (plan.mode === 'fixed' && fixedLandings().length > waves.count) {
+            var l = fixedLandings().slice(0, waves.count);
+            waves = C.normalizeWaves(waves);
+            saveWaves();
+            setPlan({ mode: 'fixed', arrivalMs: l[0], landMs: l });
+        }
+        wavesChanged();
     }
 
     function setPlan(p) {
@@ -206,10 +349,15 @@
             localStorage.removeItem('rally_arrival_ms');
             localStorage.removeItem('rally_frozen_ms');
         } catch (e) { /* ignore */ }
-        if (p.mode === 'fixed') store('rally_arrival_ms', String(p.arrivalMs));
+        try { localStorage.removeItem('rally_land_ms'); } catch (e) { /* ignore */ }
+        if (p.mode === 'fixed') {
+            store('rally_arrival_ms', String(p.arrivalMs));
+            if (p.landMs && p.landMs.length > 1) store('rally_land_ms', JSON.stringify(p.landMs));
+        }
         if (p.mode === 'frozen') store('rally_frozen_ms', String(p.firstStartMs));
-        $('target-error').hidden = true;
+        targetError = null;
         renderLock();
+        renderWaves();
         updateSchedule();
     }
 
@@ -222,10 +370,11 @@
 
     function applyTargetInput() {
         var v = $('target-input').value.trim();
-        if (!v) { if (plan.mode === 'fixed') resetPlan(); else $('target-error').hidden = true; return; }
-        var sec = C.parseClock(v);
-        if (sec === null) { $('target-error').hidden = false; return; }
-        setPlan({ mode: 'fixed', arrivalMs: C.resolveTargetMs(sec, Date.now()) });
+        if (!v) { if (plan.mode === 'fixed') resetPlan(); else { targetError = null; renderTargetError(); } return; }
+        // one UTC time per wave, separated by commas or spaces
+        var res = C.parseLandAt(v, Date.now(), waves.count);
+        if (res.error) { targetError = res; renderTargetError(); return; }
+        setPlan({ mode: 'fixed', arrivalMs: res.times[0], landMs: res.times });
     }
 
     // ===== Schedule =====
@@ -237,23 +386,28 @@
     function currentCopyText(now) {
         var sel = selectedCallers();
         if (!sel.length) return '';
-        return C.buildCopyText(sel, getArrivalMs(now), rallyDurationSeconds, LANG[currentLang]);
+        return C.buildWavesCopyText(sel, getLandings(now), rallyDurationSeconds, LANG[currentLang]);
     }
 
-    // Rows are rebuilt only when the callers or language change; every
+    // Rows are rebuilt only when the callers, waves or language change; every
     // second only their text and classes are updated (no layout jumps).
     var scheduleKey = '';
     var scheduleRows = [];
+    var waveHeads = [];
     function updateSchedule() {
         var now = Date.now();
         var sel = selectedCallers();
+        var multi = multiWave();
+        var L = LANG[currentLang];
         var listEl = $('schedule-list');
         var warningEl = $('schedule-warning');
         var empty = sel.length === 0;
+        $('arrival-label').textContent = multi ? t('arrival_label_w1') : t('arrival_label');
         $('no-callers').hidden = !empty;
         $('copy-btn').hidden = empty;
         $('plan-hint').hidden = empty;
         $('preview-wrap').hidden = empty;
+        $('wave-landings').hidden = empty || !multi;
         if (empty) {
             listEl.textContent = '';
             scheduleKey = '';
@@ -263,48 +417,98 @@
             return;
         }
 
-        var arrivalMs = getArrivalMs(now);
-        $('arrival-time').textContent = formatUTC(arrivalMs);
-        var schedule = C.buildSchedule(sel, arrivalMs, rallyDurationSeconds);
+        var landings = getLandings(now);
+        $('arrival-time').textContent = formatUTC(landings[0]);
+        if (multi) renderWaveLandings(landings);
+        // one group per wave (a single group without a header with one wave)
+        var groups = multi ? C.buildWaveSchedule(sel, landings, rallyDurationSeconds)
+            : [{ wave: 1, landMs: landings[0], items: C.buildSchedule(sel, landings[0], rallyDurationSeconds) }];
 
-        var passed = C.firstStartPassed(plan, now, sel, bufferSeconds, rallyDurationSeconds);
+        var passed = C.firstStartPassed(plan, now, callers, bufferSeconds, rallyDurationSeconds, waves);
         warningEl.hidden = !passed;
         if (passed) warningEl.textContent = t('passed_warning');
         $('reset-btn').classList.toggle('attention', passed);
 
-        var key = currentLang + '|' + schedule.map(function (s) { return s.name + '\u0000' + s.marchSeconds; }).join('|');
+        var key = currentLang + '|' + multi + '|' + groups.map(function (g) {
+            return g.wave + ':' + g.items.map(function (s) { return s.name + '\u0000' + s.marchSeconds; }).join('|');
+        }).join('#');
         if (key !== scheduleKey) {
             scheduleKey = key;
             listEl.textContent = '';
-            scheduleRows = schedule.map(function (s) {
-                var li = el('li', 'schedule-item');
-                var left = el('div', 'si-left');
-                left.appendChild(el('div', 'si-name', s.name || t('unnamed')));
-                left.appendChild(el('div', 'si-march', t('march_prefix') + formatMarch(s.marchSeconds)));
-                var right = el('div', 'si-right');
-                right.appendChild(el('div', 'si-label', t('call_at')));
-                var time = el('div', 'si-time');
-                var cd = el('div', 'si-countdown');
-                right.appendChild(time);
-                right.appendChild(cd);
-                li.appendChild(left);
-                li.appendChild(right);
-                listEl.appendChild(li);
-                return { li: li, time: time, cd: cd };
+            scheduleRows = [];
+            waveHeads = [];
+            listEl.classList.toggle('waves', multi);
+            groups.forEach(function (g) {
+                var target = listEl;
+                if (multi) {
+                    var sec = el('li', 'wave-section w' + g.wave);
+                    var head = el('div', 'wave-head');
+                    head.appendChild(el('span', 'wave-badge w' + g.wave, String(g.wave)));
+                    var title = el('span', 'wave-title');
+                    head.appendChild(title);
+                    sec.appendChild(head);
+                    waveHeads.push(title);
+                    if (!g.items.length) sec.appendChild(el('div', 'empty-msg wave-empty', t('empty_wave')));
+                    target = el('ol', 'schedule-list');
+                    sec.appendChild(target);
+                    listEl.appendChild(sec);
+                }
+                g.items.forEach(function (s) { scheduleRows.push(scheduleRow(s, target)); });
             });
         }
-        schedule.forEach(function (s, i) {
-            var row = scheduleRows[i];
-            var secsUntil = Math.floor((s.setOffMs - now) / 1000);
-            var isOverdue = secsUntil < 0;
-            var isImminent = !isOverdue && secsUntil <= 10;
-            row.li.className = 'schedule-item' + (isOverdue ? ' overdue' : '') + (isImminent ? ' imminent' : '');
-            row.time.textContent = formatUTC(s.setOffMs);
-            row.cd.textContent = isOverdue ? LANG[currentLang].fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil);
+        var r = 0;
+        groups.forEach(function (g, gi) {
+            if (multi) waveHeads[gi].textContent = L.wave_lands(g.wave, formatUTC(g.landMs));
+            g.items.forEach(function (s) {
+                var row = scheduleRows[r++];
+                var secsUntil = Math.floor((s.setOffMs - now) / 1000);
+                var isOverdue = secsUntil < 0;
+                var isImminent = !isOverdue && secsUntil <= 10;
+                row.li.className = 'schedule-item' + (isOverdue ? ' overdue' : '') + (isImminent ? ' imminent' : '');
+                row.time.textContent = formatUTC(s.setOffMs);
+                row.cd.textContent = isOverdue ? L.fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil);
+            });
         });
 
-        var text = C.buildCopyText(sel, arrivalMs, rallyDurationSeconds, LANG[currentLang]);
+        var text = C.buildWavesCopyText(sel, landings, rallyDurationSeconds, L);
         if (text !== lastPreview) { $('copy-preview').textContent = text; lastPreview = text; }
+    }
+
+    function scheduleRow(s, parent) {
+        var li = el('li', 'schedule-item');
+        var left = el('div', 'si-left');
+        left.appendChild(el('div', 'si-name', s.name || t('unnamed')));
+        left.appendChild(el('div', 'si-march', t('march_prefix') + formatMarch(s.marchSeconds)));
+        var right = el('div', 'si-right');
+        right.appendChild(el('div', 'si-label', t('call_at')));
+        var time = el('div', 'si-time');
+        var cd = el('div', 'si-countdown');
+        right.appendChild(time);
+        right.appendChild(cd);
+        li.appendChild(left);
+        li.appendChild(right);
+        parent.appendChild(li);
+        return { li: li, time: time, cd: cd };
+    }
+
+    // Compact list of every wave's landing under the big wave 1 time:
+    // [2] 00:05:10 +10s  [3] 00:05:30 +30s
+    function renderWaveLandings(landings) {
+        var box = $('wave-landings');
+        box.textContent = '';
+        landings.forEach(function (ms, i) {
+            if (!i) return;
+            var chip = el('span', 'wl-chip');
+            chip.appendChild(el('span', 'wave-badge mini w' + (i + 1), String(i + 1)));
+            chip.appendChild(el('span', 'wl-time', formatUTC(ms)));
+            var gap = el('span', 'wl-gap');
+            var num = el('span', null, '+' + Math.round((ms - landings[0]) / 1000));
+            num.dir = 'ltr';
+            gap.appendChild(num);
+            gap.appendChild(document.createTextNode(t('sec_unit')));
+            chip.appendChild(gap);
+            box.appendChild(chip);
+        });
     }
 
     // ===== Clipboard =====
@@ -577,14 +781,22 @@
         });
         $('reset-btn').addEventListener('click', resetPlan);
         $('target-input').addEventListener('change', applyTargetInput);
+        $('add-wave-btn').addEventListener('click', addWave);
+        $('remove-wave-btn').addEventListener('click', removeWave);
+        $('wave-delay-input').addEventListener('change', function () {
+            var v = C.toDelay(this.value);
+            if (v !== null) waves.defaultDelay = v;
+            this.value = String(waves.defaultDelay);
+            wavesChanged();
+        });
         $('target-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { applyTargetInput(); this.blur(); } });
 
         $('copy-btn').addEventListener('click', copySchedule);
         $('select-all-btn').addEventListener('click', function () {
-            callers.forEach(function (c) { c.selected = true; }); saveState(); renderCallers(); updateSchedule();
+            callers.forEach(function (c) { if (!c.wave) c.wave = 1; }); saveState(); renderCallers(); updateSchedule();
         });
         $('select-none-btn').addEventListener('click', function () {
-            callers.forEach(function (c) { c.selected = false; }); saveState(); renderCallers(); updateSchedule();
+            callers.forEach(function (c) { c.wave = 0; }); saveState(); renderCallers(); updateSchedule();
         });
         $('edit-btn').addEventListener('click', function () { setEditMode(!editMode); });
         $('add-caller-btn').addEventListener('click', addCaller);
