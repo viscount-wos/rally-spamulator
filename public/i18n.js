@@ -93,7 +93,8 @@
             live_ind: "LIVE",
             passed_warning: "First start time has passed: reset for new times",
             hint_live: "Times follow the clock. Copy Schedule (or LOCK) freezes them.",
-            hint_locked: "Times locked. Press Reset for new times."
+            hint_locked: "Times locked. Press Reset for new times.",
+            log_out: "Log out"
         },
         tr: {
             lang_name: "Türkçe",
@@ -181,7 +182,8 @@
             live_ind: "CANLI",
             passed_warning: "İlk başlangıç saati geçti: yeni saatler için sıfırlayın",
             hint_live: "Saatler saatle birlikte ilerler. Programı Kopyala (veya KİLİTLE) onları sabitler.",
-            hint_locked: "Saatler kilitli. Yeni saatler için Sıfırla'ya basın."
+            hint_locked: "Saatler kilitli. Yeni saatler için Sıfırla'ya basın.",
+            log_out: "Çıkış yap"
         },
         pl: {
             lang_name: "Polski",
@@ -269,7 +271,8 @@
             live_ind: "NA ŻYWO",
             passed_warning: "Pierwsza godzina startu minęła: zresetuj, aby dostać nowe godziny",
             hint_live: "Godziny idą razem z zegarem. Kopiuj Harmonogram (lub ZABLOKUJ) je zatrzymuje.",
-            hint_locked: "Godziny zablokowane. Naciśnij Resetuj, aby dostać nowe."
+            hint_locked: "Godziny zablokowane. Naciśnij Resetuj, aby dostać nowe.",
+            log_out: "Wyloguj"
         },
         zh: {
             lang_name: "中文",
@@ -357,7 +360,8 @@
             live_ind: "实时",
             passed_warning: "第一个开始时间已过：请重置以获取新时间",
             hint_live: "时间随时钟走动。复制时间表（或锁定）后即固定。",
-            hint_locked: "时间已锁定。按重置获取新时间。"
+            hint_locked: "时间已锁定。按重置获取新时间。",
+            log_out: "退出"
         },
         ko: {
             lang_name: "한국어",
@@ -445,7 +449,8 @@
             live_ind: "실시간",
             passed_warning: "첫 시작 시간이 지났습니다: 초기화하여 새 시간을 받으세요",
             hint_live: "시간이 시계를 따라 움직입니다. 일정 복사(또는 잠금)를 누르면 고정됩니다.",
-            hint_locked: "시간이 잠겼습니다. 새 시간은 초기화를 누르세요."
+            hint_locked: "시간이 잠겼습니다. 새 시간은 초기화를 누르세요.",
+            log_out: "로그아웃"
         },
         ar: {
             lang_name: "العربية",
@@ -533,7 +538,8 @@
             live_ind: "مباشر",
             passed_warning: "مضى وقت البدء الأول: أعد الضبط للحصول على أوقات جديدة",
             hint_live: "الأوقات تتبع الساعة. نسخ الجدول (أو قفل) يثبّتها.",
-            hint_locked: "الأوقات مقفلة. اضغط إعادة ضبط للحصول على أوقات جديدة."
+            hint_locked: "الأوقات مقفلة. اضغط إعادة ضبط للحصول على أوقات جديدة.",
+            log_out: "تسجيل الخروج"
         }
     };
     return LANG;
