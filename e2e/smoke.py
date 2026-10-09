@@ -8,18 +8,25 @@ Arabic, the LIVE -> Copy (freeze) -> Reset cycle with a controlled clock: times
 count up while live, Copy freezes them (clipboard == shown times), countdowns
 keep falling, the "first start passed" warning appears, Reset resumes live,
 LOCK freezes without copying, edits while frozen keep the first start.
+Everything sits behind the shared-password gate: each run logs in first, and
+the login page itself is checked in English and Arabic on desktop and iPhone
+(redirect with next, translated wrong-password error, RTL, log out).
 Saves screenshots to e2e/out/.
 
 Usage:  python e2e/smoke.py [base_url]     (default http://localhost:8096)
+        GATE_PASSWORD=<the server's password> (default: the dummy 'test-gate-pw')
 Needs:  pip install playwright && playwright install chromium
 """
 import datetime as dt
 import os
+import random
+import re
 import sys
 
 from playwright.sync_api import expect, sync_playwright
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("BASE_URL", "http://localhost:8096")
+GATE_PW = os.environ.get("GATE_PASSWORD", "test-gate-pw")  # dummy for local/test servers only
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 NOW = dt.datetime(2026, 10, 9, 23, 50, 0, tzinfo=dt.timezone.utc)  # 10 min before midnight UTC
 
@@ -51,6 +58,16 @@ def shot(page, path):
     page.evaluate("document.querySelector('.clock').style.position = ''")
 
 
+def gate_login(page, url=None):
+    """Open the app; the gate redirects to /login, then sign in with the password."""
+    base = url or BASE
+    page.goto(base)
+    expect(page).to_have_url(re.compile(re.escape(base) + r"/login\?next="))
+    page.fill("#password", GATE_PW)
+    page.click("#gate-submit")
+    expect(page).to_have_url(base + "/")
+
+
 def no_hscroll(page):
     return page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
 
@@ -68,7 +85,7 @@ def run(pw, label, ctx_args):
     page.on("request", lambda r: external.append(r.url) if not r.url.startswith(BASE) else None)
     page.clock.set_fixed_time(NOW)
 
-    page.goto(BASE)
+    gate_login(page)
     page.evaluate("localStorage.clear()")
     page.reload()
     expect(page.locator("#utc-clock")).to_have_text("23:50:00")
@@ -210,7 +227,7 @@ def insecure_copy(pw, url):
     ctx = browser.new_context(**iphone_device(pw))
     ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE)
     page = ctx.new_page()
-    page.goto(url)
+    gate_login(page, url)
     page.evaluate("localStorage.setItem('rally_callers', JSON.stringify([{name:'Alpha',marchSeconds:105,selected:true}]))")
     page.reload()
     check("[http] page is not a secure context", page.evaluate("!window.isSecureContext"))
@@ -241,7 +258,7 @@ def live_freeze(pw, label, ctx_args, lang):
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.clock.set_fixed_time(T0)
-    page.goto(BASE)
+    gate_login(page)
     page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({THREE}))")
     page.reload()
 
@@ -360,6 +377,71 @@ def live_freeze(pw, label, ctx_args, lang):
     browser.close()
 
 
+def gate_page(pw, label, ctx_args, lang):
+    """Login page: phone language, RTL, wrong password, next redirect, log out."""
+    tag = f"[gate/{label}/{lang}]"
+    browser = pw.chromium.launch()
+    # A made-up client IP per run (right-most X-Forwarded-For, trust proxy 1), so repeated
+    # runs' wrong passwords don't add up to the server's per-IP login limit.
+    fake_ip = f"198.18.{random.randint(0, 255)}.{random.randint(1, 254)}"
+    ctx = browser.new_context(**ctx_args, locale="ar" if lang == "ar" else "en-GB",
+                              extra_http_headers={"X-Forwarded-For": fake_ip})
+    page = ctx.new_page()
+    errors = []
+    # The browser logs the deliberate 401 (wrong password) as a failed resource.
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" and "status of 401" not in m.text else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    external = []
+    page.on("request", lambda r: external.append(r.url) if not r.url.startswith(BASE) else None)
+
+    page.goto(BASE + "/?from=e2e")
+    expect(page).to_have_url(BASE + "/login?next=" + "%2F%3Ffrom%3De2e")
+    T = page.evaluate(f"window.RallyGateLang['{lang}']")
+    check(f"{tag} language follows the phone", page.evaluate("document.documentElement.lang") == lang)
+    check(f"{tag} direction", page.evaluate("document.documentElement.dir") == ("rtl" if lang == "ar" else "ltr"))
+    expect(page.locator(".gate-title")).to_have_text(T["title"])
+    expect(page.locator(".gate-label")).to_have_text(T["prompt"])
+    expect(page.locator("#gate-submit")).to_have_text(T["enter"])
+    check(f"{tag} no error shown at first", page.locator("#gate-error").is_hidden())
+    check(f"{tag} password field is masked", page.get_attribute("#password", "type") == "password")
+    small = page.evaluate("""[...document.querySelectorAll('#password, #gate-submit')]
+        .map(e => [e.id, Math.round(e.getBoundingClientRect().height)]).filter(([, h]) => h < 44)""")
+    check(f"{tag} tap targets >= 44px", not small, str(small))
+    check(f"{tag} no horizontal scroll", no_hscroll(page))
+    os.makedirs(OUT, exist_ok=True)
+    page.screenshot(path=f"{OUT}/{label}-login-{lang}.png", full_page=True)
+
+    # --- wrong password: translated error, still gated ---
+    page.fill("#password", "definitely-wrong")
+    page.click("#gate-submit")
+    expect(page.locator("#gate-error")).to_have_text(T["bad"])
+    check(f"{tag} wrong password stays on the login page", page.locator("#password").count() == 1)
+    check(f"{tag} next survives a wrong password", page.input_value("input[name=next]") == "/?from=e2e")
+    check(f"{tag} no gate cookie after a wrong password", not [c for c in ctx.cookies() if c["name"] == "rally_gate"])
+    page.screenshot(path=f"{OUT}/{label}-login-wrong-{lang}.png", full_page=True)
+
+    # --- right password: back to the page asked for; cookie is HttpOnly ---
+    page.fill("#password", GATE_PW)
+    page.click("#gate-submit")
+    expect(page).to_have_url(BASE + "/?from=e2e")
+    expect(page.locator("#copy-btn")).to_be_attached()
+    cookie = [c for c in ctx.cookies() if c["name"] == "rally_gate"]
+    check(f"{tag} gate cookie is HttpOnly + Lax", cookie and cookie[0]["httpOnly"] and cookie[0]["sameSite"] == "Lax", str(cookie))
+    check(f"{tag} script cannot read the cookie", "rally_gate" not in page.evaluate("document.cookie"))
+
+    # --- Log out in the footer: back to the login, app gated again ---
+    link = page.locator(".logout-link")
+    expect(link).to_have_text(page.evaluate(f"RallyLang['{lang}'].log_out"))
+    link.click()
+    expect(page).to_have_url(re.compile(re.escape(BASE) + r"/login$"))
+    check(f"{tag} logged out: app.js is 401", page.request.get(BASE + "/app.js").status == 401)
+    page.goto(BASE + "/")
+    expect(page).to_have_url(BASE + "/login?next=%2F")
+    check(f"{tag} no console errors", not errors, str(errors))
+    check(f"{tag} no external requests", not external, str(external))
+    browser.close()
+
+
 def iphone_device(pw):
     d = dict(pw.devices["iPhone 13"])
     d.pop("default_browser_type", None)
@@ -367,6 +449,9 @@ def iphone_device(pw):
 
 
 with sync_playwright() as pw:
+    for lang in ("en", "ar"):
+        gate_page(pw, "desktop", {"viewport": {"width": 1280, "height": 900}}, lang)
+        gate_page(pw, "iphone", iphone_device(pw), lang)
     run(pw, "desktop", {"viewport": {"width": 1280, "height": 900}})
     run(pw, "iphone", iphone_device(pw))
     for lang in ("en", "ar"):
