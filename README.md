@@ -11,7 +11,10 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 - *Edit list*: rename, change march time, move up/down, remove. *Clear list* asks first.
 - *Import / export list*: paste one caller per line (`Alpha, 1:45`, `Alpha 1:45`, `Alpha;105` all work) to replace or add to the list. *Export list* copies the list back out in the same format, so leaders can share caller lists.
 - Rally duration 5 or 10 minutes.
-- Arrival time is **auto** (the first start is rounded up to the next reaction-time slot) or **fixed**. To fix it, type a UTC time in *Land at (UTC)* (e.g. `21:05`; `00:05` typed at 23:50 means 15 minutes from now) or press **LOCK** to freeze the auto time.
+- **LIVE** by default: the first start is now + reaction time and every time counts up with the clock once a second (the chat preview too).
+- **Copy Schedule freezes** the plan at that instant (box shows LOCKED); the copied text is exactly the frozen times, countdowns keep running down, and copying again re-copies the same text. **Reset** returns to LIVE; it turns red with a warning once the first start time has passed. **LOCK** freezes without copying.
+- *Land at (UTC)* fixes the landing time instead (e.g. `21:05`; `00:05` typed at 23:50 means 15 minutes from now); Reset clears it.
+- Edits while frozen (callers, march times, duration) keep the frozen **first start** and recompute the rest; changing the reaction time goes back to LIVE. A frozen plan or typed time survives a reload (for up to an hour after it).
 - Live UTC clock and a countdown for each caller.
 - **Copy Schedule** copies plain text, one caller per line, in game time (UTC). The exact text is previewed under the button:
 
@@ -31,7 +34,8 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 ## How the maths works
 
 All times are UTC (game time).
-- Auto arrival: first start = now + reaction time, rounded up to the reaction-time step. Arrival = first start + rally duration + longest march.
+- LIVE: first start = now (whole second) + reaction time. FROZEN: first start = the value at the moment of Copy/LOCK. Arrival = first start + rally duration + longest march. FIXED: arrival = the typed time. (`planArrivalMs` in `core.js`.)
+  The old auto rule rounded the first start up to the next reaction-time slot; live mode replaces it.
 - Each caller's start = arrival − rally duration − their march. Longest march goes first; equal marches keep list order.
 - Garrison: hit = now + rally countdown + enemy march; send = hit − your march.
 
@@ -71,8 +75,8 @@ The page makes no external requests (no fonts or CDNs).
 ## Tests
 
 ```bash
-npm test                                    # node --test: maths, midnight UTC, copy text in 6 languages, import/export, garrison, server headers
-python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): desktop + iPhone 13, clipboard, Arabic RTL; screenshots in e2e/out/
+npm test                                    # node --test: maths, live/frozen/fixed plans, midnight UTC, copy text in 6 languages, import/export, garrison, server headers
+python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock; screenshots in e2e/out/
 INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
 ```
 

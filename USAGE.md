@@ -29,11 +29,9 @@ To share your list with another leader, press **Export list**. It is copied in t
 ### Run a rally
 1. Tap callers to tick (✓) the ones in this rally. **All** / **None** tick or untick everyone.
 2. Pick the **Rally duration** (5 or 10 minutes, as in game).
-3. Choose when the rallies land:
-   - **Auto** (leave *Land at* empty): the first caller starts at the next clean slot at least one **Reaction time** away. The times move forward as the clock runs.
-   - **Fixed**: type a UTC time in **Land at (UTC)**, e.g. `21:05` or `21:05:30`, or press **LOCK** to freeze the current auto time. Press **UNLOCK** to go back to auto. A time just after midnight works as you'd expect: `00:05` typed at 23:50 means 15 minutes from now.
-4. The **Set-Off Schedule** lists each caller's start time ("Call at") with a countdown. The longest march starts first. Orange means it's about to start; red means the start time has passed (pick a later time).
-5. Press **Copy Schedule** and paste into game chat. The text looks like this:
+3. The **Set-Off Schedule** lists each caller's start time ("Call at") with a countdown. The longest march starts first.
+   - **LIVE** (green, the default): the first caller starts one **Reaction time** from now, and every time counts up with the clock, second by second, so the plan is always fresh. The chat text under the button moves with it.
+4. Press **Copy Schedule** and paste into game chat. Copying **locks** the times at that instant: the box shows **LOCKED**, the times stop moving and are exactly what you copied, and each caller's countdown keeps counting down to their start. Pressing Copy Schedule again copies the same text (it does not pick new times). The text looks like this:
 
 ```
 Start times UTC - land 00:05:00
@@ -41,6 +39,19 @@ Start times UTC - land 00:05:00
 23:59:05 - Bravo (march 0:55)
 23:59:30 - Charlie (march 0:30)
 ```
+
+5. Press **Reset** (next to LOCKED) to go back to LIVE and get new times. When the first start time has passed you'll see *First start time has passed: reset for new times* and Reset turns red.
+
+Other ways to lock:
+- **LOCK** (in Rally Settings) locks the current times without copying. While locked that button also reads **Reset**.
+- **Land at (UTC)**: type a landing time, e.g. `21:05` or `21:05:30`, to plan for a fixed moment. A time just after midnight works as you'd expect: `00:05` typed at 23:50 means 15 minutes from now. **Reset** clears it and goes back to LIVE.
+
+Changing things while locked:
+- Ticking callers in or out, editing march times or changing the rally duration keeps the **first start time** where it was and works the other times out from it (the arrival time moves if the longest march or the duration changes). Copy again afterwards so chat has the new times.
+- Changing the **Reaction time** goes back to LIVE, because the reaction time only decides where a live plan starts.
+- With a typed *Land at* time the landing time stays fixed instead.
+
+Orange means a caller is about to start; red means their start time has passed.
 
 The same text is shown under the button. If your browser blocks copying, long-press that text to copy it by hand.
 
