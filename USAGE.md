@@ -1,6 +1,6 @@
 # Viscount's Rally Spamulator: usage guide
 
-Open the link your alliance shares. There is no login: everything you enter stays in your own browser on that phone or computer. All times are **UTC (game time)**, and the big clock at the top shows the current UTC time.
+Open the link your alliance shares and type the alliance password once; the phone remembers it for 30 days (*Log out* at the bottom forgets it). There are no accounts: everything you enter stays in your own browser on that phone or computer. All times are **UTC (game time)**, and the big clock at the top shows the current UTC time.
 
 Choose your language from the menu at the top right (English, Türkçe, Polski, 中文, 한국어, العربية).
 
@@ -76,4 +76,5 @@ The maths: hit time = now + rally countdown + enemy march; send time = hit time 
 ## 3. Good to know
 
 - Your callers, enemies, settings and language are saved in this browser only. A different phone or browser starts empty: use **Export list** / **Import** to move a caller list.
-- Clearing your browser data clears the lists.
+- Clearing your browser data clears the lists (and you'll need the password again).
+- If the password changes, everyone is asked for the new one.
