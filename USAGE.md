@@ -43,6 +43,42 @@ Orange means a caller is about to start; red means their start time has passed.
 
 The same text is shown under the button. If your browser blocks copying, long-press that text to copy it by hand.
 
+### Waves: rallies that land one after another
+Sometimes you want groups of rallies to land a few seconds apart instead of all together. Each group is a **wave**.
+
+1. In **Rally Settings**, press **+ Add wave** (up to 6 waves; **−** removes the last wave and sends its callers back to off).
+2. **Delay between waves** is the default gap (10 s to start). Each pair of waves gets its own row (*Wave 1 → 2*, *Wave 2 → 3*, ...) prefilled with that default. Type a different number in a row to change just that gap: it turns orange and says **custom**; **↺** puts it back to the default.
+3. In **Caller Setup**, tap a caller to move them along: off → 1 → 2 → ... → off. The coloured badge shows their wave number (a caller is only ever in one wave). In **Edit list** there is also a wave menu on each row.
+4. The **Set-Off Schedule** shows one section per wave (*Wave 2 - lands 12:05:10*), each with its callers in start order. The big time is when wave 1 lands; the other waves' landing times are listed under it. A wave with nobody in it says so.
+
+The timing:
+- Wave 2 lands one delay after wave 1, wave 3 one more delay later, and so on.
+- LIVE: whoever has to start earliest, in **any** wave, starts one Reaction time from now (a later wave with long marches can be the first to go). Everything else is worked out from that.
+- Copy Schedule / LOCK / Reset and the "first start has passed" warning work the same as with one wave, using the earliest start of any wave. Edits while locked (moving callers between waves, changing a delay) keep that earliest start where it is.
+
+**Land at (UTC)** takes one time per wave, separated by commas or spaces, e.g. `12:05:00, 12:05:10, 12:05:30` (or `12:05 12:06`):
+- one time: wave 1 lands then and the other waves follow the delays;
+- several times: each wave lands at its own time (the delay rows show the gap those times give you instead);
+- fewer times than waves: the remaining waves follow the delays from the last time you typed;
+- more times than waves: you get an error;
+- a time smaller than the one before it means after midnight UTC (`23:59:50, 00:00:05`).
+
+With two or more waves the copied text is grouped by wave (waves with nobody in them are left out):
+
+```
+Start times UTC
+Wave 1 - land 12:05:00
+11:58:55 - Bravo (march 1:05)
+11:59:26 - rima (march 0:34)
+Wave 2 - land 12:05:10
+11:58:25 - Alpha (march 1:45)
+Wave 3 - land 12:05:30
+11:59:35 - Delta (march 0:55)
+12:00:00 - Charlie (march 0:30)
+```
+
+With one wave nothing changes: the text is the same as above.
+
 ---
 
 ## 2. Garrison Defense: when to send reinforcements

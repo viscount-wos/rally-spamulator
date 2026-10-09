@@ -14,6 +14,7 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 - **Copy Schedule freezes** the plan at that instant (box shows LOCKED); the copied text is exactly the frozen times, countdowns keep running down, and copying again re-copies the same text. **Reset** returns to LIVE; it turns red with a warning once the first start time has passed. **LOCK** freezes without copying.
 - *Land at (UTC)* fixes the landing time instead (e.g. `21:05`; `00:05` typed at 23:50 means 15 minutes from now); Reset clears it.
 - Edits while frozen (callers, march times, duration) keep the frozen **first start** and recompute the rest; changing the reaction time goes back to LIVE. A frozen plan or typed time survives a reload (for up to an hour after it).
+- **Waves** (up to 6): groups of callers whose landings are staggered. A default *Delay between waves* (10 s) plus an optional override per gap; tapping a caller cycles off → 1 → … → n → off (numbered, colour-blind-safe badges); the schedule and the copied text are grouped by wave. *Land at* takes one time per wave (`12:05:00, 12:05:10, 12:05:30`). With one wave everything is exactly as before.
 - Live UTC clock and a countdown for each caller.
 - **Copy Schedule** copies plain text, one caller per line, in game time (UTC). The exact text is previewed under the button:
 
@@ -36,6 +37,8 @@ All times are UTC (game time).
 - LIVE: first start = now (whole second) + reaction time. FROZEN: first start = the value at the moment of Copy/LOCK. Arrival = first start + rally duration + longest march. FIXED: arrival = the typed time. (`planArrivalMs` in `core.js`.)
   The old auto rule rounded the first start up to the next reaction-time slot; live mode replaces it.
 - Each caller's start = arrival − rally duration − their march. Longest march goes first; equal marches keep list order.
+- Waves (`planLandingsMs`): wave k lands at wave 1's landing + the gaps before it (each gap = its override or the default delay). LIVE/FROZEN anchor the **earliest start across all waves** on the (live or frozen) first start, so wave 1 lands at first start + duration + max over callers of (march − their wave's offset). FIXED: wave k lands at the k-th typed time; waves after the last typed time follow the delays; later typed times never go backwards (a smaller time = next day UTC).
+- Saved state: `rally_callers` items carry `wave` (0 = off) next to the old `selected` flag; old lists migrate as ticked = wave 1. `rally_waves` holds `{count, defaultDelay, gaps}`; several typed land times go in `rally_land_ms`.
 - Garrison: hit = now + rally countdown + enemy march; send = hit − your march.
 
 ## Running it
@@ -94,9 +97,9 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 ## Tests
 
 ```bash
-npm test                                    # node --test: maths, live/frozen/fixed plans, midnight UTC, copy text in 6 languages, garrison, server headers, password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
+npm test                                    # node --test: maths, live/frozen/fixed plans, midnight UTC, waves (delays, earliest-start anchoring, multi-time Land at, grouped copy text, migration), copy text in 6 languages, garrison, server headers, password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
 GATE_PASSWORD=test-gate-pw npm start &      # then:
-python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock; screenshots in e2e/out/
+python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, waves (tap cycling, gaps, multi Land at, copy text); screenshots in e2e/out/
 INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
 ```
 
