@@ -170,3 +170,186 @@ test('Garrison: hit = now + countdown + enemy march; send = hit - your march', (
   assert.equal(new Date(g.hitTimeMs).toISOString(), '2026-10-10T00:01:45.000Z');
   assert.equal(C.formatUTC(g.sendTimeMs), '00:01:25');
 });
+
+
+// ---------------- Waves ----------------
+
+const W = (count, defaultDelay = 10, gaps = []) => ({ count, defaultDelay, gaps });
+const hms = (ms) => C.formatUTC(ms);
+
+test('waves: landing times follow the default delay and per-gap overrides', () => {
+  const fixed = { mode: 'fixed', arrivalMs: at('2026-10-09T12:05:00Z') };
+  assert.deepEqual(C.waveOffsetsSec(W(3)), [0, 10, 20]);
+  assert.deepEqual(C.planLandingsMs(fixed, 0, [], 30, 300, W(3)).map(hms), ['12:05:00', '12:05:10', '12:05:20']);
+  // gap 2 overridden to 20s; a gap equal to the default is stored as "use default"
+  assert.deepEqual(C.planLandingsMs(fixed, 0, [], 30, 300, W(3, 10, [10, 20])).map(hms), ['12:05:00', '12:05:10', '12:05:30']);
+  assert.deepEqual(C.normalizeWaves(W(3, 10, [10, 20])).gaps, [null, 20]);
+  // changing the default moves every gap that follows it
+  assert.deepEqual(C.planLandingsMs(fixed, 0, [], 30, 300, W(3, 30, [null, 20])).map(hms), ['12:05:00', '12:05:30', '12:05:50']);
+  // 0s is a valid delay; bad values fall back to the default; count is clamped 1..6
+  assert.deepEqual(C.normalizeWaves({ count: 9, defaultDelay: 'x', gaps: [0, -5, '7'] }),
+    { count: 6, defaultDelay: 10, gaps: [0, null, 7, null, null] });
+  assert.equal(C.normalizeWaves({}).count, 1);
+  assert.equal(C.normalizeWaves({}).defaultDelay, 10);
+});
+
+test('waves: tapping cycles off -> 1 -> 2 -> 3 -> off; one wave is a plain toggle', () => {
+  let w = 0; const seen = [];
+  for (let i = 0; i < 4; i++) { w = C.nextWave(w, 3); seen.push(w); }
+  assert.deepEqual(seen, [1, 2, 3, 0]);
+  assert.equal(C.nextWave(0, 1), 1);
+  assert.equal(C.nextWave(1, 1), 0);
+});
+
+test('waves LIVE: the earliest start across ALL waves = now + reaction (wave 2 has the longer march)', () => {
+  const now = at('2026-10-09T12:00:00.400Z');
+  const callers = [{ name: 'A', marchSeconds: 30, wave: 1 }, { name: 'B', marchSeconds: 120, wave: 2 }, { name: 'Off', marchSeconds: 600, wave: 0 }];
+  const lands = C.planLandingsMs({ mode: 'live' }, now, callers, 30, 300, W(2));
+  // lead = max(30 - 0, 120 - 10) = 110s -> wave 1 lands 12:00:30 + 5:00 + 1:50
+  assert.deepEqual(lands.map(hms), ['12:07:20', '12:07:30']);
+  const g = C.buildWaveSchedule(C.includedCallers(callers, W(2)), lands, 300);
+  assert.deepEqual(g.map((x) => x.items.map((s) => s.name + ' ' + hms(s.setOffMs))), [['A 12:01:50'], ['B 12:00:30']]);
+  assert.equal(hms(C.planFirstStartMs({ mode: 'live' }, now, callers, 30, 300, W(2))), '12:00:30');
+  // anchoring on wave 1 alone would have given B an impossible start (before now)
+  const naive = C.planArrivalMs({ mode: 'live' }, now, [callers[0]], 30, 300) + 10e3 - 300e3 - 120e3;
+  assert.ok(naive < now);
+  // the off caller is ignored, and nothing in wave 3+ exists
+  assert.equal(C.leadSeconds(callers, W(2)), 110);
+  // only wave 2 used: wave 2's caller starts now + reaction
+  const only2 = [{ name: 'B', marchSeconds: 120, wave: 2 }];
+  assert.equal(hms(C.planFirstStartMs({ mode: 'live' }, now, only2, 30, 300, W(2))), '12:00:30');
+});
+
+test('waves FROZEN: edits recompute from the frozen earliest start; passed warning uses any wave', () => {
+  const t0 = at('2026-10-09T12:00:00Z');
+  const plan = C.freezePlan(t0, 30); // earliest start 12:00:30
+  const cs = [{ name: 'A', marchSeconds: 30, wave: 1 }, { name: 'B', marchSeconds: 120, wave: 2 }, { name: 'C', marchSeconds: 60, wave: 3 }];
+  const first = (callers, waves, dur = 300) => hms(C.planFirstStartMs(plan, t0 + 9000, callers, 30, dur, waves));
+  assert.equal(first(cs, W(3)), '12:00:30');
+  assert.deepEqual(C.planLandingsMs(plan, t0 + 60e3, cs, 30, 300, W(3)).map(hms), ['12:07:20', '12:07:30', '12:07:40']);
+  // move B out (longest lead): still 12:00:30, the rest is worked out from it
+  const noB = cs.map((c) => (c.name === 'B' ? { ...c, wave: 0 } : c));
+  assert.equal(first(noB, W(3)), '12:00:30');
+  assert.deepEqual(C.planLandingsMs(plan, t0, noB, 30, 300, W(3)).map(hms), ['12:06:10', '12:06:20', '12:06:30']); // lead = max(30, 60 - 20) = 40s
+  // change a gap and the duration: still the same earliest start
+  assert.equal(first(cs, W(3, 10, [45])), '12:00:30');
+  assert.equal(first(cs, W(3), 600), '12:00:30');
+  // B moved to wave 3
+  assert.equal(first(cs.map((c) => (c.name === 'B' ? { ...c, wave: 3 } : c)), W(3)), '12:00:30');
+  // passed: once the earliest start (B in wave 2) is behind us
+  assert.equal(C.firstStartPassed(plan, at('2026-10-09T12:00:30Z'), cs, 30, 300, W(3)), false);
+  assert.equal(C.firstStartPassed(plan, at('2026-10-09T12:00:30.001Z'), cs, 30, 300, W(3)), true);
+  assert.equal(C.firstStartPassed({ mode: 'live' }, at('2026-10-09T13:00:00Z'), cs, 30, 300, W(3)), false);
+});
+
+test('waves FIXED: several Land at times, fewer than waves follow the delays from the last one', () => {
+  const p = { mode: 'fixed', arrivalMs: at('2026-10-09T12:05:00Z'), landMs: [at('2026-10-09T12:05:00Z'), at('2026-10-09T12:06:00Z')] };
+  assert.deepEqual(C.planLandingsMs(p, 0, [], 30, 300, W(4, 10, [null, 25])).map(hms), ['12:05:00', '12:06:00', '12:06:25', '12:06:35']);
+  // removing waves ignores the extra typed times
+  assert.deepEqual(C.planLandingsMs(p, 0, [], 30, 300, W(1)).map(hms), ['12:05:00']);
+  const cs = [{ name: 'A', marchSeconds: 30, wave: 1 }, { name: 'B', marchSeconds: 120, wave: 2 }];
+  assert.equal(hms(C.planFirstStartMs(p, 0, cs, 30, 300, W(2))), '11:59:00'); // 12:06:00 - 5:00 - 2:00
+  assert.equal(C.firstStartPassed(p, at('2026-10-09T11:59:01Z'), cs, 30, 300, W(2)), true);
+});
+
+test('Land at box: commas, spaces, HH:MM, crossing midnight, too many times, bad tokens', () => {
+  const now = at('2026-10-09T12:00:00Z');
+  const iso = (r) => r.times.map((t) => new Date(t).toISOString().slice(11, 19));
+  assert.deepEqual(iso(C.parseLandAt('12:05:00, 12:05:10, 12:05:30', now, 3)), ['12:05:00', '12:05:10', '12:05:30']);
+  assert.deepEqual(iso(C.parseLandAt('12:05 12:06', now, 3)), ['12:05:00', '12:06:00']);
+  assert.deepEqual(iso(C.parseLandAt(' 12:05,12:05:10 ;12:06 ', now, 3)), ['12:05:00', '12:05:10', '12:06:00']);
+  assert.deepEqual(C.parseLandAt('', now, 3), { times: [] });
+  // one time keeps the old single-time formats ("21 05", "2105")
+  assert.deepEqual(iso(C.parseLandAt('21 05', now, 3)), ['21:05:00']);
+  assert.deepEqual(iso(C.parseLandAt('2105', now, 1)), ['21:05:00']);
+  // midnight: a smaller time than the one before means the next day
+  const late = at('2026-10-09T23:50:00Z');
+  const r = C.parseLandAt('23:59:50, 00:00:05, 00:01', late, 3);
+  assert.deepEqual(r.times.map((t) => new Date(t).toISOString()),
+    ['2026-10-09T23:59:50.000Z', '2026-10-10T00:00:05.000Z', '2026-10-10T00:01:00.000Z']);
+  // first time just after midnight typed at 23:50 is tomorrow; the rest follow it
+  assert.deepEqual(C.parseLandAt('00:05, 00:05:10', late, 2).times.map((t) => new Date(t).toISOString()),
+    ['2026-10-10T00:05:00.000Z', '2026-10-10T00:05:10.000Z']);
+  // equal times are allowed (gap 0)
+  assert.equal(new Set(C.parseLandAt('12:05, 12:05', now, 2).times).size, 1);
+  assert.deepEqual(C.parseLandAt('12:05, 12:06, 12:07', now, 2), { error: 'too_many', max: 2 });
+  assert.deepEqual(C.parseLandAt('12:05, 25:00', now, 3), { error: 'bad', token: '25:00' });
+  assert.deepEqual(C.parseLandAt('soon', now, 3), { error: 'bad', token: 'soon' });
+  for (const code of Object.keys(LANG)) assert.match(LANG[code].land_too_many(2), /2/, code);
+});
+
+test('copy text: one wave is identical to the pre-waves text', () => {
+  const callers = [{ name: 'Bravo', marchSeconds: 55, wave: 1 }, { name: 'Alpha', marchSeconds: 105, wave: 1 },
+    { name: 'Charlie', marchSeconds: 30, wave: 1 }, { name: 'Off', marchSeconds: 99, wave: 0 }];
+  const arrival = C.resolveTargetMs(C.parseClock('00:05'), at('2026-10-09T23:50:00Z'));
+  const expected = [
+    'Start times UTC - land 00:05:00',
+    '23:58:15 - Alpha (march 1:45)',
+    '23:59:05 - Bravo (march 0:55)',
+    '23:59:30 - Charlie (march 0:30)'
+  ].join('\n');
+  const inc = C.includedCallers(callers, W(1));
+  assert.equal(C.buildWavesCopyText(inc, [arrival], 300, LANG.en), expected);
+  assert.equal(C.buildCopyText(inc, arrival, 300, LANG.en), expected);
+});
+
+test('copy text: 3 waves, grouped, each wave sorted by start, empty waves left out', () => {
+  const lands = [at('2026-10-09T12:05:00Z'), at('2026-10-09T12:05:10Z'), at('2026-10-09T12:05:30Z')];
+  const callers = [
+    { name: 'rima', marchSeconds: 34, wave: 1 }, { name: 'Bravo', marchSeconds: 65, wave: 1 },
+    { name: 'Alpha', marchSeconds: 105, wave: 2 },
+    { name: 'Charlie', marchSeconds: 30, wave: 3 }, { name: 'Delta', marchSeconds: 55, wave: 3 }
+  ];
+  const text = C.buildWavesCopyText(callers, lands, 300, LANG.en);
+  assert.equal(text, [
+    'Start times UTC',
+    'Wave 1 - land 12:05:00',
+    '11:58:55 - Bravo (march 1:05)',
+    '11:59:26 - rima (march 0:34)',
+    'Wave 2 - land 12:05:10',
+    '11:58:25 - Alpha (march 1:45)',
+    'Wave 3 - land 12:05:30',
+    '11:59:35 - Delta (march 0:55)',
+    '12:00:00 - Charlie (march 0:30)'
+  ].join('\n'));
+  assert.doesNotMatch(text, /[\t*_`<>|#]/);
+  // wave 2 empty: no "Wave 2" line at all
+  const no2 = C.buildWavesCopyText(callers.filter((c) => c.wave !== 2), lands, 300, LANG.en);
+  assert.doesNotMatch(no2, /Wave 2/);
+  assert.equal(no2.split('\n').length, 7);
+  // every language: same line structure, header says UTC, wave lines carry the time
+  for (const code of Object.keys(LANG)) {
+    const L = LANG[code];
+    const lines = C.buildWavesCopyText(callers, lands, 300, L).split('\n');
+    assert.equal(lines.length, 9, code);
+    assert.equal(lines[0], L.copy_header_waves, code);
+    assert.match(lines[0], /UTC/, code);
+    assert.equal(lines[1], L.copy_wave(1, '12:05:00'), code);
+    assert.equal(lines[4], L.copy_wave(2, '12:05:10'), code);
+    assert.equal(lines[5], '11:58:25 - Alpha (' + L.march_word + ' 1:45)', code);
+    assert.match(lines[6], /12:05:30/, code);
+  }
+  assert.equal(LANG.ar.copy_wave(2, '12:05:10'), 'الموجة 2 - الوصول 12:05:10');
+});
+
+test('saved state migration: old ticked callers become wave 1, unticked off; waves above the count become off', () => {
+  assert.deepEqual(C.migrateCallers([
+    { name: 'Alpha', marchSeconds: 105, selected: true },
+    { name: 'Bravo', marchSeconds: 55, selected: false },
+    { name: 'Charlie', marchSeconds: 30 },
+    { name: 'Delta', marchSeconds: 40, selected: true, wave: 3 },
+    { name: 'Echo', marchSeconds: 50, selected: false, wave: 2 },
+    null, 'junk'
+  ], 2), [
+    { name: 'Alpha', marchSeconds: 105, wave: 1 },
+    { name: 'Bravo', marchSeconds: 55, wave: 0 },
+    { name: 'Charlie', marchSeconds: 30, wave: 0 },
+    { name: 'Delta', marchSeconds: 40, wave: 0 },
+    { name: 'Echo', marchSeconds: 50, wave: 2 }
+  ]);
+  assert.deepEqual(C.migrateCallers(null, 1), []);
+  assert.deepEqual(C.migrateCallers([{ name: 'X' }], 1), [{ name: 'X', marchSeconds: 45, wave: 0 }]);
+  // callers without a wave field (old API) count as wave 1 unless selected === false
+  assert.equal(C.callerWave({ name: 'A', marchSeconds: 1 }), 1);
+  assert.equal(C.callerWave({ selected: false }), 0);
+});
