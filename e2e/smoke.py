@@ -8,6 +8,8 @@ Arabic, the LIVE -> Copy (freeze) -> Reset cycle with a controlled clock: times
 count up while live, Copy freezes them (clipboard == shown times), countdowns
 keep falling, the "first start passed" warning appears, Reset resumes live,
 LOCK freezes without copying, edits while frozen keep the first start.
+Waves (en + ar, desktop + iPhone): tap cycling, gap edits, grouped copy text,
+freeze/Reset, several Land at times, remove wave.
 Everything sits behind the shared-password gate: each run logs in first, and
 the login page itself is checked in English and Arabic on desktop and iPhone
 (redirect with next, translated wrong-password error, RTL, log out).
@@ -370,6 +372,173 @@ def live_freeze(pw, label, ctx_args, lang):
     browser.close()
 
 
+FIVE_OLD = "[{name:'rima',marchSeconds:34,selected:true},{name:'Bravo',marchSeconds:65,selected:true},{name:'Alpha',marchSeconds:105,selected:true},{name:'Charlie',marchSeconds:30,selected:true},{name:'Delta',marchSeconds:55,selected:true}]"
+W0 = dt.datetime(2026, 10, 9, 12, 0, 0, tzinfo=dt.timezone.utc)
+
+
+def waves(pw, label, ctx_args, lang):
+    """Waves: tap cycling, gaps (default + custom), earliest-start anchoring, grouped
+    copy text, freeze/edit/Reset, multi-time Land at, Randomise + Undo, remove wave."""
+    tag = f"[waves/{label}/{lang}]"
+    browser = pw.chromium.launch()
+    ctx = browser.new_context(**ctx_args, locale="en-GB")
+    ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE)
+    page = ctx.new_page()
+    errors = []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.clock.set_fixed_time(W0)
+    gate_login(page)
+    # an OLD saved list (selected flags, no waves): migrates to wave 1
+    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({FIVE_OLD}))")
+    page.reload()
+
+    def L(key, *args):
+        if args:
+            return page.evaluate(f"RallyLang['{lang}']['{key}'](...{list(args)!r})")
+        return page.evaluate(f"RallyLang['{lang}']['{key}']")
+
+    def times():
+        return page.locator(".si-time").all_inner_texts()
+
+    def toggle(name):
+        return page.locator(".caller-toggle", has_text=name)
+
+    def wave_of(name):
+        return toggle(name).get_attribute("data-wave")
+
+    def wave_sizes():
+        ws = page.locator(".caller-toggle").evaluate_all("bs => bs.map(b => +b.dataset.wave)")
+        return ws
+
+    status = page.locator("#plan-status")
+    check(f"{tag} old list migrated: 5 ticked, 1 wave", page.locator(".caller-toggle[aria-checked=true]").count() == 5)
+    check(f"{tag} one wave: no wave sections, no delay row", page.locator(".wave-section").count() == 0 and page.locator("#wave-delay-row").is_hidden())
+
+    # --- 3 waves ---
+    page.click("#add-wave-btn")
+    page.click("#add-wave-btn")
+    expect(page.locator("#wave-count")).to_have_text("3")
+    check(f"{tag} delay row + 2 gap rows", page.locator("#wave-delay-row").is_visible() and page.locator(".gap-row").count() == 2)
+    check(f"{tag} gaps prefilled with the default", page.locator(".gap-row .sec-input").evaluate_all("i => i.map(x => x.value)") == ["10", "10"])
+
+    # --- tap cycling: off -> 1 -> 2 -> 3 -> off ---
+    seq = []
+    for _ in range(4):
+        toggle("rima").click()
+        seq.append(wave_of("rima"))
+    check(f"{tag} tap cycles 1 -> 2 -> 3 -> off -> 1", seq == ["2", "3", "0", "1"], str(seq))
+    toggle("Alpha").click()
+    for n in ("Charlie", "Delta"):
+        toggle(n).click()
+        toggle(n).click()
+    check(f"{tag} assignments", [wave_of(n) for n in ("rima", "Bravo", "Alpha", "Charlie", "Delta")] == ["1", "1", "2", "3", "3"])
+    badge = toggle("Alpha").locator(".wave-badge")
+    check(f"{tag} badge shows the number", badge.inner_text() == "2" and "w2" in (badge.get_attribute("class") or ""))
+    check(f"{tag} badge aria-label", toggle("Alpha").get_attribute("aria-label") == L("wave_aria", "Alpha", 2))
+    colours = page.evaluate("[1,2,3].map(k => getComputedStyle(document.querySelector('.caller-toggle .wave-badge.w' + k)).backgroundColor)")
+    check(f"{tag} distinct wave colours", len(set(colours)) == 3, str(colours))
+
+    # --- edit one gap (wave 2 -> 3 = 20s): marked custom ---
+    gap2 = page.locator(".gap-row").nth(1)
+    gap2.locator(".sec-input").fill("20")
+    gap2.locator(".sec-input").press("Tab")
+    gap2 = page.locator(".gap-row").nth(1)
+    check(f"{tag} custom gap marked", "custom" in (gap2.get_attribute("class") or "") and gap2.locator(".gap-custom").text_content() == L("gap_custom"))
+    check(f"{tag} default gap not marked", "custom" not in (page.locator(".gap-row").nth(0).get_attribute("class") or ""))
+
+    # --- LIVE times: Alpha (wave 2, longest lead) starts at now + 30s ---
+    expect(page.locator("#arrival-time")).to_have_text("12:07:05")
+    check(f"{tag} live start times per wave", times() == ["12:01:00", "12:01:31", "12:00:30", "12:01:40", "12:02:05"], str(times()))
+    heads = page.locator(".wave-title").all_inner_texts()
+    check(f"{tag} wave headers", heads == [L("wave_lands", 1, "12:07:05"), L("wave_lands", 2, "12:07:15"), L("wave_lands", 3, "12:07:35")], str(heads))
+    check(f"{tag} arrival label says wave 1", page.text_content("#arrival-label") == L("arrival_label_w1"))
+    check(f"{tag} other landings listed", page.locator(".wl-chip").count() == 2 and "12:07:35" in page.inner_text("#wave-landings"))
+
+    # --- Copy: freeze; clipboard grouped by wave ---
+    word = L("march_word")
+    expected = "\n".join([
+        L("copy_header_waves"),
+        L("copy_wave", 1, "12:07:05"), f"12:01:00 - Bravo ({word} 1:05)", f"12:01:31 - rima ({word} 0:34)",
+        L("copy_wave", 2, "12:07:15"), f"12:00:30 - Alpha ({word} 1:45)",
+        L("copy_wave", 3, "12:07:35"), f"12:01:40 - Delta ({word} 0:55)", f"12:02:05 - Charlie ({word} 0:30)",
+    ])
+    page.click("#copy-btn")
+    expect(status).to_have_text(L("locked_ind"))
+    clip = page.evaluate("navigator.clipboard.readText()")
+    check(f"{tag} clipboard (3 waves)", clip == expected, repr(clip))
+    check(f"{tag} preview == clipboard", page.inner_text("#copy-preview") == clip)
+    check(f"{tag} no horizontal scroll (3 waves)", no_hscroll(page))
+    os.makedirs(OUT, exist_ok=True)
+    shot(page, f"{OUT}/{label}-waves-{lang}.png")
+
+    # --- edits while frozen keep the earliest start (Alpha 12:00:30) ---
+    page.locator(".gap-row").nth(1).locator(".gap-reset").click()
+    check(f"{tag} gap back to default", page.locator(".gap-row").nth(1).locator(".sec-input").input_value() == "10"
+          and "custom" not in (page.locator(".gap-row").nth(1).get_attribute("class") or ""))
+    check(f"{tag} frozen: wave 3 moved, earliest start kept",
+          times()[2] == "12:00:30" and page.locator(".wave-title").nth(2).inner_text() == L("wave_lands", 3, "12:07:25"), str(times()))
+    toggle("Alpha").click()  # Alpha -> wave 3
+    check(f"{tag} frozen: moving a caller keeps the earliest start", min(times()) == "12:00:30", str(times()))
+    check(f"{tag} empty wave shows a hint", page.locator(".wave-section.w2 .wave-empty").inner_text() == L("empty_wave"))
+    check(f"{tag} empty wave left out of the copy text", L("copy_wave", 2, "12:07:15") not in page.inner_text("#copy-preview")
+          and "\n" + L("wave_n", 2) not in page.inner_text("#copy-preview"))
+    toggle("Alpha").click()  # off
+    toggle("Alpha").click()  # wave 1
+    toggle("Alpha").click()  # wave 2 again
+
+    # --- the earliest start passes: warning; Reset -> live ---
+    page.clock.set_fixed_time(W0 + dt.timedelta(seconds=31))
+    expect(page.locator("#schedule-warning")).to_have_text(L("passed_warning"))
+    page.click("#reset-btn")
+    expect(status).to_have_text(L("live_ind"))
+    check(f"{tag} reset: earliest start = now + 30s", min(times()) == "12:01:01", str(times()))
+
+    # --- several Land at times ---
+    page.fill("#target-input", "12:10, 12:10:20")
+    page.press("#target-input", "Enter")
+    expect(page.locator("#arrival-time")).to_have_text("12:10:00")
+    heads = page.locator(".wave-title").all_inner_texts()
+    check(f"{tag} land at: per-wave times, wave 3 follows the delay", heads == [L("wave_lands", 1, "12:10:00"), L("wave_lands", 2, "12:10:20"), L("wave_lands", 3, "12:10:30")], str(heads))
+    check(f"{tag} land at: implied gap shown", page.locator(".gap-row").nth(0).locator(".gap-fixed").inner_text() == L("gap_fixed", 20))
+    check(f"{tag} land at: box shows the times", page.input_value("#target-input") == "12:10:00, 12:10:20")
+    page.fill("#target-input", "12:10, 12:11, 12:12, 12:13")
+    page.press("#target-input", "Enter")
+    expect(page.locator("#target-error")).to_have_text(L("land_too_many", 3))
+    page.fill("#target-input", "12:10, soon")
+    page.press("#target-input", "Enter")
+    expect(page.locator("#target-error")).to_have_text(L("bad_time"))
+    check(f"{tag} land at: plan kept after an error", page.inner_text("#arrival-time") == "12:10:00")
+    page.fill("#target-input", "23:59:55, 00:00:10")
+    page.press("#target-input", "Enter")
+    check(f"{tag} land at: across midnight", page.locator(".wave-title").nth(1).inner_text() == L("wave_lands", 2, "00:00:10"))
+    page.click("#reset-btn")
+    expect(status).to_have_text(L("live_ind"))
+
+    # --- tap targets, edit-mode wave select ---
+    small = page.evaluate("""[...document.querySelectorAll('#tab-rally button, #tab-rally select, #tab-rally input')]
+        .filter(e => e.offsetParent).map(e => [e.id || e.className, Math.round(e.getBoundingClientRect().height)])
+        .filter(([, h]) => h < 44)""")
+    check(f"{tag} tap targets >= 44px", not small, str(small))
+    page.click("#edit-btn")
+    check(f"{tag} Edit list has a wave menu per caller", page.locator(".wave-select").count() == 5)
+    page.locator("#caller-list li").nth(0).locator(".wave-select").select_option("3")
+    page.click("#edit-btn")
+    check(f"{tag} wave menu sets the wave", wave_of("rima") == "3")
+    check(f"{tag} no horizontal scroll (edit)", no_hscroll(page))
+
+    # --- remove a wave: its callers go off; persistence ---
+    in3 = [n for n in ("rima", "Bravo", "Alpha", "Charlie", "Delta") if wave_of(n) == "3"]
+    page.click("#remove-wave-btn")
+    expect(page.locator("#wave-count")).to_have_text("2")
+    check(f"{tag} removed wave's callers are off", all(wave_of(n) == "0" for n in in3) and page.locator(".gap-row").count() == 1, str(in3))
+    page.reload()
+    expect(page.locator("#wave-count")).to_have_text("2")
+    check(f"{tag} waves persisted", all(wave_of(n) == "0" for n in in3))
+    check(f"{tag} no console errors", not errors, str(errors))
+    browser.close()
+
+
 def gate_page(pw, label, ctx_args, lang):
     """Login page: phone language, RTL, wrong password, next redirect, log out."""
     tag = f"[gate/{label}/{lang}]"
@@ -450,6 +619,8 @@ with sync_playwright() as pw:
     for lang in ("en", "ar"):
         live_freeze(pw, "desktop", {"viewport": {"width": 1280, "height": 900}}, lang)
         live_freeze(pw, "iphone", iphone_device(pw), lang)
+        waves(pw, "desktop", {"viewport": {"width": 1280, "height": 900}}, lang)
+        waves(pw, "iphone", iphone_device(pw), lang)
     if os.environ.get("INSECURE_URL"):  # e.g. http://hannah.localdomain:8096
         insecure_copy(pw, os.environ["INSECURE_URL"])
 
