@@ -231,6 +231,8 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
     font-size: 0.8rem;
     white-space: pre-wrap;
     word-break: break-word;
+    unicode-bidi: plaintext; /* each line picks its own direction, like a chat line */
+    text-align: start;
     user-select: all;
     -webkit-user-select: all;
 }
@@ -364,7 +366,7 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
     .clock-time { font-size: 4rem; }
     .tab-panel.active {
         display: grid;
-        grid-template-columns: 2fr 3fr;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
         gap: 0 16px;
         align-items: start;
     }
