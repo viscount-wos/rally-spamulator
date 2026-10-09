@@ -55,15 +55,17 @@
     var nextId = 1;
     var bufferSeconds = 30;
     var rallyDurationSeconds = 300;
-    var lockedArrivalMs = null; // null = auto (next clean slot); number = fixed arrival
+    // { mode: 'live' } | { mode: 'frozen', firstStartMs } | { mode: 'fixed', arrivalMs }
+    // (see RallyCore.planArrivalMs). LIVE follows the clock; Copy Schedule or
+    // LOCK freezes it; a typed "Land at" time fixes it; Reset goes back to LIVE.
+    var plan = { mode: 'live' };
     var editMode = false;
     var lastPreview = null;
 
     function selectedCallers() { return callers.filter(function (c) { return c.selected; }); }
 
-    function getArrivalMs() {
-        if (lockedArrivalMs !== null) return lockedArrivalMs;
-        return C.autoArrivalMs(Date.now(), bufferSeconds, rallyDurationSeconds, C.longestMarch(selectedCallers()));
+    function getArrivalMs(now) {
+        return C.planArrivalMs(plan, now, selectedCallers(), bufferSeconds, rallyDurationSeconds);
     }
 
     function saveState() {
@@ -86,7 +88,9 @@
         var d = parseInt(read('rally_duration'), 10);
         if (d) { rallyDurationSeconds = d; $('rally-duration-select').value = String(d); }
         var a = parseInt(read('rally_arrival_ms'), 10);
-        if (a && a > Date.now() - 3600 * 1000) lockedArrivalMs = a;
+        var f = parseInt(read('rally_frozen_ms'), 10);
+        if (a && a > Date.now() - 3600 * 1000) plan = { mode: 'fixed', arrivalMs: a };
+        else if (f && f > Date.now() - 3600 * 1000) plan = { mode: 'frozen', firstStartMs: f };
     }
 
     // ===== Callers list =====
@@ -181,33 +185,47 @@
         if (inputs.length) inputs[inputs.length - 1].focus();
     }
 
-    // ===== Arrival lock / target =====
+    // ===== Live / locked plan =====
     function renderLock() {
-        var locked = lockedArrivalMs !== null;
+        var live = plan.mode === 'live';
         var btn = $('lock-btn');
-        btn.textContent = locked ? t('unlock') : t('lock');
-        btn.classList.toggle('active', locked);
-        btn.setAttribute('aria-pressed', locked ? 'true' : 'false');
-        $('arrival-display').classList.toggle('locked', locked);
+        btn.textContent = live ? t('lock') : t('reset_btn');
+        btn.classList.toggle('active', !live);
+        $('arrival-display').classList.toggle('locked', !live);
+        $('arrival-display').classList.toggle('live', live);
+        $('plan-status').textContent = live ? t('live_ind') : t('locked_ind');
+        $('reset-btn').hidden = live;
+        $('plan-hint').textContent = live ? t('hint_live') : t('hint_locked');
         var input = $('target-input');
-        if (document.activeElement !== input) input.value = locked ? formatUTC(lockedArrivalMs) : '';
+        if (document.activeElement !== input) input.value = plan.mode === 'fixed' ? formatUTC(plan.arrivalMs) : '';
     }
 
-    function setLocked(ms) {
-        lockedArrivalMs = ms;
-        if (ms === null) { try { localStorage.removeItem('rally_arrival_ms'); } catch (e) { /* ignore */ } }
-        else store('rally_arrival_ms', String(ms));
+    function setPlan(p) {
+        plan = p;
+        try {
+            localStorage.removeItem('rally_arrival_ms');
+            localStorage.removeItem('rally_frozen_ms');
+        } catch (e) { /* ignore */ }
+        if (p.mode === 'fixed') store('rally_arrival_ms', String(p.arrivalMs));
+        if (p.mode === 'frozen') store('rally_frozen_ms', String(p.firstStartMs));
         $('target-error').hidden = true;
         renderLock();
         updateSchedule();
     }
 
+    function freezeNow() { setPlan(C.freezePlan(Date.now(), bufferSeconds)); }
+
+    function resetPlan() {
+        $('target-input').value = '';
+        setPlan({ mode: 'live' });
+    }
+
     function applyTargetInput() {
         var v = $('target-input').value.trim();
-        if (!v) { setLocked(null); return; }
+        if (!v) { if (plan.mode === 'fixed') resetPlan(); else $('target-error').hidden = true; return; }
         var sec = C.parseClock(v);
         if (sec === null) { $('target-error').hidden = false; return; }
-        setLocked(C.resolveTargetMs(sec, Date.now()));
+        setPlan({ mode: 'fixed', arrivalMs: C.resolveTargetMs(sec, Date.now()) });
     }
 
     // ===== Schedule =====
@@ -216,56 +234,76 @@
         return LANG[currentLang].fmtCountdown(Math.floor(secs / 60), pad(secs % 60));
     }
 
-    function currentCopyText() {
+    function currentCopyText(now) {
         var sel = selectedCallers();
         if (!sel.length) return '';
-        return C.buildCopyText(sel, getArrivalMs(), rallyDurationSeconds, LANG[currentLang]);
+        return C.buildCopyText(sel, getArrivalMs(now), rallyDurationSeconds, LANG[currentLang]);
     }
 
+    // Rows are rebuilt only when the callers or language change; every
+    // second only their text and classes are updated (no layout jumps).
+    var scheduleKey = '';
+    var scheduleRows = [];
     function updateSchedule() {
+        var now = Date.now();
         var sel = selectedCallers();
         var listEl = $('schedule-list');
         var warningEl = $('schedule-warning');
         var empty = sel.length === 0;
         $('no-callers').hidden = !empty;
         $('copy-btn').hidden = empty;
+        $('plan-hint').hidden = empty;
         $('preview-wrap').hidden = empty;
         if (empty) {
             listEl.textContent = '';
+            scheduleKey = '';
             warningEl.hidden = true;
+            $('reset-btn').classList.remove('attention');
             $('arrival-time').textContent = '--:--:--';
             return;
         }
 
-        var arrivalMs = getArrivalMs();
-        var now = Date.now();
+        var arrivalMs = getArrivalMs(now);
         $('arrival-time').textContent = formatUTC(arrivalMs);
         var schedule = C.buildSchedule(sel, arrivalMs, rallyDurationSeconds);
 
-        var overdue = schedule.some(function (s) { return s.setOffMs < now; });
-        warningEl.hidden = !overdue;
-        if (overdue) warningEl.textContent = t('warning_overdue_1') + formatMarch(schedule[0].marchSeconds) + t('warning_overdue_2');
+        var passed = C.firstStartPassed(plan, now, sel, bufferSeconds, rallyDurationSeconds);
+        warningEl.hidden = !passed;
+        if (passed) warningEl.textContent = t('passed_warning');
+        $('reset-btn').classList.toggle('attention', passed);
 
-        listEl.textContent = '';
-        schedule.forEach(function (s) {
+        var key = currentLang + '|' + schedule.map(function (s) { return s.name + '\u0000' + s.marchSeconds; }).join('|');
+        if (key !== scheduleKey) {
+            scheduleKey = key;
+            listEl.textContent = '';
+            scheduleRows = schedule.map(function (s) {
+                var li = el('li', 'schedule-item');
+                var left = el('div', 'si-left');
+                left.appendChild(el('div', 'si-name', s.name || t('unnamed')));
+                left.appendChild(el('div', 'si-march', t('march_prefix') + formatMarch(s.marchSeconds)));
+                var right = el('div', 'si-right');
+                right.appendChild(el('div', 'si-label', t('call_at')));
+                var time = el('div', 'si-time');
+                var cd = el('div', 'si-countdown');
+                right.appendChild(time);
+                right.appendChild(cd);
+                li.appendChild(left);
+                li.appendChild(right);
+                listEl.appendChild(li);
+                return { li: li, time: time, cd: cd };
+            });
+        }
+        schedule.forEach(function (s, i) {
+            var row = scheduleRows[i];
             var secsUntil = Math.floor((s.setOffMs - now) / 1000);
             var isOverdue = secsUntil < 0;
             var isImminent = !isOverdue && secsUntil <= 10;
-            var li = el('li', 'schedule-item' + (isOverdue ? ' overdue' : '') + (isImminent ? ' imminent' : ''));
-            var left = el('div', 'si-left');
-            left.appendChild(el('div', 'si-name', s.name || t('unnamed')));
-            left.appendChild(el('div', 'si-march', t('march_prefix') + formatMarch(s.marchSeconds)));
-            var right = el('div', 'si-right');
-            right.appendChild(el('div', 'si-label', t('call_at')));
-            right.appendChild(el('div', 'si-time', formatUTC(s.setOffMs)));
-            right.appendChild(el('div', 'si-countdown',
-                isOverdue ? LANG[currentLang].fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil)));
-            li.appendChild(left);
-            li.appendChild(right);
-            listEl.appendChild(li);
+            row.li.className = 'schedule-item' + (isOverdue ? ' overdue' : '') + (isImminent ? ' imminent' : '');
+            row.time.textContent = formatUTC(s.setOffMs);
+            row.cd.textContent = isOverdue ? LANG[currentLang].fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil);
         });
 
-        var text = currentCopyText();
+        var text = C.buildCopyText(sel, arrivalMs, rallyDurationSeconds, LANG[currentLang]);
         if (text !== lastPreview) { $('copy-preview').textContent = text; lastPreview = text; }
     }
 
@@ -299,9 +337,14 @@
         s.addRange(r);
     }
 
+    // Copy = freeze: a LIVE plan is frozen at this instant and the copied
+    // text is built from the frozen plan, so it matches what is shown. Once
+    // frozen (or fixed), copying again copies the same times.
     function copySchedule() {
-        var text = currentCopyText();
-        if (!text) return;
+        if (!selectedCallers().length) return;
+        if (plan.mode === 'live') freezeNow();
+        else updateSchedule();
+        var text = currentCopyText(Date.now());
         var btn = $('copy-btn');
         copyText(text).then(function (ok) {
             if (!ok) { selectNode($('copy-preview')); return; }
@@ -549,12 +592,15 @@
         $('buffer-select').addEventListener('change', function () {
             bufferSeconds = parseInt(this.value, 10);
             store('rally_buffer', bufferSeconds);
-            if (lockedArrivalMs !== null) setLocked(null); // as before: changing reaction time unlocks
+            // Reaction time only decides where a LIVE plan starts, so changing
+            // it releases a frozen plan (a typed Land at time is kept).
+            if (plan.mode === 'frozen') setPlan({ mode: 'live' });
             updateSchedule();
         });
         $('lock-btn').addEventListener('click', function () {
-            setLocked(lockedArrivalMs === null ? getArrivalMs() : null);
+            if (plan.mode === 'live') freezeNow(); else resetPlan();
         });
+        $('reset-btn').addEventListener('click', resetPlan);
         $('target-input').addEventListener('change', applyTargetInput);
         $('target-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { applyTargetInput(); this.blur(); } });
 
@@ -592,10 +638,15 @@
         switchTab(tab === 'garrison' ? 'garrison' : 'rally');
         setLang(detectLang(), false);
 
-        var tick = function () { $('utc-clock').textContent = formatUTC(Date.now()); };
+        // Clock and schedule tick together, once per second, just after each
+        // second boundary, so the clock and the live times change in step.
+        var tick = function () {
+            $('utc-clock').textContent = formatUTC(Date.now());
+            updateSchedule();
+            setTimeout(tick, 1000 - (Date.now() % 1000) + 5);
+        };
         tick();
-        setInterval(tick, 100);
-        setInterval(function () { updateSchedule(); updateActiveRallies(); }, 250);
+        setInterval(updateActiveRallies, 250); // Garrison Defense: unchanged
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

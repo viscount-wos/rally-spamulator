@@ -69,11 +69,15 @@
             <div class="arrival-display" id="arrival-display">
                 <div class="arrival-label" data-i18n="arrival_label">All Rallies Arrive At (UTC)</div>
                 <div class="arrival-time" id="arrival-time">--:--:--</div>
-                <div class="locked-indicator" data-i18n="locked_ind">LOCKED</div>
+                <div class="plan-row">
+                    <span class="plan-status" id="plan-status" role="status">LIVE</span>
+                    <button type="button" class="btn btn-reset" id="reset-btn" hidden data-i18n="reset_btn">Reset</button>
+                </div>
             </div>
             <ol id="schedule-list" class="schedule-list"></ol>
             <div id="no-callers" class="empty-msg" data-i18n="no_callers">Tick callers below to see the schedule</div>
             <button type="button" class="btn btn-copy" id="copy-btn" hidden data-i18n="copy_schedule">Copy Schedule</button>
+            <div id="plan-hint" class="plan-hint" hidden></div>
             <div id="preview-wrap" hidden>
                 <div class="preview-label" data-i18n="chat_preview">Chat text (UTC)</div>
                 <pre id="copy-preview" class="copy-preview" dir="auto"></pre>

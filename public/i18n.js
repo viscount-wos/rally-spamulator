@@ -30,7 +30,6 @@
             buf_3m: "3 min",
             buf_5m: "5 min",
             lock: "LOCK",
-            unlock: "UNLOCK",
             setoff_schedule: "Set-Off Schedule",
             arrival_label: "All Rallies Arrive At (UTC)",
             locked_ind: "LOCKED",
@@ -66,8 +65,6 @@
             send_at: "Send at",
             landed_lower: "landed",
             now_label: "NOW",
-            warning_overdue_1: "Some set-off times are in the past. Increase buffer or wait for the next cycle. Longest march caller needs at least ~",
-            warning_overdue_2: " before arrival.",
             call_at: "Call at:",
             fmtCountdown: function(m, s) { return m > 0 ? 'in ' + m + 'm ' + s + 's' : 'in ' + parseInt(s) + 's'; },
             fmtAgo: function(s) { return s + 's ago'; },
@@ -91,7 +88,12 @@
             import_done: function(n, bad) { return 'Imported ' + n + (bad ? ', skipped ' + bad + ' line(s)' : ''); },
             export_done: "List copied",
             chat_preview: "Chat text (UTC)",
-            bad_time: "Use HH:MM or HH:MM:SS (UTC)"
+            bad_time: "Use HH:MM or HH:MM:SS (UTC)",
+            reset_btn: "Reset",
+            live_ind: "LIVE",
+            passed_warning: "First start time has passed: reset for new times",
+            hint_live: "Times follow the clock. Copy Schedule (or LOCK) freezes them.",
+            hint_locked: "Times locked. Press Reset for new times."
         },
         tr: {
             lang_name: "Türkçe",
@@ -116,7 +118,6 @@
             buf_3m: "3 dk",
             buf_5m: "5 dk",
             lock: "KİLİTLE",
-            unlock: "KİLİDİ AÇ",
             setoff_schedule: "Hareket Programı",
             arrival_label: "Tüm Ralliler Varış (UTC)",
             locked_ind: "KİLİTLİ",
@@ -152,8 +153,6 @@
             send_at: "Gönderim zamanı",
             landed_lower: "vardı",
             now_label: "ŞİMDİ",
-            warning_overdue_1: "Bazı hareket zamanları geçmişte. Tamponu artırın veya sonraki döngüyü bekleyin. En uzun yürüyüşe sahip çağrıcının varıştan en az ~",
-            warning_overdue_2: " önce harekete geçmesi gerekir.",
             call_at: "Çağrı:",
             fmtCountdown: function(m, s) { return m > 0 ? m + 'dk ' + s + 'sn sonra' : parseInt(s) + 'sn sonra'; },
             fmtAgo: function(s) { return s + 'sn önce'; },
@@ -177,7 +176,12 @@
             import_done: function(n, bad) { return n + ' içe aktarıldı' + (bad ? ', ' + bad + ' satır atlandı' : ''); },
             export_done: "Liste kopyalandı",
             chat_preview: "Sohbet metni (UTC)",
-            bad_time: "SS:DD veya SS:DD:ss kullanın (UTC)"
+            bad_time: "SS:DD veya SS:DD:ss kullanın (UTC)",
+            reset_btn: "Sıfırla",
+            live_ind: "CANLI",
+            passed_warning: "İlk başlangıç saati geçti: yeni saatler için sıfırlayın",
+            hint_live: "Saatler saatle birlikte ilerler. Programı Kopyala (veya KİLİTLE) onları sabitler.",
+            hint_locked: "Saatler kilitli. Yeni saatler için Sıfırla'ya basın."
         },
         pl: {
             lang_name: "Polski",
@@ -202,7 +206,6 @@
             buf_3m: "3 min",
             buf_5m: "5 min",
             lock: "ZABLOKUJ",
-            unlock: "ODBLOKUJ",
             setoff_schedule: "Harmonogram Wymarszu",
             arrival_label: "Wszystkie Rally Przybywają (UTC)",
             locked_ind: "ZABLOKOWANY",
@@ -238,8 +241,6 @@
             send_at: "Wyślij o",
             landed_lower: "wylądował",
             now_label: "TERAZ",
-            warning_overdue_1: "Niektóre czasy wymarszu są w przeszłości. Zwiększ bufor lub poczekaj na następny cykl. Gracz z najdłuższym marszem potrzebuje co najmniej ~",
-            warning_overdue_2: " przed przybyciem.",
             call_at: "Wywołaj o:",
             fmtCountdown: function(m, s) { return m > 0 ? 'za ' + m + 'm ' + s + 's' : 'za ' + parseInt(s) + 's'; },
             fmtAgo: function(s) { return s + 's temu'; },
@@ -263,7 +264,12 @@
             import_done: function(n, bad) { return 'Zaimportowano ' + n + (bad ? ', pominięto linii: ' + bad : ''); },
             export_done: "Lista skopiowana",
             chat_preview: "Tekst na czat (UTC)",
-            bad_time: "Użyj GG:MM lub GG:MM:SS (UTC)"
+            bad_time: "Użyj GG:MM lub GG:MM:SS (UTC)",
+            reset_btn: "Resetuj",
+            live_ind: "NA ŻYWO",
+            passed_warning: "Pierwsza godzina startu minęła: zresetuj, aby dostać nowe godziny",
+            hint_live: "Godziny idą razem z zegarem. Kopiuj Harmonogram (lub ZABLOKUJ) je zatrzymuje.",
+            hint_locked: "Godziny zablokowane. Naciśnij Resetuj, aby dostać nowe."
         },
         zh: {
             lang_name: "中文",
@@ -288,7 +294,6 @@
             buf_3m: "3 分钟",
             buf_5m: "5 分钟",
             lock: "锁定",
-            unlock: "解锁",
             setoff_schedule: "出发时间表",
             arrival_label: "所有集结到达时间 (UTC)",
             locked_ind: "已锁定",
@@ -324,8 +329,6 @@
             send_at: "发送时间",
             landed_lower: "已到达",
             now_label: "现在",
-            warning_overdue_1: "部分出发时间已过。请增加缓冲时间或等待下一个周期。行军最长的召唤者需要至少 ~",
-            warning_overdue_2: " 才能到达。",
             call_at: "发起时间：",
             fmtCountdown: function(m, s) { return m > 0 ? m + '分' + s + '秒后' : parseInt(s) + '秒后'; },
             fmtAgo: function(s) { return s + '秒前'; },
@@ -349,7 +352,12 @@
             import_done: function(n, bad) { return '已导入 ' + n + (bad ? '，跳过 ' + bad + ' 行' : ''); },
             export_done: "列表已复制",
             chat_preview: "聊天文本 (UTC)",
-            bad_time: "请使用 HH:MM 或 HH:MM:SS (UTC)"
+            bad_time: "请使用 HH:MM 或 HH:MM:SS (UTC)",
+            reset_btn: "重置",
+            live_ind: "实时",
+            passed_warning: "第一个开始时间已过：请重置以获取新时间",
+            hint_live: "时间随时钟走动。复制时间表（或锁定）后即固定。",
+            hint_locked: "时间已锁定。按重置获取新时间。"
         },
         ko: {
             lang_name: "한국어",
@@ -374,7 +382,6 @@
             buf_3m: "3분",
             buf_5m: "5분",
             lock: "잠금",
-            unlock: "잠금해제",
             setoff_schedule: "출발 일정",
             arrival_label: "모든 랠리 도착 시간 (UTC)",
             locked_ind: "잠김",
@@ -410,8 +417,6 @@
             send_at: "발송 시간",
             landed_lower: "도착함",
             now_label: "지금",
-            warning_overdue_1: "일부 출발 시간이 지났습니다. 버퍼를 늘리거나 다음 주기를 기다리세요. 가장 긴 행군 소환자는 도착 전 최소 ~",
-            warning_overdue_2: " 이 필요합니다.",
             call_at: "호출 시간:",
             fmtCountdown: function(m, s) { return m > 0 ? m + '분 ' + s + '초 후' : parseInt(s) + '초 후'; },
             fmtAgo: function(s) { return s + '초 전'; },
@@ -435,7 +440,12 @@
             import_done: function(n, bad) { return n + '명 가져옴' + (bad ? ', ' + bad + '줄 건너뜀' : ''); },
             export_done: "목록 복사됨",
             chat_preview: "채팅 텍스트 (UTC)",
-            bad_time: "HH:MM 또는 HH:MM:SS (UTC) 형식"
+            bad_time: "HH:MM 또는 HH:MM:SS (UTC) 형식",
+            reset_btn: "초기화",
+            live_ind: "실시간",
+            passed_warning: "첫 시작 시간이 지났습니다: 초기화하여 새 시간을 받으세요",
+            hint_live: "시간이 시계를 따라 움직입니다. 일정 복사(또는 잠금)를 누르면 고정됩니다.",
+            hint_locked: "시간이 잠겼습니다. 새 시간은 초기화를 누르세요."
         },
         ar: {
             lang_name: "العربية",
@@ -460,7 +470,6 @@
             buf_3m: "3 دقائق",
             buf_5m: "5 دقائق",
             lock: "قفل",
-            unlock: "فتح القفل",
             setoff_schedule: "جدول الانطلاق",
             arrival_label: "وصول جميع الحشود (UTC)",
             locked_ind: "مقفل",
@@ -496,8 +505,6 @@
             send_at: "أرسل في",
             landed_lower: "وصل",
             now_label: "الآن",
-            warning_overdue_1: "بعض أوقات الانطلاق في الماضي. قم بزيادة الوقت الاحتياطي أو انتظر الدورة التالية. المنادي ذو أطول مسيرة يحتاج على الأقل ~",
-            warning_overdue_2: " قبل الوصول.",
             call_at: "نادِ في:",
             fmtCountdown: function(m, s) { return m > 0 ? 'بعد ' + m + 'د ' + s + 'ث' : 'بعد ' + parseInt(s) + 'ث'; },
             fmtAgo: function(s) { return 'قبل ' + s + 'ث'; },
@@ -521,7 +528,12 @@
             import_done: function(n, bad) { return 'تم استيراد ' + n + (bad ? '، تم تخطي ' + bad + ' سطر' : ''); },
             export_done: "تم نسخ القائمة",
             chat_preview: "نص الدردشة (UTC)",
-            bad_time: "استخدم HH:MM أو HH:MM:SS (UTC)"
+            bad_time: "استخدم HH:MM أو HH:MM:SS (UTC)",
+            reset_btn: "إعادة ضبط",
+            live_ind: "مباشر",
+            passed_warning: "مضى وقت البدء الأول: أعد الضبط للحصول على أوقات جديدة",
+            hint_live: "الأوقات تتبع الساعة. نسخ الجدول (أو قفل) يثبّتها.",
+            hint_locked: "الأوقات مقفلة. اضغط إعادة ضبط للحصول على أوقات جديدة."
         }
     };
     return LANG;
