@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0a0e1a">
+    <meta name="robots" content="noindex">
+    <title>Viscount's Rally Spamulator</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/login.css">
+    <script src="/login.js" defer></script>
+</head>
+<body data-error="">
+    <main class="gate">
+        <h1 class="gate-title" data-t="title">Viscount's Rally Spamulator</h1>
+        <form class="gate-card" method="post" action="/login" autocomplete="on">
+            <label for="password" class="gate-label" data-t="prompt">Enter the password</label>
+            <input type="password" id="password" name="password" required autofocus
+                   autocomplete="current-password" autocapitalize="off" spellcheck="false">
+            <input type="hidden" name="next" value="/">
+            <div id="gate-error" class="gate-error" role="alert" hidden></div>
+            <button type="submit" class="gate-btn" id="gate-submit" data-t="enter">Enter</button>
+        </form>
+    </main>
+</body>
+</html>
