@@ -19,7 +19,7 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 - **Copy Schedule** copies plain text, one caller per line, in game time (UTC). The exact text is previewed under the button:
 
   ```
-  Start times UTC - land 00:05:00
+  Land 00:05:00
   23:58:15 - Alpha (march 1:45)
   23:59:05 - Bravo (march 0:55)
   23:59:30 - Charlie (march 0:30)

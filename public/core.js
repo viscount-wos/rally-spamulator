@@ -248,8 +248,8 @@
     }
 
     // Plain text for in-game chat. Lines are the original format
-    // "HH:MM:SS - Name (march M:SS)"; the first line says the times are
-    // UTC and when the rallies land.
+    // "HH:MM:SS - Name (march M:SS)" (times are UTC = game time); the first
+    // line says when the rallies land.
     function buildCopyText(callers, arrivalMs, rallyDurationSeconds, L) {
         var lines = [L.copy_header(formatUTC(arrivalMs))];
         buildSchedule(callers, arrivalMs, rallyDurationSeconds).forEach(function (s) {
@@ -268,16 +268,17 @@
     }
 
     // Copy text for any number of waves. One wave: exactly buildCopyText.
-    // Two or more: "Start times UTC", then per wave with callers a
-    // "Wave k - land HH:MM:SS" line followed by its callers. Empty waves
-    // are left out.
+    // Two or more: per wave with callers a
+    // "Wave k - land HH:MM:SS" line followed by its callers, with a blank
+    // line between waves. Empty waves are left out.
     function buildWavesCopyText(callers, landingsMs, rallyDurationSeconds, L) {
         if (landingsMs.length === 1) {
             return buildCopyText(includedCallers(callers, { count: 1 }), landingsMs[0], rallyDurationSeconds, L);
         }
-        var lines = [L.copy_header_waves];
+        var lines = [];
         buildWaveSchedule(callers, landingsMs, rallyDurationSeconds).forEach(function (w) {
             if (!w.items.length) return;
+            if (lines.length) lines.push('');
             lines.push(L.copy_wave(w.wave, formatUTC(w.landMs)));
             w.items.forEach(function (s) { lines.push(copyLine(s, L)); });
         });

@@ -78,7 +78,7 @@ test('live and frozen plans across midnight UTC', () => {
   const plan = C.freezePlan(t0, 30);
   assert.equal(new Date(plan.firstStartMs).toISOString(), '2026-10-10T00:00:20.000Z');
   const text = C.buildCopyText(callers, C.planArrivalMs(plan, t0 + 25000, callers, 30, 300), 300, LANG.en);
-  assert.equal(text, 'Start times UTC - land 00:07:05\n00:00:20 - Alpha (march 1:45)\n00:01:10 - Bravo (march 0:55)');
+  assert.equal(text, 'Land 00:07:05\n00:00:20 - Alpha (march 1:45)\n00:01:10 - Bravo (march 0:55)');
   assert.equal(C.firstStartPassed(plan, at('2026-10-10T00:00:19Z'), callers, 30, 300), false);
   assert.equal(C.firstStartPassed(plan, at('2026-10-10T00:00:21Z'), callers, 30, 300), true);
 });
@@ -120,7 +120,7 @@ test('copy text across midnight UTC (English) is plain, one caller per line', ()
     { name: 'Charlie', marchSeconds: 30 }
   ], arrival, 300, LANG.en);
   assert.equal(text, [
-    'Start times UTC - land 00:05:00',
+    'Land 00:05:00',
     '23:58:15 - Alpha (march 1:45)',
     '23:59:05 - Bravo (march 0:55)',
     '23:59:30 - Charlie (march 0:30)'
@@ -141,18 +141,18 @@ test('copy text strips < > tabs and newlines from names; empty name -> Unnamed',
 
 test('all 6 languages have the copy labels and the same line structure', () => {
   const expected = {
-    en: ['Start times UTC - land 12:00:00', 'march'],
-    tr: ['Başlangıç saatleri UTC - varış 12:00:00', 'yürüyüş'],
-    pl: ['Godziny startu UTC - lądowanie 12:00:00', 'marsz'],
-    zh: ['开始时间 UTC - 到达 12:00:00', '行军'],
-    ko: ['시작 시간 UTC - 도착 12:00:00', '행군'],
-    ar: ['أوقات البدء UTC - الوصول 12:00:00', 'مسيرة']
+    en: ['Land 12:00:00', 'march'],
+    tr: ['Varış 12:00:00', 'yürüyüş'],
+    pl: ['Lądowanie 12:00:00', 'marsz'],
+    zh: ['到达 12:00:00', '行军'],
+    ko: ['도착 12:00:00', '행군'],
+    ar: ['الوصول 12:00:00', 'مسيرة']
   };
   assert.deepEqual(Object.keys(LANG).sort(), Object.keys(expected).sort());
   for (const [code, [header, word]] of Object.entries(expected)) {
     const text = C.buildCopyText([{ name: 'Alpha', marchSeconds: 105 }], at('2026-10-09T12:00:00Z'), 300, LANG[code]);
     assert.equal(text, header + '\n11:53:15 - Alpha (' + word + ' 1:45)', code);
-    assert.match(text.split('\n')[0], /UTC/, code + ' header says UTC');
+    assert.doesNotMatch(text, /UTC/, code + ' no UTC header');
   }
 });
 
@@ -283,7 +283,7 @@ test('copy text: one wave is identical to the pre-waves text', () => {
     { name: 'Charlie', marchSeconds: 30, wave: 1 }, { name: 'Off', marchSeconds: 99, wave: 0 }];
   const arrival = C.resolveTargetMs(C.parseClock('00:05'), at('2026-10-09T23:50:00Z'));
   const expected = [
-    'Start times UTC - land 00:05:00',
+    'Land 00:05:00',
     '23:58:15 - Alpha (march 1:45)',
     '23:59:05 - Bravo (march 0:55)',
     '23:59:30 - Charlie (march 0:30)'
@@ -302,12 +302,13 @@ test('copy text: 3 waves, grouped, each wave sorted by start, empty waves left o
   ];
   const text = C.buildWavesCopyText(callers, lands, 300, LANG.en);
   assert.equal(text, [
-    'Start times UTC',
     'Wave 1 - land 12:05:00',
     '11:58:55 - Bravo (march 1:05)',
     '11:59:26 - rima (march 0:34)',
+    '',
     'Wave 2 - land 12:05:10',
     '11:58:25 - Alpha (march 1:45)',
+    '',
     'Wave 3 - land 12:05:30',
     '11:59:35 - Delta (march 0:55)',
     '12:00:00 - Charlie (march 0:30)'
@@ -317,17 +318,18 @@ test('copy text: 3 waves, grouped, each wave sorted by start, empty waves left o
   const no2 = C.buildWavesCopyText(callers.filter((c) => c.wave !== 2), lands, 300, LANG.en);
   assert.doesNotMatch(no2, /Wave 2/);
   assert.equal(no2.split('\n').length, 7);
-  // every language: same line structure, header says UTC, wave lines carry the time
+  // every language: same line structure, no UTC header, wave lines carry the time
   for (const code of Object.keys(LANG)) {
     const L = LANG[code];
     const lines = C.buildWavesCopyText(callers, lands, 300, L).split('\n');
-    assert.equal(lines.length, 9, code);
-    assert.equal(lines[0], L.copy_header_waves, code);
-    assert.match(lines[0], /UTC/, code);
-    assert.equal(lines[1], L.copy_wave(1, '12:05:00'), code);
+    assert.equal(lines.length, 10, code);
+    assert.equal(lines[0], L.copy_wave(1, '12:05:00'), code);
+    assert.doesNotMatch(lines.join('\n'), /UTC/, code);
+    assert.equal(lines[3], '', code);
     assert.equal(lines[4], L.copy_wave(2, '12:05:10'), code);
     assert.equal(lines[5], '11:58:25 - Alpha (' + L.march_word + ' 1:45)', code);
-    assert.match(lines[6], /12:05:30/, code);
+    assert.equal(lines[6], '', code);
+    assert.match(lines[7], /12:05:30/, code);
   }
   assert.equal(LANG.ar.copy_wave(2, '12:05:10'), 'الموجة 2 - الوصول 12:05:10');
 });

@@ -22,7 +22,7 @@ Choose your language from the menu at the top right (English, Türkçe, Polski, 
 4. Press **Copy Schedule** and paste into game chat. Copying **locks** the times at that instant: the box shows **LOCKED**, the times stop moving and are exactly what you copied, and each caller's countdown keeps counting down to their start. Pressing Copy Schedule again copies the same text (it does not pick new times). The text looks like this:
 
 ```
-Start times UTC - land 00:05:00
+Land 00:05:00
 23:58:15 - Alpha (march 1:45)
 23:59:05 - Bravo (march 0:55)
 23:59:30 - Charlie (march 0:30)
@@ -64,15 +64,16 @@ The timing:
 - more times than waves: you get an error;
 - a time smaller than the one before it means after midnight UTC (`23:59:50, 00:00:05`).
 
-With two or more waves the copied text is grouped by wave (waves with nobody in them are left out):
+With two or more waves the copied text is grouped by wave, with a blank line between waves (waves with nobody in them are left out):
 
 ```
-Start times UTC
 Wave 1 - land 12:05:00
 11:58:55 - Bravo (march 1:05)
 11:59:26 - rima (march 0:34)
+
 Wave 2 - land 12:05:10
 11:58:25 - Alpha (march 1:45)
+
 Wave 3 - land 12:05:30
 11:59:35 - Delta (march 0:55)
 12:00:00 - Charlie (march 0:30)

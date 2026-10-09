@@ -33,13 +33,13 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 NOW = dt.datetime(2026, 10, 9, 23, 50, 0, tzinfo=dt.timezone.utc)  # 10 min before midnight UTC
 
 EXPECTED_EN = "\n".join([
-    "Start times UTC - land 00:05:00",
+    "Land 00:05:00",
     "23:58:15 - Alpha (march 1:45)",
     "23:59:05 - Bravo (march 0:55)",
     "23:59:30 - Charlie (march 0:30)",
 ])
 EXPECTED_AR = "\n".join([
-    "أوقات البدء UTC - الوصول 00:05:00",
+    "الوصول 00:05:00",
     "23:58:15 - Alpha (مسيرة 1:45)",
     "23:59:05 - Bravo (مسيرة 0:55)",
     "23:59:30 - Charlie (مسيرة 0:30)",
@@ -459,9 +459,8 @@ def waves(pw, label, ctx_args, lang):
     # --- Copy: freeze; clipboard grouped by wave ---
     word = L("march_word")
     expected = "\n".join([
-        L("copy_header_waves"),
-        L("copy_wave", 1, "12:07:05"), f"12:01:00 - Bravo ({word} 1:05)", f"12:01:31 - rima ({word} 0:34)",
-        L("copy_wave", 2, "12:07:15"), f"12:00:30 - Alpha ({word} 1:45)",
+        L("copy_wave", 1, "12:07:05"), f"12:01:00 - Bravo ({word} 1:05)", f"12:01:31 - rima ({word} 0:34)", "",
+        L("copy_wave", 2, "12:07:15"), f"12:00:30 - Alpha ({word} 1:45)", "",
         L("copy_wave", 3, "12:07:35"), f"12:01:40 - Delta ({word} 0:55)", f"12:02:05 - Charlie ({word} 0:30)",
     ])
     page.click("#copy-btn")
