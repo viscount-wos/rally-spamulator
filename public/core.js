@@ -284,6 +284,40 @@
         return lines.join('\n');
     }
 
+    // Randomise: spread callerIds over waves 1..waveCount as evenly as
+    // possible (sizes differ by at most 1). Both the order of the callers
+    // and which waves get the extra caller are random. rng() returns
+    // [0, 1) like Math.random (injectable so tests can seed it).
+    // Returns { id: wave }.
+    function randomiseWaves(callerIds, waveCount, rng) {
+        rng = rng || Math.random;
+        var k = Math.max(1, Math.floor(waveCount) || 1);
+        var ids = shuffle(callerIds.slice(), rng);
+        var waveOrder = shuffle(Array.from({ length: k }, function (_, i) { return i + 1; }), rng);
+        var base = Math.floor(ids.length / k), extra = ids.length % k;
+        var sizes = {};
+        waveOrder.forEach(function (w, i) { sizes[w] = base + (i < extra ? 1 : 0); });
+        var out = {}, pos = 0;
+        for (var w = 1; w <= k; w++) {
+            for (var j = 0; j < sizes[w]; j++) out[ids[pos++]] = w;
+        }
+        return out;
+    }
+
+    function shuffle(a, rng) {
+        for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(rng() * (i + 1));
+            var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+        }
+        return a;
+    }
+
+    // Who Randomise reshuffles: everyone in a wave, or everyone when nobody is.
+    function randomiseTargets(callers, waves) {
+        var inc = includedCallers(callers, waves);
+        return (inc.length ? inc : callers).map(function (c) { return c.id; });
+    }
+
     // Saved callers from localStorage, old ({selected}) or new ({wave}),
     // to [{ name, marchSeconds, wave }]: old ticked = wave 1, unticked = off.
     // Waves above waveCount become off.
@@ -316,6 +350,7 @@
         toDelay: toDelay, normalizeWaves: normalizeWaves, gapSeconds: gapSeconds, waveOffsetsSec: waveOffsetsSec,
         callerWave: callerWave, nextWave: nextWave, includedCallers: includedCallers, leadSeconds: leadSeconds,
         planLandingsMs: planLandingsMs, parseLandAt: parseLandAt, buildWaveSchedule: buildWaveSchedule,
-        buildWavesCopyText: buildWavesCopyText, migrateCallers: migrateCallers
+        buildWavesCopyText: buildWavesCopyText, migrateCallers: migrateCallers,
+        randomiseWaves: randomiseWaves, randomiseTargets: randomiseTargets
     };
 });

@@ -106,6 +106,8 @@
 
     // ===== Callers list =====
     function renderCallers() {
+        var rb = $('randomise-btn');
+        if (rb) rb.disabled = !multiWave() || callers.length < 2;
         var list = $('caller-list');
         list.textContent = '';
         callers.forEach(function (c, idx) {
@@ -253,6 +255,9 @@
         $('remove-wave-btn').disabled = waves.count <= 1;
         $('remove-wave-btn').setAttribute('aria-label', t('remove_wave'));
         $('remove-wave-btn').title = t('remove_wave');
+        var rb = $('randomise-btn');
+        rb.hidden = !multi;
+        rb.disabled = !multi || callers.length < 2;
         $('add-wave-btn').disabled = waves.count >= C.MAX_WAVES;
         $('wave-delay-row').hidden = !multi;
         $('wave-help').hidden = !multi;
@@ -309,6 +314,35 @@
         }
         li.appendChild(slot);
         return li;
+    }
+
+    // ===== Randomise (one level of undo) =====
+    // Reshuffles the callers in any wave (everyone if nobody is in a wave)
+    // as evenly as possible; off callers stay off. A frozen plan keeps its
+    // first start like any other edit.
+    var undoAssign = null;
+    var toastTimer = null;
+    function randomise() {
+        if (!multiWave() || callers.length < 2) return;
+        var map = C.randomiseWaves(C.randomiseTargets(callers, waves), waves.count);
+        undoAssign = callers.map(function (c) { return [c.id, c.wave]; });
+        callers.forEach(function (c) { if (map[c.id] !== undefined) c.wave = map[c.id]; });
+        saveState(); renderCallers(); updateSchedule();
+        $('randomise-toast').hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 10000);
+    }
+    function hideToast() { $('randomise-toast').hidden = true; undoAssign = null; }
+    function undoRandomise() {
+        if (!undoAssign) return;
+        var prev = {};
+        undoAssign.forEach(function (p) { prev[p[0]] = p[1]; });
+        callers.forEach(function (c) {
+            if (prev[c.id] !== undefined) c.wave = prev[c.id] <= waves.count ? prev[c.id] : 0;
+        });
+        clearTimeout(toastTimer);
+        hideToast();
+        saveState(); renderCallers(); updateSchedule();
     }
 
     function wavesChanged() {
@@ -783,6 +817,8 @@
         $('target-input').addEventListener('change', applyTargetInput);
         $('add-wave-btn').addEventListener('click', addWave);
         $('remove-wave-btn').addEventListener('click', removeWave);
+        $('randomise-btn').addEventListener('click', randomise);
+        $('undo-btn').addEventListener('click', undoRandomise);
         $('wave-delay-input').addEventListener('change', function () {
             var v = C.toDelay(this.value);
             if (v !== null) waves.defaultDelay = v;

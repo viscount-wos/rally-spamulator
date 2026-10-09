@@ -49,6 +49,7 @@ Sometimes you want groups of rallies to land a few seconds apart instead of all 
 1. In **Rally Settings**, press **+ Add wave** (up to 6 waves; **−** removes the last wave and sends its callers back to off).
 2. **Delay between waves** is the default gap (10 s to start). Each pair of waves gets its own row (*Wave 1 → 2*, *Wave 2 → 3*, ...) prefilled with that default. Type a different number in a row to change just that gap: it turns orange and says **custom**; **↺** puts it back to the default.
 3. In **Caller Setup**, tap a caller to move them along: off → 1 → 2 → ... → off. The coloured badge shows their wave number (a caller is only ever in one wave). In **Edit list** there is also a wave menu on each row.
+   **Randomise** (next to the waves) shares the callers out over the waves at random, as evenly as possible (wave sizes differ by at most one). It reshuffles everyone who is in a wave; if nobody is, it uses the whole list. Callers who are off stay off. Changed your mind? Press **Undo** in the message that appears (it undoes the last Randomise only). While the times are locked it works like any other edit: the first start stays put.
 4. The **Set-Off Schedule** shows one section per wave (*Wave 2 - lands 12:05:10*), each with its callers in start order. The big time is when wave 1 lands; the other waves' landing times are listed under it. A wave with nobody in it says so.
 
 The timing:

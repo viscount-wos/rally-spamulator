@@ -9,7 +9,7 @@ count up while live, Copy freezes them (clipboard == shown times), countdowns
 keep falling, the "first start passed" warning appears, Reset resumes live,
 LOCK freezes without copying, edits while frozen keep the first start.
 Waves (en + ar, desktop + iPhone): tap cycling, gap edits, grouped copy text,
-freeze/Reset, several Land at times, remove wave.
+freeze/Reset, several Land at times, Randomise + Undo, remove wave.
 Everything sits behind the shared-password gate: each run logs in first, and
 the login page itself is checked in English and Arabic on desktop and iPhone
 (redirect with next, translated wrong-password error, RTL, log out).
@@ -414,6 +414,7 @@ def waves(pw, label, ctx_args, lang):
     status = page.locator("#plan-status")
     check(f"{tag} old list migrated: 5 ticked, 1 wave", page.locator(".caller-toggle[aria-checked=true]").count() == 5)
     check(f"{tag} one wave: no wave sections, no delay row", page.locator(".wave-section").count() == 0 and page.locator("#wave-delay-row").is_hidden())
+    check(f"{tag} one wave: Randomise hidden", page.locator("#randomise-btn").is_hidden())
 
     # --- 3 waves ---
     page.click("#add-wave-btn")
@@ -514,6 +515,22 @@ def waves(pw, label, ctx_args, lang):
     check(f"{tag} land at: across midnight", page.locator(".wave-title").nth(1).inner_text() == L("wave_lands", 2, "00:00:10"))
     page.click("#reset-btn")
     expect(status).to_have_text(L("live_ind"))
+
+    # --- Randomise: evenly, off callers stay off; Undo restores ---
+    toggle("rima").click(); toggle("rima").click(); toggle("rima").click()  # rima: 1 -> 2 -> 3 -> off
+    before = wave_sizes()
+    check(f"{tag} rima off before Randomise", wave_of("rima") == "0")
+    rb = page.locator("#randomise-btn")
+    check(f"{tag} Randomise visible + enabled", rb.is_visible() and rb.is_enabled())
+    rb.click()
+    expect(page.locator("#randomise-toast")).to_be_visible()
+    after = wave_sizes()
+    counts = sorted(after.count(k) for k in (1, 2, 3))
+    check(f"{tag} Randomise: 4 callers over 3 waves = 2-1-1", counts == [1, 1, 2], str(after))
+    check(f"{tag} Randomise: off caller untouched", wave_of("rima") == "0")
+    page.click("#undo-btn")
+    expect(page.locator("#randomise-toast")).to_be_hidden()
+    check(f"{tag} Undo restores the previous waves", wave_sizes() == before, f"{before} vs {wave_sizes()}")
 
     # --- tap targets, edit-mode wave select ---
     small = page.evaluate("""[...document.querySelectorAll('#tab-rally button, #tab-rally select, #tab-rally input')]

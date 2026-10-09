@@ -107,7 +107,10 @@
             empty_wave: "No callers in this wave yet: tap a caller below to move them here",
             arrival_label_w1: "Wave 1 Lands At (UTC)",
             land_too_many: function(n) { return 'Only ' + n + ' wave(s): type at most ' + n + ' time(s), one per wave'; },
-            wave_help: "Tap a caller to change their wave: off → 1 → 2 … → off"
+            wave_help: "Tap a caller to change their wave: off → 1 → 2 … → off",
+            randomise: "Randomise",
+            randomised: "Randomised.",
+            undo: "Undo"
         },
         tr: {
             lang_name: "Türkçe",
@@ -209,7 +212,10 @@
             empty_wave: "Bu dalgada henüz çağrıcı yok: buraya taşımak için aşağıdan bir çağrıcıya dokunun",
             arrival_label_w1: "1. Dalga Varışı (UTC)",
             land_too_many: function(n) { return 'Yalnızca ' + n + ' dalga var: en fazla ' + n + ' saat girin, her dalgaya bir tane'; },
-            wave_help: "Dalgasını değiştirmek için çağrıcıya dokunun: kapalı → 1 → 2 … → kapalı"
+            wave_help: "Dalgasını değiştirmek için çağrıcıya dokunun: kapalı → 1 → 2 … → kapalı",
+            randomise: "Rastgele dağıt",
+            randomised: "Rastgele dağıtıldı.",
+            undo: "Geri al"
         },
         pl: {
             lang_name: "Polski",
@@ -311,7 +317,10 @@
             empty_wave: "Brak graczy w tej fali: dotknij gracza poniżej, aby go tu przenieść",
             arrival_label_w1: "Fala 1 Ląduje O (UTC)",
             land_too_many: function(n) { return 'Fal: ' + n + '. Wpisz najwyżej ' + n + ' godz., jedną na falę'; },
-            wave_help: "Dotknij gracza, aby zmienić jego falę: wył. → 1 → 2 … → wył."
+            wave_help: "Dotknij gracza, aby zmienić jego falę: wył. → 1 → 2 … → wył.",
+            randomise: "Losuj",
+            randomised: "Wylosowano.",
+            undo: "Cofnij"
         },
         zh: {
             lang_name: "中文",
@@ -413,7 +422,10 @@
             empty_wave: "此波次还没有召唤者：点击下方的召唤者将其移到这里",
             arrival_label_w1: "第1波到达时间 (UTC)",
             land_too_many: function(n) { return '只有' + n + '个波次：最多输入' + n + '个时间，每波一个'; },
-            wave_help: "点击召唤者更改其波次：关 → 1 → 2 … → 关"
+            wave_help: "点击召唤者更改其波次：关 → 1 → 2 … → 关",
+            randomise: "随机分配",
+            randomised: "已随机分配。",
+            undo: "撤销"
         },
         ko: {
             lang_name: "한국어",
@@ -515,7 +527,10 @@
             empty_wave: "이 웨이브에 아직 소환자가 없습니다: 아래 소환자를 눌러 이곳으로 옮기세요",
             arrival_label_w1: "웨이브 1 도착 시간 (UTC)",
             land_too_many: function(n) { return '웨이브가 ' + n + '개뿐입니다: 웨이브마다 하나씩, 최대 ' + n + '개의 시간을 입력하세요'; },
-            wave_help: "소환자를 눌러 웨이브를 바꾸세요: 제외 → 1 → 2 … → 제외"
+            wave_help: "소환자를 눌러 웨이브를 바꾸세요: 제외 → 1 → 2 … → 제외",
+            randomise: "무작위 배정",
+            randomised: "무작위로 배정했습니다.",
+            undo: "실행 취소"
         },
         ar: {
             lang_name: "العربية",
@@ -617,7 +632,10 @@
             empty_wave: "لا يوجد منادون في هذه الموجة بعد: اضغط على منادٍ أدناه لنقله إلى هنا",
             arrival_label_w1: "وصول الموجة 1 (UTC)",
             land_too_many: function(n) { return 'عدد الموجات ' + n + ' فقط: اكتب ' + n + ' أوقات كحد أقصى، وقتًا واحدًا لكل موجة'; },
-            wave_help: "اضغط على المنادي لتغيير موجته: خارج ← 1 ← 2 … ← خارج"
+            wave_help: "اضغط على المنادي لتغيير موجته: خارج ← 1 ← 2 … ← خارج",
+            randomise: "توزيع عشوائي",
+            randomised: "تم التوزيع العشوائي.",
+            undo: "تراجع"
         }
     };
     return LANG;

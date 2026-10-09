@@ -353,3 +353,60 @@ test('saved state migration: old ticked callers become wave 1, unticked off; wav
   assert.equal(C.callerWave({ name: 'A', marchSeconds: 1 }), 1);
   assert.equal(C.callerWave({ selected: false }), 0);
 });
+
+
+// deterministic rng for tests (mulberry32)
+function seeded(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const sizesOf = (m, k) => Array.from({ length: k }, (_, i) => Object.values(m).filter((w) => w === i + 1).length);
+
+test('Randomise: 7 callers over 3 waves is 3-2-2 in some order; everyone assigned exactly once', () => {
+  const ids = [1, 2, 3, 4, 5, 6, 7];
+  for (let s = 1; s <= 50; s++) {
+    const m = C.randomiseWaves(ids, 3, seeded(s));
+    assert.deepEqual(Object.keys(m).map(Number).sort((a, b) => a - b), ids);
+    assert.deepEqual(sizesOf(m, 3).sort(), [2, 2, 3]);
+    for (const w of Object.values(m)) assert.ok(w >= 1 && w <= 3);
+  }
+  assert.deepEqual(sizesOf(C.randomiseWaves([1, 2, 3, 4, 5, 6], 3, seeded(9)), 3), [2, 2, 2]);
+  assert.deepEqual(sizesOf(C.randomiseWaves([1, 2], 4, seeded(9)), 4).sort(), [0, 0, 1, 1]);
+  assert.deepEqual(C.randomiseWaves([], 3, seeded(1)), {});
+});
+
+test('Randomise: deterministic with a seeded rng, and it does shuffle', () => {
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+  assert.deepEqual(C.randomiseWaves(ids, 3, seeded(42)), C.randomiseWaves(ids, 3, seeded(42)));
+  const outs = new Set();
+  for (let s = 0; s < 20; s++) outs.add(JSON.stringify(C.randomiseWaves(ids, 3, seeded(s))));
+  assert.ok(outs.size > 10, 'different seeds give different splits');
+});
+
+test('Randomise: over many runs every wave gets the extra caller, and every caller visits every wave', () => {
+  const rng = seeded(2026);
+  const extraCount = [0, 0, 0];
+  const visits = {};
+  for (let r = 0; r < 3000; r++) {
+    const m = C.randomiseWaves([1, 2, 3, 4, 5, 6, 7], 3, rng);
+    sizesOf(m, 3).forEach((n, i) => { if (n === 3) extraCount[i]++; });
+    for (const [id, w] of Object.entries(m)) visits[id + ':' + w] = (visits[id + ':' + w] || 0) + 1;
+  }
+  assert.equal(extraCount.reduce((a, b) => a + b), 3000);
+  for (const n of extraCount) assert.ok(n > 850 && n < 1150, 'extra caller roughly 1/3 each: ' + extraCount);
+  assert.equal(Object.keys(visits).length, 21);
+});
+
+test('Randomise targets: callers in a wave only (off stay off); everyone when nobody is in a wave', () => {
+  const cs = [{ id: 1, wave: 1 }, { id: 2, wave: 0 }, { id: 3, wave: 2 }, { id: 4, wave: 3 }];
+  assert.deepEqual(C.randomiseTargets(cs, W(3)), [1, 3, 4]);
+  assert.deepEqual(C.randomiseTargets(cs, W(2)), [1, 3]); // wave 3 does not exist: off
+  assert.deepEqual(C.randomiseTargets(cs.map((c) => ({ ...c, wave: 0 })), W(3)), [1, 2, 3, 4]);
+  const m = C.randomiseWaves(C.randomiseTargets(cs, W(3)), 3, seeded(5));
+  assert.equal(m[2], undefined);
+  assert.deepEqual(sizesOf(m, 3), [1, 1, 1]);
+});

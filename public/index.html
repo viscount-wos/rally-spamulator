@@ -61,6 +61,11 @@
                     <span class="wave-count" id="wave-count" aria-live="polite">1</span>
                     <button type="button" class="btn btn-ghost" id="add-wave-btn" data-i18n="add_wave">+ Add wave</button>
                 </span>
+                <button type="button" class="btn btn-ghost btn-randomise" id="randomise-btn" hidden data-i18n="randomise">Randomise</button>
+            </div>
+            <div id="randomise-toast" class="toast" role="status" hidden>
+                <span id="randomise-msg" data-i18n="randomised">Randomised.</span>
+                <button type="button" class="btn btn-link" id="undo-btn" data-i18n="undo">Undo</button>
             </div>
             <div class="config-row inline" id="wave-delay-row" hidden>
                 <label for="wave-delay-input" data-i18n="wave_delay">Delay between waves:</label>
