@@ -1,17 +1,17 @@
 {
   "name": "rally-spamulator",
-  "version": "1.0.0",
-  "description": "Whiteout Survival rally coordination tool",
+  "version": "2.0.0",
+  "description": "Whiteout Survival rally timing tool: staggered start times you can copy into game chat",
   "main": "server.js",
+  "private": true,
+  "engines": { "node": ">=20" },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "test": "node --test test/*.test.js",
+    "e2e": "python3 e2e/smoke.py"
   },
   "dependencies": {
-    "better-sqlite3": "^11.7.0",
-    "better-sqlite3-session-store": "^0.1.0",
-    "dotenv": "^17.3.1",
-    "express": "^4.21.0",
-    "express-session": "^1.18.0"
+    "compression": "^1.8.0",
+    "express": "^4.21.0"
   }
 }

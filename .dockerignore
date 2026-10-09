@@ -4,6 +4,9 @@ node_modules
 data
 *.md
 .env
-.env.example
+.env.*
 .gitignore
 .dockerignore
+test
+e2e
+scripts
