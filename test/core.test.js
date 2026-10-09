@@ -1,4 +1,4 @@
-// Unit tests for the rally maths, copy text, list import/export and Garrison maths.
+// Unit tests for the rally maths, copy text and Garrison maths.
 // Run: npm test   (node --test test/)
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -162,29 +162,6 @@ test('every language has every key English has (no missing translations)', () =>
     assert.deepEqual(Object.keys(LANG[code]).sort(), keys, code);
     for (const k of keys) assert.notEqual(LANG[code][k], '', code + '.' + k);
   }
-});
-
-test('caller list import/export round-trips and tolerates common formats', () => {
-  const res = C.parseCallerList([
-    'Alpha, 1:45',
-    'Bravo 0:55',
-    'Big Charlie;30',
-    'Delta\t2:05',
-    '# comment',
-    '',
-    'no time here',
-    'Echo, 0'
-  ].join('\n'));
-  assert.deepEqual(res.callers, [
-    { name: 'Alpha', marchSeconds: 105 },
-    { name: 'Bravo', marchSeconds: 55 },
-    { name: 'Big Charlie', marchSeconds: 30 },
-    { name: 'Delta', marchSeconds: 125 }
-  ]);
-  assert.deepEqual(res.bad, ['no time here', 'Echo, 0']);
-  const exported = C.exportCallerList(res.callers);
-  assert.equal(exported, 'Alpha, 1:45\nBravo, 0:55\nBig Charlie, 0:30\nDelta, 2:05');
-  assert.deepEqual(C.parseCallerList(exported).callers, res.callers);
 });
 
 test('Garrison: hit = now + countdown + enemy march; send = hit - your march', () => {

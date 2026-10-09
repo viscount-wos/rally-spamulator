@@ -354,31 +354,6 @@
         });
     }
 
-    // ===== Import / export =====
-    function importList(replace) {
-        var res = C.parseCallerList($('import-text').value);
-        if (!res.callers.length && !res.bad.length) return;
-        var added = res.callers.map(function (c) {
-            return { id: nextId++, name: c.name, marchSeconds: c.marchSeconds, selected: true };
-        });
-        callers = replace ? added : callers.concat(added);
-        saveState();
-        renderCallers();
-        updateSchedule();
-        $('import-status').textContent = LANG[currentLang].import_done(res.callers.length, res.bad.length);
-        if (!res.bad.length) $('import-text').value = '';
-        else $('import-text').value = res.bad.join('\n');
-    }
-
-    function exportList() {
-        var text = C.exportCallerList(callers);
-        $('import-text').value = text;
-        copyText(text).then(function (ok) {
-            $('import-status').textContent = ok ? t('export_done') : '';
-            if (!ok) { $('import-text').focus(); $('import-text').select(); }
-        });
-    }
-
     // ===== Garrison Defense =====
     var enemies = [];
     var enemyNextId = 1;
@@ -617,9 +592,6 @@
             if (!callers.length || !window.confirm(t('confirm_clear'))) return;
             callers = []; saveState(); renderCallers(); updateSchedule();
         });
-        $('import-replace-btn').addEventListener('click', function () { importList(true); });
-        $('import-add-btn').addEventListener('click', function () { importList(false); });
-        $('export-btn').addEventListener('click', exportList);
 
         $('your-march-input').addEventListener('change', function () {
             var v = parseMarch(this.value);

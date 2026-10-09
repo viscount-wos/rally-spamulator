@@ -12,18 +12,6 @@ Choose your language from the menu at the top right (English, Türkçe, Polski, 
 1. In **Caller Setup**, press **Add/Edit**. It adds a new caller row and opens the list for editing. Type the player's name and their march time to the target as `M:SS` (e.g. `1:45`) or in seconds (`105`).
 2. Repeat for each caller, then press **Done**.
 
-Faster: open **Import / export list**, paste one caller per line and press **Replace list** (or **Add to list**):
-
-```
-Alpha, 1:45
-Bravo, 0:55
-Charlie, 0:30
-```
-
-Lines the tool can't read stay in the box so you can fix them.
-
-To share your list with another leader, press **Export list**. It is copied in the same format; they paste it into their own Import box.
-
 **Edit list** lets you rename, change march times, move callers up or down, or remove them. **Clear list** empties the list (it asks first).
 
 ### Run a rally
@@ -75,6 +63,6 @@ The maths: hit time = now + rally countdown + enemy march; send time = hit time 
 
 ## 3. Good to know
 
-- Your callers, enemies, settings and language are saved in this browser only. A different phone or browser starts empty: use **Export list** / **Import** to move a caller list.
+- Your callers, enemies, settings and language are saved in this browser only. A different phone or browser starts empty.
 - Clearing your browser data clears the lists (and you'll need the password again).
 - If the password changes, everyone is asked for the new one.

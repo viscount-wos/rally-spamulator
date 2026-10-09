@@ -134,28 +134,6 @@
         return lines.join('\n');
     }
 
-    // One caller per line: "Name, 1:45" (also "Name 1:45", "Name;105", tabs).
-    // Returns { callers: [{name, marchSeconds}], bad: [lines] }.
-    function parseCallerList(text) {
-        var out = [], bad = [];
-        String(text || '').split(/\r?\n/).forEach(function (raw) {
-            var line = raw.trim();
-            if (!line || line.charAt(0) === '#') return;
-            var m = /^(.*?)[\s,;]+(\d+:\d{1,2}|\d+)\s*s?$/i.exec(line);
-            var name = m ? cleanName(m[1].replace(/[,;]+$/, '')) : '';
-            var march = m ? parseMarch(m[2]) : 0;
-            if (!name || march <= 0) { bad.push(line); return; }
-            out.push({ name: name, marchSeconds: march });
-        });
-        return { callers: out, bad: bad };
-    }
-
-    function exportCallerList(callers) {
-        return callers.map(function (c) {
-            return (cleanName(c.name) || '?') + ', ' + formatMarch(c.marchSeconds);
-        }).join('\n');
-    }
-
     // Garrison Defense (unchanged maths):
     // hit = now + rally countdown left + enemy march; send = hit - your march.
     function garrisonTimes(nowMs, countdownSeconds, enemyMarchSeconds, yourMarchSeconds) {
@@ -170,7 +148,6 @@
         planArrivalMs: planArrivalMs, planFirstStartMs: planFirstStartMs,
         firstStartPassed: firstStartPassed, parseClock: parseClock, resolveTargetMs: resolveTargetMs,
         longestMarch: longestMarch, buildSchedule: buildSchedule, cleanName: cleanName,
-        buildCopyText: buildCopyText, parseCallerList: parseCallerList,
-        exportCallerList: exportCallerList, garrisonTimes: garrisonTimes
+        buildCopyText: buildCopyText, garrisonTimes: garrisonTimes
     };
 });

@@ -310,10 +310,6 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
     .caller-row .march-input { margin-inline-end: auto; }
 }
 
-.import-box { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
-.import-box summary { cursor: pointer; color: var(--accent); font-weight: 600; min-height: var(--tap); display: flex; align-items: center; }
-.help { font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 8px; }
-.status { font-size: 0.85rem; color: var(--green); margin-top: 6px; min-height: 1em; }
 
 /* ---- Garrison Defense ---- */
 .quick-select { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }

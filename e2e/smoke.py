@@ -2,8 +2,8 @@
 
 Runs on a desktop viewport and an iPhone 13 viewport (Chromium):
 adds 3 callers, checks the computed start times (rally crossing midnight UTC),
-copies and asserts the clipboard text, exercises reorder / import / export /
-clear / persistence, Garrison Defense, and Arabic RTL. Then, in English and
+copies and asserts the clipboard text, exercises reorder / clear /
+persistence, Garrison Defense, and Arabic RTL. Then, in English and
 Arabic, the LIVE -> Copy (freeze) -> Reset cycle with a controlled clock: times
 count up while live, Copy freezes them (clipboard == shown times), countdowns
 keep falling, the "first start passed" warning appears, Reset resumes live,
@@ -139,23 +139,13 @@ def run(pw, label, ctx_args):
     expect(page.locator(".caller-toggle")).to_have_count(3)
     expect(page.locator("#arrival-time")).to_have_text("00:05:00")
 
-    # --- reorder + export ---
+    # --- reorder (Edit list) ---
     page.click("#edit-btn")
     page.locator("#caller-list li").nth(2).get_by_role("button", name="Move up").click()
     page.click("#edit-btn")
-    page.locator("#import-box summary").click()
-    page.click("#export-btn")
-    exported = page.input_value("#import-text")
-    check(f"[{label}] export reflects reorder", exported == "Bravo, 0:55\nCharlie, 0:30\nAlpha, 1:45", repr(exported))
-    check(f"[{label}] export copied to clipboard", page.evaluate("navigator.clipboard.readText()") == exported)
-
-    # --- import (replace) ---
-    page.fill("#import-text", "Delta, 2:00\nEcho 1:00\nnot a caller\nFoxtrot;45")
-    page.click("#import-replace-btn")
-    expect(page.locator(".caller-toggle")).to_have_count(3)
-    check(f"[{label}] import status", "Imported 3" in page.inner_text("#import-status") and "1" in page.inner_text("#import-status"))
-    check(f"[{label}] bad line left in box", page.input_value("#import-text") == "not a caller")
-    expect(page.locator(".si-name").first).to_have_text("Delta")
+    order = page.locator(".caller-toggle .ct-name").all_inner_texts()
+    check(f"[{label}] reorder", order == ["Bravo", "Charlie", "Alpha"], str(order))
+    check(f"[{label}] no import/export box", page.locator("#import-box, #import-text, #export-btn").count() == 0)
 
     # --- clear with confirm ---
     page.click("#clear-btn")
@@ -164,8 +154,9 @@ def run(pw, label, ctx_args):
     expect(page.locator("#copy-btn")).to_be_hidden()
 
     # restore the 3 callers for the Arabic run
-    page.fill("#import-text", "Bravo, 0:55\nAlpha, 1:45\nCharlie, 0:30")
-    page.click("#import-replace-btn")
+    page.evaluate("localStorage.setItem('rally_callers', JSON.stringify([{name:'Bravo',marchSeconds:55,selected:true},{name:'Alpha',marchSeconds:105,selected:true},{name:'Charlie',marchSeconds:30,selected:true}]))")
+    page.reload()
+    expect(page.locator(".caller-toggle")).to_have_count(3)
 
     # --- Garrison Defense ---
     page.click(".tab-btn[data-tab=garrison]")

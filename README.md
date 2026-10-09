@@ -9,7 +9,6 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 **Rally Spam**
 - Callers (name + march time) are remembered in your browser (localStorage). Tap a caller to tick them in or out of this rally.
 - *Add/Edit* adds a caller row and opens the list for editing; *Edit list* opens it without adding: rename, change march time, move up/down, remove. *Clear list* asks first.
-- *Import / export list*: paste one caller per line (`Alpha, 1:45`, `Alpha 1:45`, `Alpha;105` all work) to replace or add to the list. *Export list* copies the list back out in the same format, so leaders can share caller lists.
 - Rally duration 5 or 10 minutes.
 - **LIVE** by default: the first start is now + reaction time and every time counts up with the clock once a second (the chat preview too).
 - **Copy Schedule freezes** the plan at that instant (box shows LOCKED); the copied text is exactly the frozen times, countdowns keep running down, and copying again re-copies the same text. **Reset** returns to LIVE; it turns red with a warning once the first start time has passed. **LOCK** freezes without copying.
@@ -85,7 +84,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 | File | What |
 |------|------|
 | `public/index.html` | Markup only |
-| `public/core.js` | Pure maths and text (schedule, copy text, import/export, garrison), shared with the tests |
+| `public/core.js` | Pure maths and text (schedule, copy text, garrison), shared with the tests |
 | `public/i18n.js` | All translations |
 | `public/app.js` | UI, localStorage, clipboard |
 | `public/style.css` | Styles (phone first, two columns from 900px) |
@@ -95,7 +94,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 ## Tests
 
 ```bash
-npm test                                    # node --test: maths, live/frozen/fixed plans, midnight UTC, copy text in 6 languages, import/export, garrison, server headers, password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
+npm test                                    # node --test: maths, live/frozen/fixed plans, midnight UTC, copy text in 6 languages, garrison, server headers, password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
 GATE_PASSWORD=test-gate-pw npm start &      # then:
 python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock; screenshots in e2e/out/
 INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
@@ -108,7 +107,7 @@ This branch removed:
 - the live rally broadcast (SSE and the rallies API);
 - Alliance Docs & Notices;
 - server-side player profiles;
-- saved presets (replaced by import/export);
+- saved presets (a caller import/export list replaced them for a while; it was removed later at the owner's request, see git history);
 - the SQLite database.
 
 Rally Spam and Garrison Defense were kept. The removed code lives in git history before the strip-back (commit `21acd7f`).
