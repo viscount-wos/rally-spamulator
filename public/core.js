@@ -36,13 +36,43 @@
         return parseInt(str, 10) || 0;
     }
 
-    // Unchanged from the original tool: the FIRST departure (longest march)
-    // is rounded up to the next buffer ("reaction time") boundary, then
-    // arrival = first departure + rally duration + longest march.
-    function autoArrivalMs(nowMs, bufferSeconds, rallyDurationSeconds, longestMarchSeconds) {
-        var bufMs = bufferSeconds * 1000;
-        var firstDeparture = Math.ceil((nowMs + bufMs) / bufMs) * bufMs;
-        return firstDeparture + rallyDurationSeconds * 1000 + (longestMarchSeconds || 0) * 1000;
+    // ---- Live / frozen / fixed plans ----
+    // A plan is one of:
+    //   { mode: 'live' }                      first start follows the clock
+    //   { mode: 'frozen', firstStartMs: n }   frozen by Copy Schedule or LOCK
+    //   { mode: 'fixed',  arrivalMs: n }      the user typed a "Land at" time
+    // LIVE: the first (longest-march) caller starts one reaction time from
+    // now, on a whole second, so every time counts up with the clock.
+    function liveFirstStartMs(nowMs, reactionSeconds) {
+        return Math.floor(nowMs / 1000) * 1000 + reactionSeconds * 1000;
+    }
+
+    function arrivalFromFirstStart(firstStartMs, rallyDurationSeconds, longestMarchSeconds) {
+        return firstStartMs + rallyDurationSeconds * 1000 + (longestMarchSeconds || 0) * 1000;
+    }
+
+    // Freeze the live plan at this instant: the first start is kept, so
+    // later edits (callers, duration) recompute around the same first start.
+    function freezePlan(nowMs, reactionSeconds) {
+        return { mode: 'frozen', firstStartMs: liveFirstStartMs(nowMs, reactionSeconds) };
+    }
+
+    function planArrivalMs(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds) {
+        if (plan && plan.mode === 'fixed') return plan.arrivalMs;
+        var first = plan && plan.mode === 'frozen' ? plan.firstStartMs : liveFirstStartMs(nowMs, reactionSeconds);
+        return arrivalFromFirstStart(first, rallyDurationSeconds, longestMarch(callers));
+    }
+
+    // Earliest start in the plan (the longest march caller).
+    function planFirstStartMs(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds) {
+        return planArrivalMs(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds)
+            - rallyDurationSeconds * 1000 - longestMarch(callers) * 1000;
+    }
+
+    // True once the first start time is behind us (a live plan never is).
+    function firstStartPassed(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds) {
+        if (!callers.length || !plan || plan.mode === 'live') return false;
+        return planFirstStartMs(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds) < nowMs;
     }
 
     // Parse a typed UTC clock time ("21:05", "21:05:30", "2105") into
@@ -135,7 +165,10 @@
 
     return {
         pad: pad, formatUTC: formatUTC, formatMarch: formatMarch, parseMarch: parseMarch,
-        autoArrivalMs: autoArrivalMs, parseClock: parseClock, resolveTargetMs: resolveTargetMs,
+        liveFirstStartMs: liveFirstStartMs,
+        arrivalFromFirstStart: arrivalFromFirstStart, freezePlan: freezePlan,
+        planArrivalMs: planArrivalMs, planFirstStartMs: planFirstStartMs,
+        firstStartPassed: firstStartPassed, parseClock: parseClock, resolveTargetMs: resolveTargetMs,
         longestMarch: longestMarch, buildSchedule: buildSchedule, cleanName: cleanName,
         buildCopyText: buildCopyText, parseCallerList: parseCallerList,
         exportCallerList: exportCallerList, garrisonTimes: garrisonTimes

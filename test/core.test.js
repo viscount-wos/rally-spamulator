@@ -15,15 +15,72 @@ test('formatMarch / parseMarch round-trip', () => {
   assert.equal(C.parseMarch(''), 0);
 });
 
-test('auto arrival keeps the original rule (first departure rounded up to the buffer)', () => {
-  // now 12:00:07, reaction 30s -> first departure = ceil((now+30s)/30s)*30s = 12:01:00
-  // (at least one full reaction time away, on a clean 30s boundary)
-  const now = at('2026-10-09T12:00:07Z');
-  const arrival = C.autoArrivalMs(now, 30, 300, 120);
-  assert.equal(C.formatUTC(arrival), '12:08:00'); // 12:01:00 + 5:00 + 2:00
-  // the longest march caller then sets off exactly on the rounded slot
-  const s = C.buildSchedule([{ name: 'A', marchSeconds: 120 }], arrival, 300);
-  assert.equal(C.formatUTC(s[0].setOffMs), '12:01:00');
+test('LIVE: first start = now + reaction (whole second); arrival = first start + duration + longest march', () => {
+  const now = at('2026-10-09T12:00:07.640Z');
+  assert.equal(C.formatUTC(C.liveFirstStartMs(now, 30)), '12:00:37'); // milliseconds dropped
+  const callers = [{ name: 'A', marchSeconds: 120 }, { name: 'B', marchSeconds: 45 }];
+  const live = { mode: 'live' };
+  const arrival = C.planArrivalMs(live, now, callers, 30, 300);
+  assert.equal(C.formatUTC(arrival), '12:07:37'); // 12:00:37 + 5:00 + 2:00
+  const s = C.buildSchedule(callers, arrival, 300);
+  assert.deepEqual(s.map((x) => C.formatUTC(x.setOffMs)), ['12:00:37', '12:01:52']);
+  // every time moves forward one second per second
+  const later = C.planArrivalMs(live, now + 5000, callers, 30, 300);
+  assert.equal(later - arrival, 5000);
+  assert.equal(C.firstStartPassed(live, now + 3600e3, callers, 30, 300), false);
+});
+
+test('FROZEN: times stay put as the clock runs; first-start-passed detection', () => {
+  const t0 = at('2026-10-09T12:00:05Z');
+  const callers = [{ name: 'A', marchSeconds: 105 }, { name: 'B', marchSeconds: 55 }];
+  const plan = C.freezePlan(t0, 30);
+  assert.deepEqual(plan, { mode: 'frozen', firstStartMs: at('2026-10-09T12:00:35Z') });
+  const a0 = C.planArrivalMs(plan, t0, callers, 30, 300);
+  for (const dt of [1000, 29000, 60000, 3600e3]) {
+    assert.equal(C.planArrivalMs(plan, t0 + dt, callers, 30, 300), a0, 'unchanged after ' + dt + 'ms');
+  }
+  assert.equal(C.formatUTC(a0), '12:07:20');
+  const copyAt = (ms) => C.buildCopyText(callers, C.planArrivalMs(plan, ms, callers, 30, 300), 300, LANG.en);
+  assert.equal(copyAt(t0), copyAt(t0 + 20000));
+  // passed only once the first start is strictly behind "now"
+  assert.equal(C.firstStartPassed(plan, at('2026-10-09T12:00:34.999Z'), callers, 30, 300), false);
+  assert.equal(C.firstStartPassed(plan, at('2026-10-09T12:00:35Z'), callers, 30, 300), false);
+  assert.equal(C.firstStartPassed(plan, at('2026-10-09T12:00:35.001Z'), callers, 30, 300), true);
+  // reaction time no longer matters once frozen
+  assert.equal(C.planArrivalMs(plan, t0, callers, 120, 300), a0);
+});
+
+test('FROZEN edits recompute from the frozen first start (callers, duration)', () => {
+  const t0 = at('2026-10-09T12:00:00Z');
+  const plan = C.freezePlan(t0, 30); // first start 12:00:30
+  const three = [{ name: 'A', marchSeconds: 105 }, { name: 'B', marchSeconds: 55 }, { name: 'C', marchSeconds: 30 }];
+  const first = (cs, dur) => C.planFirstStartMs(plan, t0 + 9000, cs, 30, dur);
+  assert.equal(C.formatUTC(first(three, 300)), '12:00:30');
+  assert.equal(C.formatUTC(first(three.slice(1), 300)), '12:00:30'); // longest caller removed
+  assert.equal(C.formatUTC(first(three, 600)), '12:00:30');          // 10 min rally
+  assert.equal(C.formatUTC(C.planArrivalMs(plan, t0, three, 30, 600)), '12:12:15');
+});
+
+test('FIXED (typed Land at) arrival is used as-is; passed when the first start is behind', () => {
+  const now = at('2026-10-09T23:50:00Z');
+  const plan = { mode: 'fixed', arrivalMs: C.resolveTargetMs(C.parseClock('00:05'), now) };
+  const callers = [{ name: 'A', marchSeconds: 105 }];
+  assert.equal(C.planArrivalMs(plan, now + 600e3, callers, 30, 300), plan.arrivalMs);
+  assert.equal(C.firstStartPassed(plan, now, callers, 30, 300), false);
+  assert.equal(C.firstStartPassed(plan, at('2026-10-09T23:58:16Z'), callers, 30, 300), true);
+});
+
+test('live and frozen plans across midnight UTC', () => {
+  const callers = [{ name: 'Alpha', marchSeconds: 105 }, { name: 'Bravo', marchSeconds: 55 }];
+  const t0 = at('2026-10-09T23:59:50Z');
+  const live = C.planArrivalMs({ mode: 'live' }, t0, callers, 30, 300);
+  assert.equal(new Date(live).toISOString(), '2026-10-10T00:07:05.000Z'); // first start 00:00:20 + 5:00 + 1:45
+  const plan = C.freezePlan(t0, 30);
+  assert.equal(new Date(plan.firstStartMs).toISOString(), '2026-10-10T00:00:20.000Z');
+  const text = C.buildCopyText(callers, C.planArrivalMs(plan, t0 + 25000, callers, 30, 300), 300, LANG.en);
+  assert.equal(text, 'Start times UTC - land 00:07:05\n00:00:20 - Alpha (march 1:45)\n00:01:10 - Bravo (march 0:55)');
+  assert.equal(C.firstStartPassed(plan, at('2026-10-10T00:00:19Z'), callers, 30, 300), false);
+  assert.equal(C.firstStartPassed(plan, at('2026-10-10T00:00:21Z'), callers, 30, 300), true);
 });
 
 test('set-off = arrival - rally duration - march; longest march first, ties keep list order', () => {
