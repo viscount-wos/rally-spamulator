@@ -1,106 +1,89 @@
-# Viscount's Alliance Hub
+# Viscount's Rally Spamulator
 
-An alliance management shell for **Whiteout Survival**, built around Viscount's Rally Spamulator. Players log in with Discord, land in a unified web app, and then open different **modules** (sub‑apps) for combat tools, documentation, and player information.
+A small, no-login web tool for **Whiteout Survival** rally leaders. Tick your callers and it works out when each one must start their rally so every rally lands at the same moment. One tap copies the schedule as plain text to paste into game chat. A Garrison Defense tab tells defenders when to send reinforcements.
 
-Current modules:
+Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). Player guide: [USAGE.md](USAGE.md).
 
-- **Combat Tools (Rally Spam + Garrison Defense)** — the original Rally Spamulator experience for synchronised rallies and defensive timing.
-- **Alliance Docs & Notices** — lightweight wiki / bulletin board for rules, war plans, trap schedules, and announcements, with audience controls (All / R4+ / R5+ / Admin).
-- **Player Profiles** — richer player profiles tied to Discord, including WOS name, march time, city level, timezone, main troop type, and notes.
+## What it does
 
-The backend is a small Node/Express app with SQLite, and the entire frontend lives in a single, framework‑free `public/index.html`.
+**Rally Spam**
+- Callers (name + march time) are remembered in your browser (localStorage). Tap a caller to tick them in or out of this rally.
+- *Edit list*: rename, change march time, move up/down, remove. *Clear list* asks first.
+- *Import / export list*: paste one caller per line (`Alpha, 1:45`, `Alpha 1:45`, `Alpha;105` all work) to replace or add to the list. *Export list* copies the list back out in the same format, so leaders can share caller lists.
+- Rally duration 5 or 10 minutes.
+- Arrival time is **auto** (the first start is rounded up to the next reaction-time slot) or **fixed**. To fix it, type a UTC time in *Land at (UTC)* (e.g. `21:05`; `00:05` typed at 23:50 means 15 minutes from now) or press **LOCK** to freeze the auto time.
+- Live UTC clock and a countdown for each caller.
+- **Copy Schedule** copies plain text, one caller per line, in game time (UTC). The exact text is previewed under the button:
 
-## Combat Tools (Rally Spam + Garrison)
+  ```
+  Start times UTC - land 00:05:00
+  23:58:15 - Alpha (march 1:45)
+  23:59:05 - Bravo (march 0:55)
+  23:59:30 - Charlie (march 0:30)
+  ```
 
-### Rally Spam
-Coordinate multiple rally callers so all rallies land on the same target at the same time.
+**Garrison Defense**
+- Keep a roster of enemies (name, alliance, march time) and your own march time. All of it is stored in the browser.
+- Pick an enemy, type the in-game rally countdown and press Track. It shows when the rally hits and when to send reinforcements, with SEND NOW / LANDED alerts.
 
-- Add callers with name and march time (or one‑click from registered alliance members)
-- Click callers in your desired arrival order
-- Automatically calculates staggered departure times so everyone arrives together
-- Live UTC countdown to each caller's set-off time
-- Copy the full schedule to clipboard for pasting into alliance chat
-- Save and load caller presets
-- 5-minute or 10-minute rally duration
-- Lock button to freeze the arrival time
-- R4/R5/Admin can broadcast rally schedules to all online members via SSE, with per‑caller “YOU” highlights
+**Languages**: English, Türkçe, Polski, 中文, 한국어, العربية (Arabic is right-to-left). The phone's language is used unless you pick another one.
 
-### Garrison Defense
-Track incoming enemy rallies and know exactly when to send reinforcements.
+## How the maths works
 
-- Maintain a roster of known enemies (name, alliance, march time)
-- Quick-select an enemy and enter the in-game rally countdown
-- Calculates the actual hit time (rally countdown + enemy march)
-- Shows when to send your reinforcements based on your march time
-- Live countdown with SEND NOW and LANDED alerts
-- Auto-clears rallies after landing
+All times are UTC (game time).
+- Auto arrival: first start = now + reaction time, rounded up to the reaction-time step. Arrival = first start + rally duration + longest march.
+- Each caller's start = arrival − rally duration − their march. Longest march goes first; equal marches keep list order.
+- Garrison: hit = now + rally countdown + enemy march; send = hit − your march.
 
-## Alliance Docs & Notices
+## Running it
 
-The **Docs** module acts as a simple alliance knowledge base.
+```bash
+npm ci
+npm start                      # http://localhost:8080  (PORT env var, default 8080)
+```
 
-- Create documents with:
-  - **Title**
-  - Optional **category** (Rules, War, Events, Traps, etc.)
-  - Markdown-style free‑text body (stored as plain text, rendered as pre‑wrapped text)
-  - **Audience**: All members, R4+, R5+/Admin, or Admin only
-  - Optional **pinned** flag to keep critical docs at the top
-- Documents are filtered per user based on their role.
-- R4/R5/Admin can create and edit docs; only R5/Admin can delete them.
+Docker (same image as Cloud Run):
 
-## Player Profiles
+```bash
+docker build -t rally-spamulator .
+docker run -p 8080:8080 rally-spamulator
+```
 
-Player information is attached to Discord accounts and can be viewed/edited in the **Profiles** module.
+No environment variables, secrets or database are needed, so there is no `.env` any more. The server (`server.js`) only serves `public/` with:
+- security headers (strict CSP, nosniff, frame-deny);
+- gzip compression;
+- `Cache-Control: no-cache` with ETags;
+- `GET /health`.
 
-Fields:
+The page makes no external requests (no fonts or CDNs).
 
-- WOS name
-- March time (seconds)
-- City level
-- Timezone (e.g. `UTC+2`)
-- Main troop type (e.g. Cav / Inf / Ranged)
-- Free‑form notes (gear, strengths, alt accounts, etc.)
+## Code layout
 
-Members can edit their own profile; R5/Admin can adjust others via the existing Users tab and server‑side APIs.
+| File | What |
+|------|------|
+| `public/index.html` | Markup only |
+| `public/core.js` | Pure maths and text (schedule, copy text, import/export, garrison), shared with the tests |
+| `public/i18n.js` | All translations |
+| `public/app.js` | UI, localStorage, clipboard |
+| `public/style.css` | Styles (phone first, two columns from 900px) |
+| `server.js` | Static server |
 
-## Languages
+## Tests
 
-Fully translated into 6 languages:
+```bash
+npm test                                    # node --test: maths, midnight UTC, copy text in 6 languages, import/export, garrison, server headers
+python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): desktop + iPhone 13, clipboard, Arabic RTL; screenshots in e2e/out/
+INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
+```
 
-| Language | Code |
-|----------|------|
-| English | `en` |
-| Turkish | `tr` |
-| Polish | `pl` |
-| Chinese | `zh` |
-| Korean | `ko` |
-| Arabic | `ar` |
+## Removed in the strip-back (branch `strip-back`)
 
-Arabic includes full RTL (right-to-left) layout support.
+This branch removed:
+- Discord login, roles and user management;
+- the live rally broadcast (SSE and the rallies API);
+- Alliance Docs & Notices;
+- server-side player profiles;
+- saved presets (replaced by import/export);
+- the SQLite database.
 
-## Usage
-
-See `USAGE.md` for end‑user, step‑by‑step instructions. At a high level:
-
-- Run the Node server (`node server.js`) with the required Discord OAuth env vars.
-- Users log in with Discord and, once approved, see the alliance hub with module navigation.
-- State is split between:
-  - **Server**: users, profiles, rallies, docs.
-  - **Client**: caller/enemy presets and display preferences in `localStorage`.
-
-## How It Works
-
-All times are in **UTC**. The tool shows a live UTC clock so everyone in your alliance is on the same page regardless of timezone.
-
-**Rally Spam math:**
-- First departure is rounded up to the next buffer interval (default 5 min) for clean times
-- Arrival = first departure + rally duration + longest march time
-- Each caller's set-off = arrival - rally duration - their march time
-
-**Garrison Defense math:**
-- Hit time = now + rally countdown remaining + enemy march time
-- Send time = hit time - your march time
-
-## License
-
-Free to use. Built for the Whiteout Survival community.
+Rally Spam and Garrison Defense were kept. The removed code lives in git history before the strip-back (commit `21acd7f`).
