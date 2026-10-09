@@ -3,8 +3,12 @@
 Runs on a desktop viewport and an iPhone 13 viewport (Chromium):
 adds 3 callers, checks the computed start times (rally crossing midnight UTC),
 copies and asserts the clipboard text, exercises reorder / import / export /
-clear / persistence, Garrison Defense, and Arabic RTL. Saves screenshots to
-e2e/out/.
+clear / persistence, Garrison Defense, and Arabic RTL. Then, in English and
+Arabic, the LIVE -> Copy (freeze) -> Reset cycle with a controlled clock: times
+count up while live, Copy freezes them (clipboard == shown times), countdowns
+keep falling, the "first start passed" warning appears, Reset resumes live,
+LOCK freezes without copying, edits while frozen keep the first start.
+Saves screenshots to e2e/out/.
 
 Usage:  python e2e/smoke.py [base_url]     (default http://localhost:8096)
 Needs:  pip install playwright && playwright install chromium
@@ -219,6 +223,143 @@ def insecure_copy(pw, url):
     browser.close()
 
 
+T0 = dt.datetime(2026, 10, 9, 23, 58, 0, tzinfo=dt.timezone.utc)  # live plan lands after midnight UTC
+THREE = "[{name:'Bravo',marchSeconds:55,selected:true},{name:'Alpha',marchSeconds:105,selected:true},{name:'Charlie',marchSeconds:30,selected:true}]"
+
+
+def at(sec):
+    return T0 + dt.timedelta(seconds=sec)
+
+
+def live_freeze(pw, label, ctx_args, lang):
+    tag = f"[{label}/{lang}]"
+    browser = pw.chromium.launch()
+    ctx = browser.new_context(**ctx_args, locale="en-GB")
+    ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE)
+    page = ctx.new_page()
+    errors = []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.clock.set_fixed_time(T0)
+    page.goto(BASE)
+    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({THREE}))")
+    page.reload()
+
+    def L(key, *args):
+        if args:
+            return page.evaluate(f"RallyLang['{lang}']['{key}'](...{list(args)!r})")
+        return page.evaluate(f"RallyLang['{lang}']['{key}']")
+
+    def times():
+        return page.locator(".si-time").all_inner_texts()
+
+    def expected_text(land, starts):
+        word = L("march_word")
+        rows = [f"{t} - {n} (" + word + f" {m})" for t, n, m in zip(starts, ["Alpha", "Bravo", "Charlie"], ["1:45", "0:55", "0:30"])]
+        return "\n".join([L("copy_header", land)] + rows)
+
+    status, arrival, reset = page.locator("#plan-status"), page.locator("#arrival-time"), page.locator("#reset-btn")
+
+    # --- LIVE: first start = now + 30s reaction, everything else derived ---
+    expect(status).to_have_text(L("live_ind"))
+    expect(arrival).to_have_text("00:05:15")
+    check(f"{tag} live start times", times() == ["23:58:30", "23:59:20", "23:59:45"], str(times()))
+    check(f"{tag} live: no Reset button", reset.is_hidden())
+    check(f"{tag} live: hint", page.inner_text("#plan-hint") == L("hint_live"))
+    os.makedirs(OUT, exist_ok=True)
+    shot(page, f"{OUT}/{label}-live-{lang}.png")
+
+    # --- the clock moves 5s: every time counts up, so does the chat preview ---
+    page.clock.set_fixed_time(at(5))
+    expect(page.locator("#utc-clock")).to_have_text("23:58:05")
+    expect(arrival).to_have_text("00:05:20")
+    check(f"{tag} live times advanced", times() == ["23:58:35", "23:59:25", "23:59:50"], str(times()))
+    frozen_text = expected_text("00:05:20", ["23:58:35", "23:59:25", "23:59:50"])
+    check(f"{tag} live preview advanced", page.inner_text("#copy-preview") == frozen_text, page.inner_text("#copy-preview"))
+    doc_y = "document.querySelector('#schedule-list').getBoundingClientRect().top + window.scrollY"
+    list_y = page.evaluate(doc_y)
+
+    # --- Copy freezes at this instant; clipboard == shown times ---
+    page.click("#copy-btn")
+    expect(status).to_have_text(L("locked_ind"))
+    expect(reset).to_be_visible()
+    clip = page.evaluate("navigator.clipboard.readText()")
+    check(f"{tag} clipboard == frozen times", clip == frozen_text, repr(clip))
+    check(f"{tag} clipboard == preview", clip == page.inner_text("#copy-preview"))
+    check(f"{tag} shown times == copied times", times() == ["23:58:35", "23:59:25", "23:59:50"] and arrival.inner_text() == "00:05:20")
+    y2 = page.evaluate(doc_y)
+    check(f"{tag} no layout jump on freeze", abs(y2 - list_y) < 1, f"{list_y} -> {y2}")
+    rb = reset.bounding_box()
+    check(f"{tag} Reset is a big tap target", rb and rb["height"] >= 48 and rb["width"] >= 100, str(rb))
+    cd_first = page.locator(".si-countdown").first
+    check(f"{tag} countdown at freeze", cd_first.inner_text() == L("fmtCountdown", 0, "30"), cd_first.inner_text())
+
+    # --- 10s later: times unchanged, countdowns lower ---
+    page.clock.set_fixed_time(at(15))
+    expect(page.locator("#utc-clock")).to_have_text("23:58:15")
+    expect(cd_first).to_have_text(L("fmtCountdown", 0, "20"))
+    check(f"{tag} frozen times unchanged after 10s", times() == ["23:58:35", "23:59:25", "23:59:50"] and arrival.inner_text() == "00:05:20", str(times()))
+    check(f"{tag} frozen preview unchanged", page.inner_text("#copy-preview") == frozen_text)
+    page.evaluate("navigator.clipboard.writeText('x')")
+    page.click("#copy-btn")  # re-copy: same frozen text, no re-freeze
+    expect(page.locator("#copy-btn")).to_have_text(L("copied"))
+    check(f"{tag} re-copy gives the same text", page.evaluate("navigator.clipboard.readText()") == frozen_text)
+    check(f"{tag} frozen hint", page.inner_text("#plan-hint") == L("hint_locked"))
+    check(f"{tag} no horizontal scroll (frozen)", no_hscroll(page))
+    shot(page, f"{OUT}/{label}-frozen-{lang}.png")
+    page.reload()  # a frozen plan survives a reload
+    expect(status).to_have_text(L("locked_ind"))
+    check(f"{tag} frozen after reload", times() == ["23:58:35", "23:59:25", "23:59:50"], str(times()))
+
+    # --- first start passes: warning + Reset highlighted ---
+    page.clock.set_fixed_time(at(36))
+    expect(page.locator("#schedule-warning")).to_have_text(L("passed_warning"))
+    check(f"{tag} Reset highlighted after first start", "attention" in (reset.get_attribute("class") or ""))
+    shot(page, f"{OUT}/{label}-passed-{lang}.png")
+
+    # --- Reset: live again, times move ---
+    reset.click()
+    expect(status).to_have_text(L("live_ind"))
+    expect(page.locator("#schedule-warning")).to_be_hidden()
+    check(f"{tag} reset: new live first start", times()[0] == "23:59:06", str(times()))
+    page.clock.set_fixed_time(at(40))
+    expect(page.locator(".si-time").first).to_have_text("23:59:10")
+
+    # --- LOCK freezes without copying ---
+    page.evaluate("navigator.clipboard.writeText('sentinel')")
+    page.click("#lock-btn")
+    expect(status).to_have_text(L("locked_ind"))
+    check(f"{tag} LOCK does not copy", page.evaluate("navigator.clipboard.readText()") == "sentinel")
+    check(f"{tag} LOCK button becomes Reset", page.inner_text("#lock-btn") == L("reset_btn"))
+    # edits while frozen recompute from the frozen FIRST start
+    page.locator(".caller-toggle", has_text="Alpha").click()   # remove the longest march
+    check(f"{tag} frozen edit keeps first start", times() == ["23:59:10", "23:59:35"], str(times()))
+    page.locator(".caller-toggle", has_text="Alpha").click()
+    page.select_option("#rally-duration-select", "600")
+    check(f"{tag} frozen duration change keeps first start", times()[0] == "23:59:10" and arrival.inner_text() == "00:10:55",
+          str(times()) + arrival.inner_text())
+    page.clock.set_fixed_time(at(45))
+    expect(page.locator("#utc-clock")).to_have_text("23:58:45")
+    check(f"{tag} still frozen after edits", times()[0] == "23:59:10")
+    # reaction time only shapes a live plan: changing it goes back to LIVE
+    page.select_option("#buffer-select", "60")
+    expect(status).to_have_text(L("live_ind"))
+    check(f"{tag} reaction change -> live", times()[0] == "23:59:45", str(times()))
+
+    # --- typed Land at time: fixed; Reset clears it ---
+    page.fill("#target-input", "00:15")
+    page.press("#target-input", "Enter")
+    expect(status).to_have_text(L("locked_ind"))
+    expect(arrival).to_have_text("00:15:00")
+    page.click("#copy-btn")
+    check(f"{tag} fixed copy keeps typed land time", page.evaluate("navigator.clipboard.readText()").split("\n")[0] == L("copy_header", "00:15:00"))
+    reset.click()
+    expect(status).to_have_text(L("live_ind"))
+    check(f"{tag} Reset clears the typed time", page.input_value("#target-input") == "")
+    check(f"{tag} no console errors (live)", not errors, str(errors))
+    browser.close()
+
+
 def iphone_device(pw):
     d = dict(pw.devices["iPhone 13"])
     d.pop("default_browser_type", None)
@@ -228,6 +369,9 @@ def iphone_device(pw):
 with sync_playwright() as pw:
     run(pw, "desktop", {"viewport": {"width": 1280, "height": 900}})
     run(pw, "iphone", iphone_device(pw))
+    for lang in ("en", "ar"):
+        live_freeze(pw, "desktop", {"viewport": {"width": 1280, "height": 900}}, lang)
+        live_freeze(pw, "iphone", iphone_device(pw), lang)
     if os.environ.get("INSECURE_URL"):  # e.g. http://hannah.localdomain:8096
         insecure_copy(pw, os.environ["INSECURE_URL"])
 
