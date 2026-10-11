@@ -16,12 +16,26 @@
     <script src="app.js" defer></script>
 </head>
 <body>
+    <!-- One header row on desktop: brand | UTC clock | Rallies/Garrison | auto-reset, language, theme, log out -->
     <header class="top-bar" id="site-header">
         <div class="brand">
             <img src="icon.svg" class="brand-icon" alt="" width="32" height="32">
             <h1 class="app-title" data-i18n="title">Viscount's Rally Spamulator</h1>
         </div>
+        <div class="clock" id="clock-bar">
+            <div class="clock-time" id="utc-clock">00:00:00</div>
+            <div class="clock-label" data-i18n="clock_label">Current UTC Time</div>
+        </div>
+        <nav class="tab-bar" role="tablist">
+            <button type="button" class="tab-btn active" data-tab="rally" role="tab" aria-selected="true" data-i18n="tab_rally">Rally Spam</button>
+            <button type="button" class="tab-btn" data-tab="garrison" role="tab" aria-selected="false" data-i18n="tab_garrison">Garrison Defense</button>
+        </nav>
         <div class="header-controls">
+            <!-- shared by both lists (each counts from its own freeze time) -->
+            <div class="auto-reset-box">
+                <label for="auto-reset-select" data-i18n="auto_reset_label">Auto-reset after:</label>
+                <select id="auto-reset-select"></select>
+            </div>
             <!-- compact chip with a native <select> stretched invisibly over it (as in the event app) -->
             <div class="chip" id="lang-chip">
                 <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
@@ -35,137 +49,121 @@
                 <svg class="chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 <select id="theme-select" aria-label="Theme"></select>
             </div>
+            <a href="/logout" class="logout-link" data-i18n="log_out">Log out</a>
         </div>
     </header>
 
-    <!-- UTC clock + tabs (sticky) -->
-    <div class="clock-bar" id="clock-bar">
-        <div class="clock">
-            <div class="clock-time" id="utc-clock">00:00:00</div>
-            <div class="clock-label" data-i18n="clock_label">Current UTC Time</div>
-        </div>
-        <nav class="tab-bar" role="tablist">
-            <button type="button" class="tab-btn active" data-tab="rally" role="tab" aria-selected="true" data-i18n="tab_rally">Rally Spam</button>
-            <button type="button" class="tab-btn" data-tab="garrison" role="tab" aria-selected="false" data-i18n="tab_garrison">Garrison Defense</button>
-        </nav>
-    </div>
-
-    <!-- ==================== TAB: RALLY SPAM ==================== -->
-    <main id="tab-rally" class="tab-panel active">
-
-        <!-- Attack | Counter: two independent caller lists -->
-        <div class="list-switch-row area-switch">
-            <div class="list-switch" id="list-switch" role="radiogroup" data-i18n-aria="list_switch" aria-label="Caller list">
-                <button type="button" class="list-btn active" id="list-attack" data-list="attack" role="radio" aria-checked="true">
-                    <span class="list-name" id="list-attack-name" data-i18n="list_attack">Attack</span>
-                    <span class="list-lock" id="list-attack-lock" hidden></span>
-                </button>
-                <button type="button" class="list-btn" id="list-counter" data-list="counter" role="radio" aria-checked="false">
-                    <span class="list-name" id="list-counter-name">Counter</span>
-                    <span class="list-lock" id="list-counter-lock" hidden></span>
-                </button>
-            </div>
-        </div>
-
-        <section class="section area-settings">
-            <h2 class="section-title" data-i18n="rally_settings">Rally Settings</h2>
-            <div class="config-row">
-                <label for="rally-duration-select" data-i18n="rally_duration">Rally duration:</label>
-                <select id="rally-duration-select"></select>
-            </div>
-            <div class="config-row">
-                <label for="buffer-select" data-i18n="reaction_time">Reaction time:</label>
-                <select id="buffer-select">
-                    <option value="15" data-i18n="buf_15s">15 sec</option>
-                    <option value="30" selected data-i18n="buf_30s">30 sec</option>
-                    <option value="45" data-i18n="buf_45s">45 sec</option>
-                    <option value="60" data-i18n="buf_1m">1 min</option>
-                    <option value="90" data-i18n="buf_1m30s">1 min 30s</option>
-                    <option value="120" data-i18n="buf_2m">2 min</option>
-                    <option value="180" data-i18n="buf_3m">3 min</option>
-                    <option value="300" data-i18n="buf_5m">5 min</option>
-                </select>
-            </div>
-            <div class="config-row">
-                <label for="auto-reset-select" data-i18n="auto_reset_label">Auto-reset after:</label>
-                <select id="auto-reset-select"></select>
-            </div>
-            <div class="config-row waves-row" id="waves-row">
-                <span class="cfg-label" data-i18n="waves_label">Waves:</span>
-                <span class="wave-stepper">
-                    <button type="button" class="btn btn-ghost" id="remove-wave-btn" aria-label="Remove last wave">&minus;</button>
-                    <span class="wave-count" id="wave-count" aria-live="polite">1</span>
-                    <button type="button" class="btn btn-ghost" id="add-wave-btn" data-i18n="add_wave">+ Add wave</button>
-                </span>
-                <button type="button" class="btn btn-ghost btn-randomise" id="randomise-btn" hidden data-i18n="randomise">Randomise</button>
-            </div>
-            <div id="randomise-toast" class="toast" role="status" hidden>
-                <span id="randomise-msg" data-i18n="randomised">Randomised.</span>
-                <button type="button" class="btn btn-link" id="undo-btn" data-i18n="undo">Undo</button>
-            </div>
-            <div class="config-row inline" id="wave-delay-row" hidden>
-                <label for="wave-delay-input" data-i18n="wave_delay">Delay between waves:</label>
-                <span class="sec-wrap">
-                    <input type="text" id="wave-delay-input" class="sec-input" inputmode="numeric" autocomplete="off" maxlength="4" value="10">
-                    <span class="sec-unit" data-i18n="sec_unit">s</span>
-                </span>
-            </div>
-            <ul id="gap-list" class="gap-list" hidden></ul>
-            <div class="config-row">
-                <label for="target-input" data-i18n="land_at">Land at (UTC):</label>
-                <input type="text" id="target-input" class="time-input" inputmode="numeric" autocomplete="off"
-                       data-i18n-ph="land_at_ph" placeholder="auto" maxlength="80">
-                <button type="button" class="btn btn-lock" id="lock-btn" data-i18n="lock">LOCK</button>
-            </div>
-            <div id="target-error" class="field-error" hidden role="alert"></div>
-        </section>
-
-        <section class="section area-schedule" id="schedule-section">
-            <h2 class="section-title" data-i18n="setoff_schedule">Set-Off Schedule</h2>
-            <div id="schedule-warning" class="warning" hidden></div>
-            <div class="arrival-display" id="arrival-display">
-                <div class="arrival-label" id="arrival-label">All Rallies Arrive At (UTC)</div>
-                <div class="arrival-time" id="arrival-time">--:--:--</div>
-                <div class="wave-landings" id="wave-landings" hidden></div>
-                <div class="plan-row">
-                    <span class="plan-meta">
-                        <span class="plan-status" id="plan-status" role="status">LIVE</span>
-                        <span class="auto-reset-cd" id="auto-reset-cd" hidden></span>
-                    </span>
-                    <button type="button" class="btn btn-reset" id="reset-btn" hidden data-i18n="reset_btn">Reset</button>
+    <!-- ==================== TAB: RALLY SPAM (battle view) ====================
+         Attack and Counter side by side. The Attack panel below is the
+         template: app.js clones it for Counter, prefixing every id with
+         "counter-" and dropping the [data-only] parts of the other list. -->
+    <main id="tab-rally" class="tab-panel active battle">
+        <section class="plan-panel" id="panel-attack" data-list="attack" aria-labelledby="list-name">
+            <div class="panel-head">
+                <div class="ph-id">
+                    <h2 class="panel-title" id="list-name">Attack</h2>
+                    <!-- fixed height in both states, so LIVE <-> LOCKED + Reset doesn't move anything -->
+                    <div class="plan-row">
+                        <span class="plan-meta">
+                            <span class="plan-status" id="plan-status" role="status">LIVE</span>
+                            <span class="auto-reset-cd" id="auto-reset-cd" hidden></span>
+                        </span>
+                        <button type="button" class="btn btn-lock" id="lock-btn" data-i18n="lock">LOCK</button>
+                        <button type="button" class="btn btn-reset" id="reset-btn" hidden data-i18n="reset_btn">Reset</button>
+                    </div>
                 </div>
+                <div class="arrival-display" id="arrival-display">
+                    <div class="arrival-label" id="arrival-label">All Rallies Arrive At (UTC)</div>
+                    <div class="arrival-time" id="arrival-time">--:--:--</div>
+                    <div class="wave-landings" id="wave-landings" hidden></div>
+                </div>
+                <button type="button" class="btn btn-copy" id="copy-btn" hidden>Copy</button>
             </div>
-            <ol id="schedule-list" class="schedule-list"></ol>
-            <div id="no-callers" class="empty-msg" data-i18n="no_callers">Tick callers below to see the schedule</div>
-            <button type="button" class="btn btn-copy" id="copy-btn" hidden data-i18n="copy_schedule">Copy Schedule</button>
-            <button type="button" class="btn btn-copy btn-copy-counter" id="counter-copy-btn" hidden>Copy Counter</button>
-            <div id="plan-hint" class="plan-hint" hidden></div>
-            <div id="preview-wrap" hidden>
-                <div class="preview-label" data-i18n="chat_preview">Chat text (UTC)</div>
-                <pre id="copy-preview" class="copy-preview" dir="auto"></pre>
-            </div>
-        </section>
+            <div id="schedule-warning" class="warning" role="alert" hidden></div>
 
-        <section class="section area-callers">
-            <h2 class="section-title" data-i18n="caller_setup">Caller Setup</h2>
-            <div class="counter-box" id="counter-box" hidden>
-                <div class="config-row">
-                    <label for="counter-label-input" data-i18n="counter_alliance">Counter alliance:</label>
-                    <input type="text" id="counter-label-input" class="tag-input" maxlength="12" autocomplete="off"
+            <div class="panel-settings">
+                <div class="set-item" data-only="counter">
+                    <label for="label-input" data-i18n="counter_alliance">Counter alliance:</label>
+                    <input type="text" id="label-input" class="tag-input" maxlength="12" autocomplete="off"
                            autocapitalize="characters" spellcheck="false" data-i18n-ph="ph_tag" placeholder="Tag">
                 </div>
-                <p class="hint" data-i18n="counter_help"></p>
+                <div class="set-item">
+                    <label for="rally-duration-select" data-i18n="rally_duration">Rally duration:</label>
+                    <select id="rally-duration-select"></select>
+                </div>
+                <div class="set-item">
+                    <label for="buffer-select" data-i18n="reaction_time">Reaction time:</label>
+                    <select id="buffer-select">
+                        <option value="15" data-i18n="buf_15s">15 sec</option>
+                        <option value="30" selected data-i18n="buf_30s">30 sec</option>
+                        <option value="45" data-i18n="buf_45s">45 sec</option>
+                        <option value="60" data-i18n="buf_1m">1 min</option>
+                        <option value="90" data-i18n="buf_1m30s">1 min 30s</option>
+                        <option value="120" data-i18n="buf_2m">2 min</option>
+                        <option value="180" data-i18n="buf_3m">3 min</option>
+                        <option value="300" data-i18n="buf_5m">5 min</option>
+                    </select>
+                </div>
+                <div class="set-item set-land">
+                    <label for="target-input" data-i18n="land_at">Land at (UTC):</label>
+                    <input type="text" id="target-input" class="time-input" inputmode="numeric" autocomplete="off"
+                           data-i18n-ph="land_at_ph" placeholder="auto" maxlength="80">
+                </div>
+                <div id="target-error" class="field-error" hidden role="alert"></div>
             </div>
-            <div class="qs-actions">
-                <button type="button" class="btn btn-ghost" id="select-all-btn" data-i18n="all">All</button>
-                <button type="button" class="btn btn-ghost" id="select-none-btn" data-i18n="none_btn">None</button>
-                <button type="button" class="btn btn-ghost btn-edit" id="edit-btn" data-i18n="edit_list">Edit list</button>
+
+            <div class="panel-waves" id="waves-row" data-only="attack">
+                <span class="set-item">
+                    <span class="cfg-label" data-i18n="waves_label">Waves:</span>
+                    <span class="wave-stepper">
+                        <button type="button" class="btn btn-ghost" id="remove-wave-btn" aria-label="Remove last wave">&minus;</button>
+                        <span class="wave-count" id="wave-count" aria-live="polite">1</span>
+                        <button type="button" class="btn btn-ghost" id="add-wave-btn" aria-label="+ Add wave">+</button>
+                    </span>
+                </span>
+                <span class="set-item" id="wave-delay-row" hidden>
+                    <label for="wave-delay-input" data-i18n="wave_delay">Delay between waves:</label>
+                    <span class="sec-wrap">
+                        <input type="text" id="wave-delay-input" class="sec-input" inputmode="numeric" autocomplete="off" maxlength="4" value="10">
+                        <span class="sec-unit" data-i18n="sec_unit">s</span>
+                    </span>
+                </span>
+                <ul id="gap-list" class="gap-list" hidden></ul>
             </div>
-            <p id="wave-help" class="hint wave-help" hidden data-i18n="wave_help"></p>
-            <ul id="caller-list" class="caller-list"></ul>
-            <div class="caller-actions">
-                <button type="button" class="btn btn-primary" id="add-caller-btn" data-i18n="add_caller">Add/Edit</button>
-                <button type="button" class="btn btn-danger-outline" id="clear-btn" data-i18n="clear_list">Clear list</button>
+
+            <div class="panel-schedule" id="schedule-section">
+                <ol id="schedule-list" class="schedule-list"></ol>
+                <div id="no-callers" class="empty-msg" data-i18n="no_callers">Tick callers below to see the schedule</div>
+            </div>
+
+            <div class="panel-foot">
+                <div class="roster">
+                    <div class="qs-actions">
+                        <h3 class="roster-title" data-i18n="callers_title">Callers</h3>
+                        <button type="button" class="btn btn-ghost btn-sm btn-randomise" id="randomise-btn" data-only="attack" hidden data-i18n="randomise">Randomise</button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="select-all-btn" data-i18n="all">All</button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="select-none-btn" data-i18n="none_btn">None</button>
+                        <button type="button" class="btn btn-ghost btn-sm btn-edit" id="edit-btn" data-i18n="edit_list">Edit list</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="add-caller-btn" data-i18n="add_caller">Add/Edit</button>
+                    </div>
+                    <div id="randomise-toast" class="toast" role="status" data-only="attack" hidden>
+                        <span id="randomise-msg" data-i18n="randomised">Randomised.</span>
+                        <button type="button" class="btn btn-link" id="undo-btn" data-i18n="undo">Undo</button>
+                    </div>
+                    <ul id="caller-list" class="caller-list"></ul>
+                    <p id="wave-help" class="hint wave-help" data-only="attack" hidden data-i18n="wave_help"></p>
+                    <!-- preparation only: shown while editing the list -->
+                    <div class="caller-actions edit-only">
+                        <button type="button" class="btn btn-danger-outline btn-sm" id="clear-btn" data-i18n="clear_list">Clear list</button>
+                    </div>
+                </div>
+                <div class="preview-wrap" id="preview-wrap" hidden>
+                    <div class="preview-head">
+                        <span class="preview-label" data-i18n="chat_preview">Chat text (UTC)</span>
+                        <span id="plan-hint" class="plan-hint" hidden></span>
+                    </div>
+                    <pre id="copy-preview" class="copy-preview" dir="auto"></pre>
+                </div>
             </div>
         </section>
     </main>
@@ -220,8 +218,5 @@
     <!-- brief notices (auto-reset, stale copy): floats over the page, never moves the layout -->
     <div id="plan-toast" class="float-toast" role="status" aria-live="polite" hidden></div>
 
-    <footer class="app-footer">
-        <a href="/logout" class="logout-link" data-i18n="log_out">Log out</a>
-    </footer>
 </body>
 </html>
