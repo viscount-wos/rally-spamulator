@@ -14,7 +14,10 @@ const COOKIE_MAX_AGE = 30 * 24 * 3600; // seconds
 const RATE_MAX = 10;                    // wrong POST /login attempts per client IP ...
 const RATE_WINDOW_MS = 15 * 60 * 1000;  // ... per 15 minutes
 // Reachable without the cookie (the login page needs its own CSS/JS).
-const OPEN_PATHS = new Set(['/health', '/login', '/login.html', '/login.css', '/login.js', '/icon.svg', '/favicon.ico', '/logout']);
+const OPEN_PATHS = new Set(['/health', '/robots.txt', '/login', '/login.html', '/login.css', '/login.js', '/icon.svg', '/favicon.ico', '/logout']);
+// Private tool (shared by password only): ask search engines to stay out of every response.
+const ROBOTS_TAG = 'noindex, nofollow';
+const ROBOTS_TXT = 'User-agent: *\nDisallow: /\n';
 
 const CSP = [
   "default-src 'none'",
@@ -89,7 +92,8 @@ function createApp(opts = {}) {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
       // Browsers ignore HSTS over plain http (LAN); it applies on Cloud Run's https.
-      'Strict-Transport-Security': 'max-age=31536000'
+      'Strict-Transport-Security': 'max-age=31536000',
+      'X-Robots-Tag': ROBOTS_TAG
     });
     next();
   });
@@ -99,6 +103,12 @@ function createApp(opts = {}) {
   app.get('/health', (req, res) => {
     res.set('Cache-Control', 'no-store');
     res.json({ status: 'ok' });
+  });
+
+  // robots.txt is open (no gate) so crawlers can read "stay out".
+  app.get('/robots.txt', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.type('text/plain').send(ROBOTS_TXT);
   });
 
   const authed = (req) => {

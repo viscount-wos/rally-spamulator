@@ -200,3 +200,39 @@ test('rate limit: 10 attempts per IP per 15 min, then 429; right-most X-Forwarde
   // another client is unaffected
   assert.equal((await login(base, PW, '/', { 'x-forwarded-for': '198.51.100.9' })).status, 303);
 });
+
+// ---------- privacy: no indexing ----------
+test('X-Robots-Tag: noindex, nofollow on every response (login, health, 401, redirect, app, 404)', async () => {
+  const base = await start({ password: PW });
+  const ok = await login(base, PW, '/');
+  const cookie = { cookie: cookieOf(ok) };
+  const cases = [
+    ['/login', {}, 200], ['/health', {}, 200], ['/app.js', {}, 401], ['/', html, 302],
+    ['/robots.txt', {}, 200], ['/', cookie, 200], ['/nope.txt', cookie, 404]
+  ];
+  for (const [p, h, status] of cases) {
+    const r = await get(base + p, h);
+    assert.equal(r.status, status, p);
+    assert.equal(r.headers.get('x-robots-tag'), 'noindex, nofollow', p + ' ' + status);
+  }
+  const bad = await login(base, 'nope', '/');
+  assert.equal(bad.status, 401);
+  assert.equal(bad.headers.get('x-robots-tag'), 'noindex, nofollow', 'wrong password');
+  assert.equal(ok.headers.get('x-robots-tag'), 'noindex, nofollow', 'login redirect');
+  // the login page keeps its meta robots noindex too
+  assert.match(await (await get(base + '/login')).text(), /<meta name="robots" content="noindex">/);
+  // gate off (dev) as well
+  const dev = await start({});
+  assert.equal((await get(dev + '/')).headers.get('x-robots-tag'), 'noindex, nofollow');
+});
+
+test('/robots.txt is served without the gate and disallows everything', async () => {
+  const base = await start({ password: PW });
+  const r = await get(base + '/robots.txt');
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('content-type'), /^text\/plain/);
+  assert.equal(await r.text(), 'User-agent: *\nDisallow: /\n');
+  assert.equal(r.headers.get('set-cookie'), null);
+  const dev = await start({});
+  assert.equal(await (await get(dev + '/robots.txt')).text(), 'User-agent: *\nDisallow: /\n');
+});
