@@ -372,6 +372,102 @@
         });
     }
 
+    // ---- Rally duration / reaction time choices ----
+    // In-game rally timers: 1, 2, 3, 5 or 10 minutes (seconds here), default 5.
+    var DURATION_CHOICES = [60, 120, 180, 300, 600];
+    var DEFAULT_DURATION = 300;
+    var REACTION_CHOICES = [15, 30, 45, 60, 90, 120, 180, 300];
+    var DEFAULT_REACTION = 30;
+
+    function pickChoice(v, choices, def) {
+        var n = typeof v === 'number' ? v : parseInt(String(v === null || v === undefined ? '' : v).trim(), 10);
+        return choices.indexOf(n) !== -1 ? n : def;
+    }
+    function normalizeDuration(v) { return pickChoice(v, DURATION_CHOICES, DEFAULT_DURATION); }
+    function normalizeReaction(v) { return pickChoice(v, REACTION_CHOICES, DEFAULT_REACTION); }
+
+    // ---- Caller lists: Attack and Counter ----
+    // Two independent lists, each with its own callers, plan (live/frozen/
+    // fixed), freeze time (auto-reset deadline), rally duration and reaction
+    // time. Attack keeps the storage keys the page used before Counter
+    // existed, so saved data IS the Attack list without moving anything (and
+    // an older version of the page still reads it). Counter is one wave only.
+    var LISTS = ['attack', 'counter'];
+    var LIST_KEYS = {
+        attack: {
+            callers: 'rally_callers', waves: 'rally_waves', duration: 'rally_duration', reaction: 'rally_buffer',
+            arrival: 'rally_arrival_ms', frozen: 'rally_frozen_ms', frozenAt: 'rally_frozen_at_ms', land: 'rally_land_ms'
+        },
+        counter: {
+            callers: 'rally_counter_callers', duration: 'rally_counter_duration', reaction: 'rally_counter_buffer',
+            arrival: 'rally_counter_arrival_ms', frozen: 'rally_counter_frozen_ms', frozenAt: 'rally_counter_frozen_at_ms',
+            label: 'rally_counter_label'
+        }
+    };
+    var MAX_LABEL = 12;
+
+    // The counter alliance tag as typed: one line, no < >, at most 12 characters.
+    function cleanLabel(str) { return cleanName(str).slice(0, MAX_LABEL); }
+
+    function parseJSON(s) { try { return JSON.parse(s); } catch (e) { return null; } }
+
+    // Read one list from storage. get(key) returns the stored string or null
+    // (localStorage.getItem). Plans older than an hour are dropped (as before).
+    // Returns { kind, callers: [{name, marchSeconds, wave}], waves, durationSec,
+    // reactionSec, plan, label }.
+    function loadList(get, kind, nowMs) {
+        var K = LIST_KEYS[kind];
+        var waves = kind === 'attack' ? normalizeWaves(parseJSON(get(K.waves))) : normalizeWaves({ count: 1 });
+        var callers = migrateCallers(parseJSON(get(K.callers)), waves.count);
+        var a = parseInt(get(K.arrival), 10);
+        var f = parseInt(get(K.frozen), 10);
+        // saved by an older version without a freeze time: count from now
+        var at = parseInt(get(K.frozenAt), 10) || nowMs;
+        var lands = K.land ? parseJSON(get(K.land)) : null;
+        if (!Array.isArray(lands) || lands[0] !== a) lands = [a];
+        var plan = { mode: 'live' };
+        if (a && a > nowMs - 3600 * 1000) plan = { mode: 'fixed', arrivalMs: a, landMs: lands.slice(0, waves.count), frozenAtMs: at };
+        else if (f && f > nowMs - 3600 * 1000) plan = { mode: 'frozen', firstStartMs: f, frozenAtMs: at };
+        return {
+            kind: kind, callers: callers, waves: waves, plan: plan,
+            durationSec: normalizeDuration(get(K.duration)),
+            reactionSec: normalizeReaction(get(K.reaction)),
+            label: K.label ? cleanLabel(get(K.label)) : ''
+        };
+    }
+
+    // What to write for a list's plan: { key: string } to set, { key: null } to remove.
+    // Only that list's own keys appear, so saving one list never touches the other.
+    function planStorage(kind, plan) {
+        var K = LIST_KEYS[kind], out = {};
+        out[K.arrival] = null; out[K.frozen] = null; out[K.frozenAt] = null;
+        if (K.land) out[K.land] = null;
+        if (plan.mode === 'fixed') {
+            out[K.arrival] = String(plan.arrivalMs);
+            if (K.land && plan.landMs && plan.landMs.length > 1) out[K.land] = JSON.stringify(plan.landMs);
+        }
+        if (plan.mode === 'frozen') out[K.frozen] = String(plan.firstStartMs);
+        if (plan.mode !== 'live') out[K.frozenAt] = String(plan.frozenAtMs);
+        return out;
+    }
+
+    // Saved form of a caller list. `selected` is kept so an older page still reads it.
+    function callersStorage(callers) {
+        return JSON.stringify(callers.map(function (c) {
+            return { name: c.name, marchSeconds: c.marchSeconds, selected: c.wave > 0, wave: c.wave };
+        }));
+    }
+
+    // Counter copy text: a "COUNTER - land HH:MM:SS" heading, then the usual
+    // caller lines (one wave, longest march first).
+    function buildCounterCopyText(callers, arrivalMs, rallyDurationSeconds, L) {
+        var lines = [L.copy_counter(formatUTC(arrivalMs))];
+        buildSchedule(includedCallers(callers, { count: 1 }), arrivalMs, rallyDurationSeconds).forEach(function (s) {
+            lines.push(copyLine(s, L));
+        });
+        return lines.join('\n');
+    }
+
     // Garrison Defense (unchanged maths):
     // hit = now + rally countdown left + enemy march; send = hit - your march.
     function garrisonTimes(nowMs, countdownSeconds, enemyMarchSeconds, yourMarchSeconds) {
@@ -395,6 +491,12 @@
         randomiseWaves: randomiseWaves, randomiseTargets: randomiseTargets,
         AUTO_RESET_CHOICES: AUTO_RESET_CHOICES, DEFAULT_AUTO_RESET_MIN: DEFAULT_AUTO_RESET_MIN,
         normalizeAutoReset: normalizeAutoReset, autoResetDeadlineMs: autoResetDeadlineMs,
-        autoResetDue: autoResetDue, autoResetRemainingSec: autoResetRemainingSec, copyIsStale: copyIsStale
+        autoResetDue: autoResetDue, autoResetRemainingSec: autoResetRemainingSec, copyIsStale: copyIsStale,
+        DURATION_CHOICES: DURATION_CHOICES, DEFAULT_DURATION: DEFAULT_DURATION,
+        REACTION_CHOICES: REACTION_CHOICES, DEFAULT_REACTION: DEFAULT_REACTION,
+        normalizeDuration: normalizeDuration, normalizeReaction: normalizeReaction,
+        LISTS: LISTS, LIST_KEYS: LIST_KEYS, MAX_LABEL: MAX_LABEL, cleanLabel: cleanLabel,
+        loadList: loadList, planStorage: planStorage, callersStorage: callersStorage,
+        buildCounterCopyText: buildCounterCopyText
     };
 });

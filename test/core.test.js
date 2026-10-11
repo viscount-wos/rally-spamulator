@@ -139,9 +139,12 @@ test('copy text strips < > tabs and newlines from names; empty name -> Unnamed',
   assert.equal(lines[2], '09:49:30 - Unnamed (march 0:30)');
 });
 
-test('all 6 languages have the copy labels and the same line structure', () => {
+test('all 9 languages have the copy labels and the same line structure', () => {
   const expected = {
     en: ['Land 12:00:00', 'march'],
+    es: ['Llegada 12:00:00', 'marcha'],
+    fr: ['Arrivée 12:00:00', 'marche'],
+    de: ['Ankunft 12:00:00', 'Marsch'],
     tr: ['Varış 12:00:00', 'yürüyüş'],
     pl: ['Lądowanie 12:00:00', 'marsz'],
     zh: ['到达 12:00:00', '行军'],
