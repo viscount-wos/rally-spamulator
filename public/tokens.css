@@ -159,7 +159,7 @@ body {
 /* Honour a system request for less motion (as in the event app). */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
-        transition-duration: 0.01ms !important;
+        transition: none !important; /* not 0.01ms: that makes every property transition, which stalls under a paused clock */
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
