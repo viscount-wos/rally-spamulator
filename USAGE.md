@@ -19,7 +19,7 @@ Choose your language from the menu at the top right (English, Türkçe, Polski, 
 2. Pick the **Rally duration** (5 or 10 minutes, as in game).
 3. The **Set-Off Schedule** lists each caller's start time ("Call at") with a countdown. The longest march starts first.
    - **LIVE** (green, the default): the first caller starts one **Reaction time** from now, and every time counts up with the clock, second by second, so the plan is always fresh. The chat text under the button moves with it.
-4. Press **Copy Schedule** and paste into game chat. Copying **locks** the times at that instant: the box shows **LOCKED**, the times stop moving and are exactly what you copied, and each caller's countdown keeps counting down to their start. Pressing Copy Schedule again copies the same text (it does not pick new times). The text looks like this:
+4. Press **Copy Schedule** and paste into game chat. Copying **locks** the times at that instant: the box shows **LOCKED**, the times stop moving and are exactly what you copied, and each caller's countdown keeps counting down to their start. Pressing Copy Schedule again copies the same text (it does not pick new times), as long as the first start time is still ahead. The text looks like this:
 
 ```
 Land 00:05:00
@@ -29,6 +29,17 @@ Land 00:05:00
 ```
 
 5. Press **Reset** (next to LOCKED) to go back to LIVE and get new times. When the first start time has passed you'll see *First start time has passed: reset for new times* and Reset turns red.
+   - **Forgot to reset?** If you press **Copy Schedule** after the first start time has passed, it does **not** copy the old times. It goes back to LIVE, locks fresh times and copies those instead, and says *Old times had passed: copied new times*. This works even with Auto-reset off.
+
+### Auto-reset
+In the heat of battle it's easy to forget Reset, so locked times go back to LIVE on their own after a while.
+- **Auto-reset after** (in Rally Settings): **Off**, 1, 2, 3, **5** (the default), 10 or 15 minutes. Your choice is remembered.
+- The clock starts when the times are locked (Copy Schedule or LOCK). Under **LOCKED** you see *Auto-reset in 4:32* counting down, so it never takes you by surprise.
+- When it reaches zero the times go back to LIVE exactly as if you had pressed Reset, and a short message says *Auto-reset: times are live again*.
+- Copying the same text again, or changing callers, waves or the rally duration while locked, does **not** restart the countdown. Pressing **Reset** yourself ends it.
+- A typed **Land at** time counts as locked too: it is cleared when the auto-reset runs (the same as Reset). Typing a new Land at time starts the countdown again. For a plan more than a few minutes ahead, pick a longer time or Off.
+- It goes by the real clock: if the phone was asleep or you reloaded the page after the time ran out, it resets as soon as you look again. A reload while locked keeps the countdown where it was.
+- **Off**: no countdown, the times stay locked until you press Reset (as before).
 
 Other ways to lock:
 - **LOCK** (in Rally Settings) locks the current times without copying. While locked that button also reads **Reset**.

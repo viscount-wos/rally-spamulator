@@ -12,6 +12,8 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 - Rally duration 5 or 10 minutes.
 - **LIVE** by default: the first start is now + reaction time and every time counts up with the clock once a second (the chat preview too).
 - **Copy Schedule freezes** the plan at that instant (box shows LOCKED); the copied text is exactly the frozen times, countdowns keep running down, and copying again re-copies the same text. **Reset** returns to LIVE; it turns red with a warning once the first start time has passed. **LOCK** freezes without copying.
+- **Stale-copy guard**: Copy on a frozen (or typed) plan whose earliest start has already passed doesn't copy the old times: it resets, freezes fresh times, copies those and shows *Old times had passed: copied new times* (with auto-reset on or off).
+- **Auto-reset** (Rally Settings, *Auto-reset after*: Off / 1 / 2 / 3 / **5** / 10 / 15 min, saved): a frozen or typed plan returns to LIVE exactly like Reset that long after it was frozen, with an *Auto-reset in M:SS* countdown under LOCKED and a floating *Auto-reset: times are live again* notice. Re-copying and edits don't restart it; manual Reset cancels it; a newly typed Land at restarts it. It is measured from the freeze time stored with the plan, so it survives a reload and fires on the next tick after a phone sleeps past it.
 - *Land at (UTC)* fixes the landing time instead (e.g. `21:05`; `00:05` typed at 23:50 means 15 minutes from now); Reset clears it.
 - Edits while frozen (callers, march times, duration) keep the frozen **first start** and recompute the rest; changing the reaction time goes back to LIVE. A frozen plan or typed time survives a reload (for up to an hour after it).
 - **Waves** (up to 6): groups of callers whose landings are staggered. A default *Delay between waves* (10 s) plus an optional override per gap; tapping a caller cycles off → 1 → … → n → off (numbered, colour-blind-safe badges); *Randomise* spreads the callers in a wave (or everyone, if nobody is) over the waves as evenly as possible, with one-level Undo; the schedule and the copied text are grouped by wave. *Land at* takes one time per wave (`12:05:00, 12:05:10, 12:05:30`). With one wave everything is exactly as before.
@@ -38,7 +40,8 @@ All times are UTC (game time).
   The old auto rule rounded the first start up to the next reaction-time slot; live mode replaces it.
 - Each caller's start = arrival − rally duration − their march. Longest march goes first; equal marches keep list order.
 - Waves (`planLandingsMs`): wave k lands at wave 1's landing + the gaps before it (each gap = its override or the default delay). LIVE/FROZEN anchor the **earliest start across all waves** on the (live or frozen) first start, so wave 1 lands at first start + duration + max over callers of (march − their wave's offset). FIXED: wave k lands at the k-th typed time; waves after the last typed time follow the delays; later typed times never go backwards (a smaller time = next day UTC).
-- Saved state: `rally_callers` items carry `wave` (0 = off) next to the old `selected` flag; old lists migrate as ticked = wave 1. `rally_waves` holds `{count, defaultDelay, gaps}`; several typed land times go in `rally_land_ms`.
+- Auto-reset (`autoResetDue`, `autoResetRemainingSec`): due when now ≥ frozenAt + minutes; 0 (Off) never fires; the countdown is the whole seconds left, rounded up (5:00 at the freeze). The stale-copy check is `copyIsStale` = `firstStartPassed`.
+- Saved state: `rally_auto_reset` holds the minutes (0 = Off); `rally_frozen_at_ms` the freeze time of a frozen or typed plan. `rally_callers` items carry `wave` (0 = off) next to the old `selected` flag; old lists migrate as ticked = wave 1. `rally_waves` holds `{count, defaultDelay, gaps}`; several typed land times go in `rally_land_ms`.
 - Garrison: hit = now + rally countdown + enemy march; send = hit − your march.
 
 ## Running it
@@ -97,9 +100,9 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 ## Tests
 
 ```bash
-npm test                                    # node --test: maths, live/frozen/fixed plans, midnight UTC, waves (delays, earliest-start anchoring, multi-time Land at, grouped copy text, migration), copy text in 6 languages, garrison, server headers, password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
+npm test                                    # node --test: maths, live/frozen/fixed plans, auto-reset + stale-copy helpers, midnight UTC, waves (delays, earliest-start anchoring, multi-time Land at, grouped copy text, migration), copy text in 6 languages, garrison, server headers, password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
 GATE_PASSWORD=test-gate-pw npm start &      # then:
-python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, waves (tap cycling, gaps, multi Land at, copy text); screenshots in e2e/out/
+python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, auto-reset + stale-copy guard, waves (tap cycling, gaps, multi Land at, copy text); screenshots in e2e/out/
 INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
 ```
 
