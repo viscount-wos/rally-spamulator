@@ -10,6 +10,10 @@ keep falling, the "first start passed" warning appears, Reset resumes live,
 LOCK freezes without copying, edits while frozen keep the first start.
 Waves (en + ar, desktop + iPhone): tap cycling, gap edits, grouped copy text,
 freeze/Reset, several Land at times, Randomise + Undo, remove wave.
+Battle view: Attack and Counter side by side, each Copy copies its own list,
+freezing one leaves the other LIVE, per-list auto-reset, folded settings;
+layout: no page scroll at 1440x900 / 1920x1080 with 12 + 5 callers, no
+sideways scroll at 390px.
 Everything sits behind the shared-password gate: each run logs in first, and
 the login page itself is checked in English and Arabic on desktop and iPhone
 (redirect with next, translated wrong-password error, RTL, log out).
@@ -152,8 +156,11 @@ def run(pw, label, ctx_args):
     check(f"[{label}] reorder", order == ["Bravo", "Charlie", "Alpha"], str(order))
     check(f"[{label}] no import/export box", page.locator("#import-box, #import-text, #export-btn").count() == 0)
 
-    # --- clear with confirm ---
+    # --- clear with confirm (Clear list only shows while editing) ---
+    check(f"[{label}] Clear list hidden outside edit mode", page.locator("#clear-btn").is_hidden())
+    page.click("#edit-btn")
     page.click("#clear-btn")
+    page.click("#edit-btn")
     expect(page.locator(".caller-toggle")).to_have_count(0)
     expect(page.locator("#no-callers")).to_be_visible()
     expect(page.locator("#copy-btn")).to_be_hidden()
@@ -194,7 +201,7 @@ def run(pw, label, ctx_args):
     page.click(".tab-btn[data-tab=rally]")
     page.select_option("#lang-select", "ar")
     check(f"[{label}] RTL", page.evaluate("document.documentElement.dir") == "rtl")
-    expect(page.locator("#copy-btn")).to_have_text("نسخ الجدول")
+    expect(page.locator("#copy-btn")).to_have_text("نسخ الهجوم")
     expect(page.locator("#add-caller-btn")).to_have_text("إضافة/تعديل")
     page.click("#copy-btn")
     expect(page.locator("#copy-btn")).to_have_text("تم النسخ!")
@@ -241,6 +248,7 @@ def insecure_copy(pw, url):
 DESKTOP = {"viewport": {"width": 1440, "height": 900}}  # primary: leaders use a desktop
 T0 = dt.datetime(2026, 10, 9, 23, 58, 0, tzinfo=dt.timezone.utc)  # live plan lands after midnight UTC
 THREE = "[{name:'Bravo',marchSeconds:55,selected:true},{name:'Alpha',marchSeconds:105,selected:true},{name:'Charlie',marchSeconds:30,selected:true}]"
+OPEN = "localStorage.setItem('rally_ui_open', JSON.stringify({attack: true, counter: true}))"  # settings unfolded
 
 
 def at(sec):
@@ -258,7 +266,7 @@ def live_freeze(pw, label, ctx_args, lang):
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.clock.set_fixed_time(T0)
     gate_login(page)
-    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({THREE}))")
+    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({THREE})); {OPEN}")
     page.reload()
 
     def L(key, *args):
@@ -346,7 +354,7 @@ def live_freeze(pw, label, ctx_args, lang):
     page.click("#lock-btn")
     expect(status).to_have_text(L("locked_ind"))
     check(f"{tag} LOCK does not copy", page.evaluate("navigator.clipboard.readText()") == "sentinel")
-    check(f"{tag} LOCK button becomes Reset", page.inner_text("#lock-btn") == L("reset_btn"))
+    check(f"{tag} LOCK makes way for Reset (same place)", page.locator("#lock-btn").is_hidden() and page.locator("#reset-btn").is_visible())
     # edits while frozen recompute from the frozen FIRST start
     page.locator(".caller-toggle", has_text="Alpha").click()   # remove the longest march
     check(f"{tag} frozen edit keeps first start", times() == ["23:59:10", "23:59:35"], str(times()))
@@ -392,7 +400,7 @@ def auto_reset(pw, label, ctx_args, lang):
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.clock.set_fixed_time(A0)
     gate_login(page)
-    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({THREE}))")
+    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({THREE})); {OPEN}")
     page.reload()
 
     def L(key, *args):
@@ -585,7 +593,7 @@ def waves(pw, label, ctx_args, lang):
     page.clock.set_fixed_time(W0)
     gate_login(page)
     # an OLD saved list (selected flags, no waves): migrates to wave 1
-    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({FIVE_OLD}))")
+    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({FIVE_OLD})); {OPEN}")
     page.reload()
 
     def L(key, *args):
@@ -838,11 +846,12 @@ def new_page(pw, ctx_args, lang_locale="en-GB"):
     return browser, page, errors
 
 
-def counter_flow(pw, label, ctx_args, lang):
-    """Attack | Counter: build a Counter list (tag BDE) through the UI, copy it,
-    and prove the two lists never mix: own callers, own frozen plan, own
-    auto-reset deadline, own duration; switching back and forth; reload."""
-    tag = f"[counter/{label}/{lang}]"
+def battle_flow(pw, label, ctx_args, lang):
+    """Battle view: Attack and Counter on screen together. Build a Counter list
+    (tag BDE) through the UI, copy each list with its own button, and prove the
+    two never mix: own callers, own frozen plan, own auto-reset deadline, own
+    duration; folded settings with a summary; reload."""
+    tag = f"[battle/{label}/{lang}]"
     browser, page, errors = new_page(pw, ctx_args)
     page.clock.set_fixed_time(C0)
     gate_login(page)
@@ -862,152 +871,154 @@ def counter_flow(pw, label, ctx_args, lang):
     def clip():
         return page.evaluate("navigator.clipboard.readText()")
 
-    def times():
-        return page.locator(".si-time").all_inner_texts()
+    def a_times():
+        return page.locator("#panel-attack .si-time").all_inner_texts()
 
-    status, cd, toast = page.locator("#plan-status"), page.locator("#auto-reset-cd"), page.locator("#plan-toast")
-    att, cnt = page.locator("#list-attack"), page.locator("#list-counter")
+    def c_times():
+        return page.locator("#panel-counter .si-time").all_inner_texts()
+
+    a_status, a_cd = page.locator("#plan-status"), page.locator("#auto-reset-cd")
+    c_status, c_cd = page.locator("#counter-plan-status"), page.locator("#counter-auto-reset-cd")
+    toast = page.locator("#plan-toast")
+    abtn, cbtn = page.locator("#copy-btn"), page.locator("#counter-copy-btn")
     word = L("march_word")
+    desktop = page.viewport_size["width"] >= 900
 
-    # --- the switch: Attack (old saved list) is active, Counter empty ---
-    check(f"{tag} switch shows Attack | Counter", att.inner_text().strip() == L("list_attack") and page.inner_text("#list-counter-name") == L("list_counter"))
-    check(f"{tag} Attack active by default", att.get_attribute("aria-checked") == "true" and cnt.get_attribute("aria-checked") == "false")
-    check(f"{tag} old saved list is the Attack list", page.locator(".caller-toggle[aria-checked=true]").count() == 3)
-    check(f"{tag} Attack: Schedule copy button only", page.locator("#copy-btn").is_visible() and page.locator("#counter-copy-btn").is_hidden())
-    # rally durations 1/2/3/5/10, default 5
+    # --- both lists on screen at once (side by side on desktop, stacked on a phone) ---
+    pa, pc = page.locator("#panel-attack").bounding_box(), page.locator("#panel-counter").bounding_box()
+    check(f"{tag} both panels visible", page.locator("#panel-attack").is_visible() and page.locator("#panel-counter").is_visible())
+    if desktop:
+        first = (pa["x"] >= pc["x"] + pc["width"] - 1) if lang == "ar" else (pa["x"] + pa["width"] <= pc["x"] + 1)  # Attack leads the reading direction
+        check(f"{tag} side by side (same top, Attack first)", abs(pa["y"] - pc["y"]) < 1 and first, f"{pa} {pc}")
+        check(f"{tag} both panels start inside the first screen", pa["y"] < 200 and pc["y"] < 200)
+    else:
+        check(f"{tag} phone: Attack above Counter", pa["y"] + pa["height"] <= pc["y"] + 1, f"{pa} {pc}")
+    check(f"{tag} no tab switch any more", page.locator("#list-switch, .list-btn").count() == 0)
+    check(f"{tag} titles", page.inner_text("#list-name") == L("list_attack") and page.inner_text("#counter-list-name") == L("list_counter"))
+    check(f"{tag} old saved list is the Attack list", page.locator("#panel-attack .caller-toggle[aria-checked=true]").count() == 3)
+    check(f"{tag} Counter starts empty", page.locator("#panel-counter .caller-toggle").count() == 0 and page.locator("#counter-no-callers").is_visible())
+    check(f"{tag} each panel has its own Copy", abtn.is_visible() and cbtn.is_hidden() and abtn.inner_text() == L("copy_attack_btn"))
+    check(f"{tag} Counter has no wave controls", page.locator("#counter-waves-row, #counter-randomise-btn, #counter-gap-list").count() == 0)
+
+    # --- settings fold away behind a summary; Land at stays in view ---
+    check(f"{tag} settings folded by default", page.locator("#settings-body").is_hidden()
+          and page.get_attribute("#settings-btn", "aria-expanded") == "false" and page.locator("#target-input").is_visible())
+    react = page.evaluate("document.querySelector('#buffer-select').selectedOptions[0].textContent")
+    want_sum = " \u00b7 ".join([L("sum_rally", L("minutes_n", 5)), L("sum_reaction", react), L("sum_waves", 1)])
+    check(f"{tag} summary shows the state", page.inner_text("#settings-sum") == want_sum, page.inner_text("#settings-sum"))
+    page.click("#settings-btn")
+    expect(page.locator("#settings-body")).to_be_visible()
+    check(f"{tag} settings open: aria-expanded", page.get_attribute("#settings-btn", "aria-expanded") == "true")
     opts = page.locator("#rally-duration-select option").evaluate_all("os => os.map(o => [o.value, o.textContent])")
     check(f"{tag} durations 1,2,3,5,10 min", [v for v, _ in opts] == ["60", "120", "180", "300", "600"], str(opts))
     check(f"{tag} duration labels translated", [x for _, x in opts] == [L("dur_n", n) for n in (1, 2, 3, 5, 10)], str(opts))
     check(f"{tag} default duration 5 min", page.input_value("#rally-duration-select") == "300")
 
-    # --- build the Counter list through the UI ---
-    cnt.click()
-    expect(cnt).to_have_attribute("aria-checked", "true")
-    check(f"{tag} Counter starts empty", page.locator(".caller-toggle").count() == 0 and page.locator("#no-callers").is_visible())
-    check(f"{tag} Counter: no wave controls", page.locator("#waves-row").is_hidden() and page.locator("#randomise-btn").is_hidden()
-          and page.locator("#wave-delay-row").is_hidden() and page.locator("#gap-list").is_hidden())
-    check(f"{tag} Counter: alliance box shown", page.locator("#counter-label-input").is_visible())
+    # --- build the Counter list through the UI (Attack stays on screen) ---
+    page.click("#counter-settings-btn")
     page.fill("#counter-label-input", "BDE")
-    expect(page.locator("#list-counter-name")).to_have_text(L("list_tab", "BDE"))
+    expect(page.locator("#counter-list-name")).to_have_text(L("list_tab", "BDE"))
     for name, march in [("Kai", "0:48"), ("Moss", "1:12")]:
-        page.click("#add-caller-btn")
-        row = page.locator("#caller-list li").last
+        page.click("#counter-add-caller-btn")
+        row = page.locator("#counter-caller-list li").last
         row.locator(".name-input").fill(name)
         row.locator(".march-input").fill(march)
         row.locator(".march-input").press("Tab")
         check(f"{tag} Counter edit row has no wave menu", row.locator(".wave-select").count() == 0)
-    page.click("#edit-btn")
-    expect(page.locator(".caller-toggle[aria-checked=true]")).to_have_count(2)
-    cbtn = page.locator("#counter-copy-btn")
-    check(f"{tag} Counter copy button carries the tag", cbtn.is_visible() and cbtn.inner_text() == L("copy_counter_btn", "BDE")
-          and page.locator("#copy-btn").is_hidden(), cbtn.inner_text())
-    bb = cbtn.bounding_box()
-    check(f"{tag} Counter copy button is big", bb and bb["height"] >= 55, str(bb))
+    page.click("#counter-edit-btn")
+    expect(page.locator("#panel-counter .caller-toggle[aria-checked=true]")).to_have_count(2)
+    check(f"{tag} Counter copy button carries the tag", cbtn.is_visible() and cbtn.inner_text() == L("copy_counter_btn", "BDE"), cbtn.inner_text())
+    ba, bc = abtn.bounding_box(), cbtn.bounding_box()
+    check(f"{tag} both Copy buttons big", ba["height"] >= 55 and bc["height"] >= 55, f"{ba} {bc}")
+    if desktop:
+        check(f"{tag} both Copy buttons at the same height", abs(ba["y"] - bc["y"]) < 1, f"{ba} {bc}")
+    check(f"{tag} Copy colours differ (Attack accent, Counter red)",
+          page.evaluate("getComputedStyle(document.querySelector('#copy-btn')).backgroundColor")
+          != page.evaluate("getComputedStyle(document.querySelector('#counter-copy-btn')).backgroundColor"))
 
-    # --- LIVE then Copy: frozen, clipboard = heading + lines ---
-    expect(page.locator("#arrival-time")).to_have_text("18:06:42")
-    check(f"{tag} Counter live times", times() == ["18:00:30", "18:00:54"], str(times()))
+    # --- LIVE: both lists tick; Counter Copy copies the Counter only ---
+    expect(page.locator("#counter-arrival-time")).to_have_text("18:06:42")
+    check(f"{tag} Counter live times", c_times() == ["18:00:30", "18:00:54"], str(c_times()))
+    check(f"{tag} Attack live times", a_times() == ["18:00:30", "18:01:20", "18:01:45"], str(a_times()))
     counter_text = "\n".join([L("copy_counter", "18:06:42"), f"18:00:30 - Moss ({word} 1:12)", f"18:00:54 - Kai ({word} 0:48)"])
     cbtn.click()
     expect(cbtn).to_have_text(L("copied"))
-    expect(status).to_have_text(L("locked_ind"))
-    check(f"{tag} Counter clipboard: heading + lines", clip() == counter_text, repr(clip()))
-    check(f"{tag} Counter preview == clipboard", page.inner_text("#copy-preview") == counter_text)
-    check(f"{tag} COUNTER heading is first line", clip().split("\n")[0] == L("copy_counter", "18:06:42"))
-    expect(page.locator("#list-counter-lock")).to_be_visible()
-    check(f"{tag} Attack tab shows no lock", page.locator("#list-attack-lock").is_hidden())
-    expect(cd).to_have_text(L("auto_reset_in", "5:00"))
+    expect(c_status).to_have_text(L("locked_ind"))
+    check(f"{tag} Counter Copy -> Counter text only", clip() == counter_text, repr(clip()))
+    check(f"{tag} Counter preview == clipboard", page.inner_text("#counter-copy-preview") == counter_text)
+    check(f"{tag} freezing Counter leaves Attack LIVE", a_status.inner_text() == L("live_ind") and a_cd.is_hidden()
+          and page.locator("#reset-btn").is_hidden() and page.locator("#lock-btn").is_visible())
+    check(f"{tag} Attack preview has no Counter text", L("copy_counter", "18:06:42") not in page.inner_text("#copy-preview"))
+    expect(c_cd).to_have_text(L("auto_reset_in", "5:00"))
     expect(cbtn).to_have_text(L("copy_counter_btn", "BDE"), timeout=4000)
-    check(f"{tag} no horizontal scroll (counter)", no_hscroll(page))
+    check(f"{tag} no horizontal scroll (counter frozen)", no_hscroll(page))
     os.makedirs(OUT, exist_ok=True)
-    shot(page, f"{OUT}/{label}-counter-frozen-{lang}.png")
+    shot(page, f"{OUT}/{label}-battle-counter-frozen-{lang}.png")
 
-    # --- Attack is unaffected: still LIVE, its own callers and text ---
-    att.click()
-    expect(att).to_have_attribute("aria-checked", "true")
-    expect(status).to_have_text(L("live_ind"))
-    check(f"{tag} Attack still live after Counter froze", cd.is_hidden() and page.locator("#reset-btn").is_hidden())
-    check(f"{tag} Attack keeps its own callers", page.locator(".caller-toggle .ct-name").all_inner_texts() == ["Bravo", "Alpha", "Charlie"])
-    check(f"{tag} Attack copy button back", page.locator("#copy-btn").is_visible() and cbtn.is_hidden())
-    check(f"{tag} Attack: alliance box and Counter text hidden", page.locator("#counter-box").is_hidden()
-          and L("copy_counter", "18:06:42") not in page.inner_text("#copy-preview"))
-    check(f"{tag} Attack waves controls back", page.locator("#waves-row").is_visible())
+    # --- 10s later: Attack follows the clock, Counter stays frozen ---
     go(10)
-    check(f"{tag} Attack times follow the clock", times() == ["18:00:40", "18:01:30", "18:01:55"], str(times()))
-    page.click("#copy-btn")
-    expect(status).to_have_text(L("locked_ind"))
+    check(f"{tag} Attack times follow the clock", a_times() == ["18:00:40", "18:01:30", "18:01:55"], str(a_times()))
+    check(f"{tag} Counter times frozen", c_times() == ["18:00:30", "18:00:54"], str(c_times()))
+    abtn.click()
+    expect(a_status).to_have_text(L("locked_ind"))
     attack_text = "\n".join([L("copy_header", "18:07:25"), f"18:00:40 - Alpha ({word} 1:45)", f"18:01:30 - Bravo ({word} 0:55)", f"18:01:55 - Charlie ({word} 0:30)"])
-    check(f"{tag} Attack copy text unchanged format", clip() == attack_text, repr(clip()))
-    expect(cd).to_have_text(L("auto_reset_in", "5:00"))
-
-    # --- back to Counter: its own frozen plan and its own countdown ---
-    cnt.click()
-    expect(page.locator("#arrival-time")).to_have_text("18:06:42")
-    check(f"{tag} Counter kept its frozen times", times() == ["18:00:30", "18:00:54"] and status.inner_text() == L("locked_ind"), str(times()))
-    expect(cd).to_have_text(L("auto_reset_in", "4:50"))
+    check(f"{tag} Attack Copy -> Attack text only (format unchanged)", clip() == attack_text, repr(clip()))
+    expect(a_cd).to_have_text(L("auto_reset_in", "5:00"))
+    expect(c_cd).to_have_text(L("auto_reset_in", "4:50"))
+    check(f"{tag} Counter kept its frozen times", c_times() == ["18:00:30", "18:00:54"] and c_status.inner_text() == L("locked_ind"))
+    shot(page, f"{OUT}/{label}-battle-both-frozen-{lang}.png")
     page.evaluate("navigator.clipboard.writeText('x')")
     cbtn.click()
     expect(cbtn).to_have_text(L("copied"))
     check(f"{tag} Counter re-copy = same text", clip() == counter_text)
     # a Counter duration change stays in Counter
-    page.select_option("#rally-duration-select", "60")
-    check(f"{tag} Counter 1 min rally keeps the first start", times()[0] == "18:00:30" and page.inner_text("#arrival-time") == "18:02:42",
-          str(times()) + page.inner_text("#arrival-time"))
-    att.click()
+    page.select_option("#counter-rally-duration-select", "60")
+    check(f"{tag} Counter 1 min rally keeps the first start", c_times()[0] == "18:00:30" and page.inner_text("#counter-arrival-time") == "18:02:42",
+          str(c_times()) + page.inner_text("#counter-arrival-time"))
     check(f"{tag} Attack duration unchanged (5 min)", page.input_value("#rally-duration-select") == "300"
           and page.inner_text("#arrival-time") == "18:07:25")
-    cnt.click()
-    page.select_option("#rally-duration-select", "300")
-    att.click()
+    check(f"{tag} Counter summary follows its duration", page.inner_text("#counter-settings-sum").startswith(L("sum_rally", L("minutes_n", 1))))
+    page.select_option("#counter-rally-duration-select", "300")
 
-    # --- reload: both lists, the active list and both freezes survive ---
+    # --- reload: both lists, both freezes, the tag and the open settings survive ---
     page.reload()
-    expect(att).to_have_attribute("aria-checked", "true")
-    expect(status).to_have_text(L("locked_ind"))
-    check(f"{tag} reload: both locks shown", page.locator("#list-attack-lock").is_visible() and page.locator("#list-counter-lock").is_visible())
-    check(f"{tag} reload: tag kept", page.inner_text("#list-counter-name") == L("list_tab", "BDE"))
+    expect(a_status).to_have_text(L("locked_ind"))
+    check(f"{tag} reload: Counter still locked", c_status.inner_text() == L("locked_ind"))
+    check(f"{tag} reload: tag kept", page.inner_text("#counter-list-name") == L("list_tab", "BDE"))
+    check(f"{tag} reload: unfolded settings remembered", page.locator("#settings-body").is_visible() and page.locator("#counter-settings-body").is_visible())
 
-    # --- auto-reset per list: Counter (frozen at 0) resets at 5:00 while Attack (frozen at 10) stays locked ---
+    # --- auto-reset per list: Counter (frozen at 0) resets at 5:00, Attack (frozen at 10) 10s later ---
     go(299)
-    expect(cd).to_have_text(L("auto_reset_in", "0:11"))
+    expect(c_cd).to_have_text(L("auto_reset_in", "0:01"))
     go(300)
     expect(toast).to_have_text(L("list_auto_reset", L("list_tab", "BDE")))
-    check(f"{tag} Counter auto-reset while Attack is on screen", page.locator("#list-counter-lock").is_hidden())
-    check(f"{tag} Attack still locked at 5:00", status.inner_text() == L("locked_ind") and cd.inner_text() == L("auto_reset_in", "0:10"), cd.inner_text())
-    cnt.click()
-    expect(status).to_have_text(L("live_ind"))
-    check(f"{tag} Counter is live after its auto-reset", times()[0] == "18:05:30", str(times()))
-    att.click()
+    expect(c_status).to_have_text(L("live_ind"))
+    check(f"{tag} Attack still locked at 5:00", a_status.inner_text() == L("locked_ind") and a_cd.inner_text() == L("auto_reset_in", "0:10"), a_cd.inner_text())
+    check(f"{tag} Counter is live after its auto-reset", c_times()[0] == "18:05:30", str(c_times()))
     go(310)
-    expect(status).to_have_text(L("live_ind"))
+    expect(a_status).to_have_text(L("live_ind"))
     expect(toast).to_have_text(L("auto_reset_done"))
-    check(f"{tag} Attack auto-reset at its own deadline", page.locator("#list-attack-lock").is_hidden())
 
-    # --- freezing Attack doesn't touch Counter; Reset on one doesn't reset the other ---
+    # --- LOCK one, Reset the other: never touches the neighbour ---
     page.click("#lock-btn")
-    cnt.click()
-    page.click("#lock-btn")
+    page.click("#counter-lock-btn")
+    page.click("#counter-reset-btn")
+    expect(c_status).to_have_text(L("live_ind"))
+    check(f"{tag} Counter Reset leaves Attack locked", a_status.inner_text() == L("locked_ind"))
     page.click("#reset-btn")
-    expect(status).to_have_text(L("live_ind"))
-    att.click()
-    check(f"{tag} Counter Reset leaves Attack locked", status.inner_text() == L("locked_ind"))
-    page.click("#reset-btn")
+    expect(a_status).to_have_text(L("live_ind"))
 
     # --- Attack waves never leak into Counter ---
     page.click("#add-wave-btn")
-    cnt.click()
-    check(f"{tag} Counter stays single-wave when Attack has 2", page.locator(".wave-section").count() == 0
-          and page.locator(".caller-toggle[role=checkbox]").count() == 2 and page.locator("#waves-row").is_hidden())
-    att.click()
-    expect(page.locator("#wave-count")).to_have_text("2")
+    check(f"{tag} Counter stays single-wave when Attack has 2", page.locator("#panel-counter .wave-section").count() == 0
+          and page.locator("#panel-counter .caller-toggle[role=checkbox]").count() == 2 and page.locator("#panel-attack .wave-section").count() == 2)
+    check(f"{tag} Attack summary counts its waves", page.inner_text("#settings-sum").endswith(L("sum_waves", 2)))
     page.click("#remove-wave-btn")
 
-    # --- keyboard: arrows move between the two lists ---
-    att.focus()
-    page.keyboard.press("ArrowRight")
-    expect(cnt).to_have_attribute("aria-checked", "true")
-    page.keyboard.press("ArrowLeft")
-    expect(att).to_have_attribute("aria-checked", "true")
+    # --- folding the settings again is remembered too ---
+    page.click("#settings-btn")
+    page.reload()
+    check(f"{tag} folded settings remembered", page.locator("#settings-body").is_hidden() and page.locator("#counter-settings-body").is_visible())
 
     small = page.evaluate("""[...document.querySelectorAll('#tab-rally button, #tab-rally select, #tab-rally input, .tab-btn, .chip')]
         .filter(e => e.offsetParent).map(e => [e.id || e.className, Math.round(e.getBoundingClientRect().height)])
@@ -1018,9 +1029,63 @@ def counter_flow(pw, label, ctx_args, lang):
     browser.close()
 
 
+# the standard battle data: Attack 12 callers in 3 waves, Counter 5 callers of BDE
+STD_ATTACK = [("Viscount", 34, 1), ("rima", 41, 1), ("Bravo", 65, 1), ("IceQueen", 52, 1), ("Alpha", 105, 2), ("Frosty", 47, 2),
+              ("Kodiak", 73, 2), ("Nova", 38, 2), ("Charlie", 30, 3), ("Delta", 55, 3), ("Walrus", 61, 3), ("Yeti", 44, 3)]
+STD_COUNTER = [("Kai", 48), ("Moss", 72), ("Sable", 39), ("Tundra", 57), ("Echo", 66)]
+
+
+def seed_standard(page, lang="en"):
+    import json
+    a = [{"name": n, "marchSeconds": m, "selected": True, "wave": w} for n, m, w in STD_ATTACK]
+    c = [{"name": n, "marchSeconds": m, "selected": True, "wave": 1} for n, m in STD_COUNTER]
+    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', {json.dumps(lang)});"
+                  f"localStorage.setItem('rally_callers', {json.dumps(json.dumps(a))});"
+                  "localStorage.setItem('rally_waves', JSON.stringify({count: 3, defaultDelay: 10, gaps: [null, 20]}));"
+                  f"localStorage.setItem('rally_counter_callers', {json.dumps(json.dumps(c))}); localStorage.setItem('rally_counter_label', 'BDE')")
+    page.reload()
+
+
+def battle_layout(pw, label, ctx_args, lang="en"):
+    """The whole picture on one screen: no page scroll at 1440x900 / 1920x1080 with
+    the standard data, every schedule row and roster chip in view, both Copy
+    buttons in the first screen; no sideways scroll on a 390px phone."""
+    tag = f"[layout/{label}/{lang}]"
+    browser, page, errors = new_page(pw, ctx_args)
+    page.clock.set_fixed_time(W0)
+    gate_login(page)
+    seed_standard(page, lang)
+    page.click("#counter-copy-btn")   # one frozen, one live
+    expect(page.locator("#counter-plan-status")).to_have_text(page.evaluate(f"RallyLang['{lang}'].locked_ind"))
+    vw, vh = page.viewport_size["width"], page.viewport_size["height"]
+    check(f"{tag} 12 + 5 rows in the schedules", page.locator("#panel-attack .schedule-item").count() == 12
+          and page.locator("#panel-counter .schedule-item").count() == 5)
+    check(f"{tag} no horizontal scroll", no_hscroll(page))
+    if vw >= 1100:
+        m = page.evaluate("""(() => {
+            const d = document.documentElement, fits = s => [...document.querySelectorAll(s)].every(e => e.scrollHeight <= e.clientHeight + 1);
+            const inView = s => [...document.querySelectorAll(s)].every(e => { const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; });
+            return { pageH: d.scrollHeight, schedFit: fits('.panel-schedule'), rosterFit: fits('.caller-list'),
+                     rowsInView: inView('.schedule-item'), chipsInView: inView('.caller-toggle'), copyInView: inView('.btn-copy') };
+        })()""")
+        check(f"{tag} no page scroll", m["pageH"] <= vh, str(m))
+        check(f"{tag} every schedule row in view (no inner scroll)", m["schedFit"] and m["rowsInView"], str(m))
+        check(f"{tag} every roster chip in view", m["rosterFit"] and m["chipsInView"], str(m))
+        check(f"{tag} both Copy buttons in view", m["copyInView"], str(m))
+        # the passed warning takes the hint's place: nothing below it moves
+        y0 = page.evaluate("document.querySelector('#counter-schedule-list').getBoundingClientRect().top")
+        page.clock.set_fixed_time(W0 + dt.timedelta(seconds=31))
+        expect(page.locator("#counter-schedule-warning")).to_be_visible()
+        check(f"{tag} passed warning does not move the schedule", abs(page.evaluate("document.querySelector('#counter-schedule-list').getBoundingClientRect().top") - y0) < 1)
+        check(f"{tag} still no page scroll when passed", page.evaluate("document.documentElement.scrollHeight") <= vh)
+    page.screenshot(path=f"{OUT}/{label}-layout-{lang}.png", full_page=vw < 900)
+    check(f"{tag} no console/CSP errors", not errors, str(errors))
+    browser.close()
+
+
 def themes_langs(pw, label, ctx_args):
     """3 themes render without console/CSP errors and are remembered; es/fr/de
-    are in the language list and change the UI; Arabic RTL with the Counter."""
+    are in the language list and change the UI; Arabic RTL with both lists."""
     tag = f"[look/{label}]"
     browser, page, errors = new_page(pw, {**ctx_args, "reduced_motion": "reduce"})
     page.clock.set_fixed_time(C0)
@@ -1041,13 +1106,12 @@ def themes_langs(pw, label, ctx_args):
         check(f"{tag} theme {th} applied", page.evaluate("document.documentElement.getAttribute('data-theme')") == want)
         bgs[th] = page.evaluate("getComputedStyle(document.body).backgroundColor")
         check(f"{tag} theme {th}: chip shows its name", page.inner_text("#theme-display") == page.evaluate(f"RallyLang.en[{{'ministry-dark':'theme_dark',reading:'theme_reading','low-glare':'theme_low_glare'}}['{th}']]"))
-        shot(page, f"{OUT}/{label}-theme-{th}-attack.png")
-        page.click("#list-counter")
+        shot(page, f"{OUT}/{label}-theme-{th}-live.png")
         page.click("#counter-copy-btn")
-        expect(page.locator("#plan-status")).to_have_text("LOCKED")
-        shot(page, f"{OUT}/{label}-theme-{th}-counter.png")
-        page.click("#reset-btn")
-        page.click("#list-attack")
+        expect(page.locator("#counter-plan-status")).to_have_text("LOCKED")
+        check(f"{tag} theme {th}: Attack still LIVE beside the frozen Counter", page.inner_text("#plan-status") == "LIVE")
+        shot(page, f"{OUT}/{label}-theme-{th}-counter-frozen.png")
+        page.click("#counter-reset-btn")
         check(f"{tag} theme {th}: no horizontal scroll", no_hscroll(page))
     check(f"{tag} the 3 themes look different", len(set(bgs.values())) == 3, str(bgs))
     page.select_option("#theme-select", "reading")
@@ -1063,32 +1127,30 @@ def themes_langs(pw, label, ctx_args):
         page.select_option("#lang-select", code)
         T = page.evaluate(f"RallyLang['{code}']")
         check(f"{tag} {code}: UI changes", page.evaluate("document.documentElement.lang") == code
-              and page.inner_text("#copy-btn") == T["copy_schedule"] and page.inner_text(".tab-btn[data-tab=garrison]") == T["tab_garrison"]
-              and page.inner_text("#list-attack-name") == T["list_attack"] and page.inner_text("#lang-display") == T["lang_name"],
+              and page.inner_text("#copy-btn") == T["copy_attack_btn"] and page.inner_text(".tab-btn[data-tab=garrison]") == T["tab_garrison"]
+              and page.inner_text("#list-name") == T["list_attack"] and page.inner_text("#lang-display") == T["lang_name"]
+              and page.inner_text("#settings-btn") == T["settings_btn"],
               page.inner_text("#copy-btn"))
         check(f"{tag} {code}: left-to-right", page.evaluate("document.documentElement.dir") == "ltr")
-        page.click("#list-counter")
-        check(f"{tag} {code}: Counter labels", page.inner_text("#list-counter-name") == page.evaluate(f"RallyLang['{code}'].list_tab('BDE')")
+        check(f"{tag} {code}: Counter labels", page.inner_text("#counter-list-name") == page.evaluate(f"RallyLang['{code}'].list_tab('BDE')")
               and page.inner_text("#counter-copy-btn") == page.evaluate(f"RallyLang['{code}'].copy_counter_btn('BDE')"))
-        check(f"{tag} {code}: Counter preview heading", page.inner_text("#copy-preview").split("\n")[0] == page.evaluate(f"RallyLang['{code}'].copy_counter('18:06:42')"),
-              page.inner_text("#copy-preview"))
+        check(f"{tag} {code}: Counter preview heading", page.inner_text("#counter-copy-preview").split("\n")[0] == page.evaluate(f"RallyLang['{code}'].copy_counter('18:06:42')"),
+              page.inner_text("#counter-copy-preview"))
         check(f"{tag} {code}: no horizontal scroll", no_hscroll(page))
         if code == "de":
-            shot(page, f"{OUT}/{label}-counter-de.png")
-        page.click("#list-attack")
+            shot(page, f"{OUT}/{label}-battle-de.png")
 
-    # --- Arabic: RTL, Counter heading in Arabic ---
+    # --- Arabic: RTL, Counter heading in Arabic, Attack on the right ---
     page.select_option("#lang-select", "ar")
     check(f"{tag} ar: RTL", page.evaluate("document.documentElement.dir") == "rtl")
-    page.click("#list-counter")
     page.click("#counter-copy-btn")
     clip = page.evaluate("navigator.clipboard.readText()")
     check(f"{tag} ar: Counter clipboard heading", clip.split("\n")[0] == "هجوم مضاد - الوصول 18:06:42", repr(clip))
-    check(f"{tag} ar: switch reads right-to-left", page.locator("#list-attack").bounding_box()["x"] > page.locator("#list-counter").bounding_box()["x"])
+    if page.viewport_size["width"] >= 900:
+        check(f"{tag} ar: Attack panel on the right", page.locator("#panel-attack").bounding_box()["x"] > page.locator("#panel-counter").bounding_box()["x"])
     check(f"{tag} ar: no horizontal scroll", no_hscroll(page))
-    shot(page, f"{OUT}/{label}-counter-ar.png")
-    page.click("#list-attack")
-    shot(page, f"{OUT}/{label}-attack-ar.png")
+    shot(page, f"{OUT}/{label}-battle-ar.png")
+    page.click("#counter-reset-btn")
     page.select_option("#lang-select", "en")
     check(f"{tag} no console/CSP errors", not errors, str(errors))
     browser.close()
@@ -1112,10 +1174,14 @@ with sync_playwright() as pw:
             waves(pw, "iphone", iphone_device(pw), lang)
             auto_reset(pw, "desktop", DESKTOP, lang)
             auto_reset(pw, "iphone", iphone_device(pw), lang)
-    # Attack | Counter, themes, languages (desktop 1440x900 primary + 390px phone)
+    # Battle view (both lists at once), layout, themes, languages (desktop 1440x900 primary + 390px phone)
     for lang in ("en", "ar"):
-        counter_flow(pw, "desktop", DESKTOP, lang)
-    counter_flow(pw, "iphone", iphone_device(pw), "en")
+        battle_flow(pw, "desktop", DESKTOP, lang)
+    battle_flow(pw, "iphone", iphone_device(pw), "en")
+    battle_layout(pw, "desktop", DESKTOP, "en")
+    battle_layout(pw, "desktop", DESKTOP, "ar")
+    battle_layout(pw, "fullhd", {"viewport": {"width": 1920, "height": 1080}}, "en")
+    battle_layout(pw, "iphone", iphone_device(pw), "en")
     themes_langs(pw, "desktop", DESKTOP)
     themes_langs(pw, "iphone", iphone_device(pw))
     if os.environ.get("INSECURE_URL") and not ONLY_NEW:  # e.g. http://hannah.localdomain:8096

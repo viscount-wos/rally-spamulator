@@ -184,10 +184,11 @@ select { cursor: pointer; }
     border-radius: var(--radius);
 }
 
-/* Head: name + status | landing, then the big Copy across the panel */
+/* Head, the same in both panels: name, status row | landing; a message line;
+   the big Copy across the panel (so both Copy buttons sit at the same height) */
 .panel-head {
     display: grid; grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "id arr" "copy copy";
+    grid-template-areas: "title arr" "row arr" "msg msg" "copy copy";
     align-items: center; gap: 6px 12px;
     padding: 6px 12px 10px;
     border-radius: var(--radius-sm);
@@ -195,14 +196,14 @@ select { cursor: pointer; }
     background: rgb(var(--c-success) / 0.06);
 }
 .plan-panel.locked .panel-head { border-color: rgb(var(--c-warning)); background: rgb(var(--c-warning) / 0.12); }
-.plan-panel.passed .panel-head { border-color: rgb(var(--c-danger)); background: rgb(var(--c-danger) / 0.1); }
-.ph-id { grid-area: id; display: flex; align-items: center; flex-wrap: wrap; gap: 0 14px; min-width: 0; }
+.plan-panel.passed .panel-head { border-color: rgb(var(--c-danger)); background: rgb(var(--c-danger) / 0.08); }
 .panel-title {
+    grid-area: title; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-size: 1.35rem; font-weight: 800; line-height: 1.2; letter-spacing: 0.3px;
     color: rgb(var(--list)); overflow-wrap: anywhere; min-width: 0;
 }
 /* fixed height in both states, so LIVE <-> LOCKED + Reset doesn't move anything */
-.plan-row { display: flex; align-items: center; gap: 10px; height: 56px; min-width: 0; }
+.plan-row { grid-area: row; display: flex; align-items: center; gap: 10px; height: 56px; min-width: 0; }
 .plan-meta { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 .plan-status {
     display: inline-flex; align-items: center; gap: 6px;
@@ -216,7 +217,7 @@ select { cursor: pointer; }
     animation: pulse 1s infinite;
 }
 .auto-reset-cd {
-    font-size: 0.78rem; line-height: 1.2; color: rgb(var(--c-warning)); font-weight: 600;
+    font-size: 0.85rem; line-height: 1.2; color: rgb(var(--c-warning)); font-weight: 700;
     font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .btn-reset {
@@ -229,8 +230,8 @@ select { cursor: pointer; }
     box-shadow: 0 0 0 3px rgb(var(--c-danger) / 0.35); animation: pulse 1s infinite;
 }
 
-.arrival-display { grid-area: arr; text-align: end; min-width: 0; }
-.arrival-label { font-size: 0.68rem; color: rgb(var(--c-theme-dim)); letter-spacing: 1px; text-transform: uppercase; }
+.arrival-display { grid-area: arr; align-self: center; text-align: end; min-width: 0; }
+.arrival-label { font-size: 0.75rem; color: rgb(var(--c-theme-dim)); letter-spacing: 1px; text-transform: uppercase; }
 .arrival-time {
     font-family: var(--mono); font-size: 2.2rem; font-weight: 700; line-height: 1.1;
     color: rgb(var(--c-warning)); direction: ltr; font-variant-numeric: tabular-nums;
@@ -251,23 +252,41 @@ select { cursor: pointer; }
     box-shadow: 0 4px 14px rgb(var(--list) / 0.28);
     overflow-wrap: anywhere;
 }
+.btn-copy { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.copy-icon { width: 22px; height: 22px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .btn-copy:hover { filter: brightness(1.08); }
 .btn-copy.done { background: rgb(var(--c-success)); box-shadow: 0 4px 14px rgb(var(--c-success) / 0.28); }
 
+.ph-msg { grid-area: msg; min-height: 1.6rem; display: flex; align-items: center; min-width: 0; }
+.plan-hint { font-size: 0.82rem; color: rgb(var(--c-theme-dim)); }
 .warning {
-    padding: 8px 12px;
-    background: rgb(var(--c-danger) / 0.12);
-    border: 1px solid rgb(var(--c-danger) / 0.6);
+    width: 100%; padding: 2px 10px;
+    background: rgb(var(--c-danger) / 0.14);
+    border: 1px solid rgb(var(--c-danger) / 0.7);
     border-radius: var(--radius-sm);
-    color: rgb(var(--c-danger)); font-size: 0.9rem; font-weight: 600;
+    color: rgb(var(--c-danger)); font-size: 0.88rem; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+}
+.warning::before {
+    content: '!'; flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 1.15rem; height: 1.15rem; border-radius: 50%;
+    background: rgb(var(--c-danger)); color: rgb(var(--c-ink)); font-weight: 900; font-size: 0.8rem;
 }
 
-/* Settings + waves: one compact line each (wraps when narrow) */
-.panel-settings, .panel-waves {
+/* Settings: toggle + summary + Land at on one line; the rest unfolds below */
+.panel-settings, .panel-waves, .settings-body {
     display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
 }
+.settings-body { flex-basis: 100%; padding: 8px; border-radius: var(--radius-sm); border: 1px dashed rgb(var(--c-theme-border)); }
+.settings-toggle { display: inline-flex; align-items: center; gap: 6px; }
+.settings-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.settings-toggle .chev { transition: transform 0.2s ease; }
+.settings-toggle[aria-expanded="true"] { border-color: rgb(var(--list)); }
+.settings-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.settings-sum { font-size: 0.88rem; color: rgb(var(--c-theme-dim)); min-width: 0; flex: 1 1 8rem; }
+.set-land { margin-inline-start: auto; }
 .set-item { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-.set-item label, .set-item .cfg-label { font-size: 0.8rem; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
+.set-item label, .set-item .cfg-label { font-size: 0.82rem; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
 .set-item select { padding: 6px 8px; font-size: 0.95rem; }
 .time-input { width: 9.5rem; font-family: var(--mono); text-align: center; direction: ltr; padding: 6px 8px; }
 .multi .time-input { width: 13rem; }
@@ -322,14 +341,18 @@ select { cursor: pointer; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 .si-left { display: flex; flex-direction: column; min-width: 0; }
 .si-name { font-weight: 700; font-size: 0.98rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.si-march { font-size: 0.7rem; line-height: 1.2; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
+.si-march { font-size: 0.8rem; line-height: 1.2; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
 .si-right { text-align: end; flex-shrink: 0; display: grid; justify-items: end; }
 .si-label { display: none; font-size: 0.68rem; color: rgb(var(--c-theme-dim)); }
 .si-time { font-family: var(--mono); font-size: 1.25rem; font-weight: 700; line-height: 1.05; color: rgb(var(--c-success)); direction: ltr; font-variant-numeric: tabular-nums; }
 .schedule-item.overdue .si-time, .schedule-item.overdue .si-countdown { color: rgb(var(--c-danger)); }
 .schedule-item.imminent .si-time { color: rgb(var(--c-warning)); }
-.si-countdown { font-size: 0.72rem; line-height: 1.15; color: rgb(var(--c-theme-dim)); font-variant-numeric: tabular-nums; }
-.schedule-item.imminent .si-countdown { color: rgb(var(--c-warning)); font-weight: 600; }
+.si-countdown { font-size: 0.85rem; line-height: 1.15; font-weight: 600; color: rgb(var(--c-theme-text)); font-variant-numeric: tabular-nums; }
+/* the next caller to start: stands out in its column */
+.schedule-item.next { background: rgb(var(--c-success) / 0.12); border-color: rgb(var(--c-success) / 0.8); border-inline-start-width: 6px; }
+.schedule-item.next .si-countdown { color: rgb(var(--c-success)); font-weight: 800; }
+.schedule-item.next.imminent { background: rgb(var(--c-warning) / 0.14); border-color: rgb(var(--c-warning)); }
+.schedule-item.imminent .si-countdown, .schedule-item.next.imminent .si-countdown { color: rgb(var(--c-warning)); font-weight: 800; }
 /* one wave with many callers: two columns when the panel is wide */
 @container (min-width: 460px) {
     .schedule-list.single { columns: 2; column-gap: 8px; }
@@ -352,13 +375,14 @@ select { cursor: pointer; }
 .empty-msg { text-align: center; color: rgb(var(--c-theme-dim)); padding: 14px 8px; font-size: 0.9rem; }
 
 /* ---- Foot: roster (tap to cycle) | chat text ---- */
-.panel-foot { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-height: 0; }
+.panel-foot { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 @container (min-width: 600px) {
-    .panel-foot { grid-template-columns: minmax(0, 1fr) minmax(220px, 17.5rem); }
+    .panel-foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 17.5rem); grid-template-rows: minmax(0, 1fr); }
     .plan-panel.editing .panel-foot, .plan-panel.empty .panel-foot { grid-template-columns: minmax(0, 1fr); }
 }
 .plan-panel.editing .preview-wrap { display: none; }
-.roster, .preview-wrap { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.roster, .preview-wrap { min-width: 0; display: flex; flex-direction: column; min-height: 0; flex: 0 1 auto; align-self: start; max-height: 100%; }
+.panel-foot > * { width: 100%; }
 .roster {
     padding: 8px; border-radius: var(--radius-sm);
     background: rgb(var(--c-dark-bg) / 0.5);
@@ -371,10 +395,10 @@ select { cursor: pointer; }
 .edit-only { display: none; }
 .plan-panel.editing .edit-only { display: flex; }
 .plan-panel.editing .btn-randomise { display: none; }
-.wave-help { margin: 6px 0 0; font-size: 0.72rem; line-height: 1.2; flex: none; }
+.wave-help { margin: 6px 0 0; font-size: 0.78rem; line-height: 1.2; flex: none; }
 .plan-panel.editing .wave-help { display: none; }
 .caller-list { min-height: 0; }
-.caller-list.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 6px; align-content: start; }
+.caller-list.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.4rem, 1fr)); gap: 6px; align-content: start; }
 .caller-list.chips > li { min-width: 0; }
 
 /* roster chip: the whole chip is one toggle */
@@ -408,15 +432,13 @@ select { cursor: pointer; }
     border-radius: var(--radius-sm);
 }
 .caller-row .name-input { flex: 1; min-width: 0; }
-/* editing a long list on a wide panel: two rows side by side */
-@container (min-width: 720px) {
+/* editing a long list on a very wide panel: two rows side by side */
+@container (min-width: 1000px) {
     .caller-list:not(.chips) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 8px; align-content: start; }
 }
 .wave-select { min-width: 64px; flex: 0 0 auto; }
 
-.preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 10px; flex-wrap: wrap; margin-bottom: 4px; }
-.preview-label { font-size: 0.7rem; color: rgb(var(--c-theme-dim)); text-transform: uppercase; letter-spacing: 1px; }
-.plan-hint { font-size: 0.75rem; color: rgb(var(--c-theme-dim)); }
+.preview-label { font-size: 0.78rem; color: rgb(var(--c-theme-dim)); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
 .copy-preview {
     flex: 1; min-height: 0; overflow: auto;
     padding: 8px 10px;
@@ -424,7 +446,7 @@ select { cursor: pointer; }
     border: 1px dashed rgb(var(--c-theme-border));
     border-radius: var(--radius-sm);
     color: rgb(var(--c-theme-text));
-    font-family: var(--mono); font-size: 0.78rem; line-height: 1.4;
+    font-family: var(--mono); font-size: 0.74rem; line-height: 1.25;
     white-space: pre-wrap; word-break: break-word;
     unicode-bidi: plaintext; /* each line picks its own direction, like a chat line */
     text-align: start;
@@ -545,7 +567,7 @@ select { cursor: pointer; }
     .chip-text-wide { display: none; }       /* theme: palette icon only (as the event app) */
     .chip-text { max-width: 5.5rem; }
     .brand-icon { display: none; }
-    .panel-head { grid-template-areas: "id id" "arr arr" "copy copy"; }
+    .panel-head { grid-template-areas: "title title" "row row" "arr arr" "msg msg" "copy copy"; }
     .arrival-display { text-align: start; }
     .wave-landings { justify-content: flex-start; }
 }
@@ -562,7 +584,7 @@ select { cursor: pointer; }
 /* ---- Desktop (>= 900px): Attack | Counter side by side ---- */
 @media (min-width: 900px) {
     body { padding: 0 20px 16px; }
-    .top-bar { padding: 6px 0; }
+    .top-bar { padding: 4px 0 6px; }
     .app-title { font-size: 1.05rem; }
     #tab-rally.active {
         display: grid;
@@ -598,7 +620,8 @@ select { cursor: pointer; }
 
 /* big screens: scale the whole UI up a step (everything is in rem) */
 @media (min-width: 1800px) and (min-height: 1000px) {
-    html { font-size: 17.5px; }
+    html { font-size: 18px; }
+    .si-time { font-size: 1.4rem; }
 }
 
 /* ---- Battle view fits one screen: panels fill the height, only their insides scroll ---- */
@@ -609,7 +632,7 @@ select { cursor: pointer; }
     #tab-garrison.active { overflow: auto; }
     #tab-rally.active { align-items: stretch; }
     .plan-panel { min-height: 0; overflow: hidden; }
-    .panel-head, .panel-settings, .panel-waves, .warning { flex: none; }
+    .panel-head, .panel-settings { flex: none; }
     /* the schedule keeps its natural height (scrolls only if it must); the
        roster and chat text take what is left and scroll inside */
     .panel-schedule { flex: 0 1 auto; overflow: auto; min-height: 120px; }
@@ -617,5 +640,5 @@ select { cursor: pointer; }
     .plan-panel.editing .panel-schedule { min-height: 96px; max-height: 40%; }
     .plan-panel.editing .panel-foot { min-height: 50%; }
     .roster, .preview-wrap { overflow: hidden; }
-    .caller-list { overflow: auto; flex: 1 1 auto; min-height: 0; }
+    .caller-list { overflow: auto; flex: 0 1 auto; min-height: 0; }
 }

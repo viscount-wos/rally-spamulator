@@ -80,6 +80,7 @@
     var nextId = 1;
     var autoResetMin = C.DEFAULT_AUTO_RESET_MIN;   // 0 = Off
     var panels = {};
+    var uiOpen = {};   // which panels have their settings unfolded (UI preference only)
     function applyStorage(obj) {
         Object.keys(obj).forEach(function (k) {
             if (obj[k] === null) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
@@ -97,7 +98,7 @@
         copy.querySelectorAll('[data-only="attack"]').forEach(function (n) { n.remove(); });
         src.querySelectorAll('[data-only="counter"]').forEach(function (n) { n.remove(); });
         [copy].concat(Array.prototype.slice.call(copy.querySelectorAll('*'))).forEach(function (n) {
-            ['id', 'for', 'aria-labelledby'].forEach(function (at) {
+            ['id', 'for', 'aria-labelledby', 'aria-controls'].forEach(function (at) {
                 var v = n.getAttribute(at);
                 if (v) n.setAttribute(at, 'counter-' + v);
             });
@@ -151,10 +152,32 @@
         function copyBtnLabel() {
             return counter ? LANG[currentLang].copy_counter_btn(counterLabel) : t('copy_attack_btn');
         }
+        function copyLabel() { return q('copy-btn').querySelector('.copy-label'); }
         function renderName() {
             q('list-name').textContent = listName(kind);
-            var cb = q('copy-btn');
-            if (!cb.classList.contains('done')) cb.textContent = copyBtnLabel();
+            if (!q('copy-btn').classList.contains('done')) copyLabel().textContent = copyBtnLabel();
+        }
+
+        // ===== Settings: folded away behind a one-line summary of their state =====
+        function settingsOpen() { return uiOpen[kind] === true; }
+        function setSettingsOpen(on) {
+            uiOpen[kind] = on;
+            store('rally_ui_open', JSON.stringify(uiOpen));
+            renderSettingsOpen();
+        }
+        function renderSettingsOpen() {
+            var on = settingsOpen();
+            q('settings-body').hidden = !on;
+            q('settings-btn').setAttribute('aria-expanded', on ? 'true' : 'false');
+            root.classList.toggle('settings-open', on);
+        }
+        function renderSummary() {
+            var L = LANG[currentLang];
+            var react = q('buffer-select');
+            var parts = [L.sum_rally(L.minutes_n(rallyDurationSeconds / 60)),
+                L.sum_reaction(react.options[react.selectedIndex] ? react.options[react.selectedIndex].textContent : '')];
+            if (!counter) parts.push(L.sum_waves(waves.count));
+            q('settings-sum').textContent = parts.join(' \u00b7 ');
         }
 
         // Rally duration: 1, 2, 3, 5 or 10 minutes (per list).
@@ -419,6 +442,7 @@
         function wavesChanged() {
             waves = C.normalizeWaves(waves);
             saveWaves();
+            renderSummary();
             renderWaves();
             renderCallers();
             updateSchedule();
@@ -531,7 +555,7 @@
             q('arrival-label').textContent = multi ? t('arrival_label_w1') : t('arrival_label');
             q('no-callers').hidden = !empty;
             q('copy-btn').hidden = empty;
-            q('plan-hint').hidden = empty;
+            q('plan-hint').hidden = empty;   // the passed warning takes its place below
             q('preview-wrap').hidden = empty;
             q('wave-landings').hidden = empty || !multi;
             if (empty) {
@@ -553,6 +577,7 @@
 
             var passed = C.firstStartPassed(plan, now, callers, bufferSeconds, rallyDurationSeconds, waves);
             warningEl.hidden = !passed;
+            q('plan-hint').hidden = passed;
             if (passed) warningEl.textContent = t('passed_warning');
             root.classList.toggle('passed', passed);
             q('reset-btn').classList.toggle('attention', passed);
@@ -586,6 +611,11 @@
                     g.items.forEach(function (s) { scheduleRows.push(scheduleRow(s, target)); });
                 });
             }
+            // the next caller to start (soonest start still ahead) gets highlighted
+            var nextMs = Infinity;
+            groups.forEach(function (g) {
+                g.items.forEach(function (s) { if (s.setOffMs - now >= 0 && s.setOffMs < nextMs) nextMs = s.setOffMs; });
+            });
             var r = 0;
             groups.forEach(function (g, gi) {
                 if (multi) waveHeads[gi].textContent = L.wave_lands(g.wave, formatUTC(g.landMs));
@@ -594,7 +624,8 @@
                     var secsUntil = Math.floor((s.setOffMs - now) / 1000);
                     var isOverdue = secsUntil < 0;
                     var isImminent = !isOverdue && secsUntil <= 10;
-                    row.li.className = 'schedule-item' + (isOverdue ? ' overdue' : '') + (isImminent ? ' imminent' : '');
+                    row.li.className = 'schedule-item' + (isOverdue ? ' overdue' : '') + (isImminent ? ' imminent' : '')
+                        + (s.setOffMs === nextMs ? ' next' : '');
                     row.time.textContent = formatUTC(s.setOffMs);
                     row.cd.textContent = isOverdue ? L.fmtAgo(Math.abs(secsUntil)) : formatCountdown(secsUntil);
                 });
@@ -659,9 +690,9 @@
             var btn = q('copy-btn');
             copyText(text).then(function (ok) {
                 if (!ok) { selectNode(q('copy-preview')); return; }
-                btn.textContent = t('copied');
+                copyLabel().textContent = t('copied');
                 btn.classList.add('done');
-                setTimeout(function () { btn.textContent = copyBtnLabel(); btn.classList.remove('done'); }, 1500);
+                setTimeout(function () { btn.classList.remove('done'); copyLabel().textContent = copyBtnLabel(); }, 1500);
             });
         }
 
@@ -669,11 +700,13 @@
             q('rally-duration-select').addEventListener('change', function () {
                 rallyDurationSeconds = C.normalizeDuration(this.value);
                 store(K.duration, rallyDurationSeconds);
+                renderSummary();
                 updateSchedule();
             });
             q('buffer-select').addEventListener('change', function () {
                 bufferSeconds = C.normalizeReaction(this.value);
                 store(K.reaction, bufferSeconds);
+                renderSummary();
                 // Reaction time only decides where a LIVE plan starts, so changing
                 // it releases a frozen plan (a typed Land at time is kept).
                 if (plan.mode === 'frozen') setPlan({ mode: 'live' });
@@ -686,6 +719,7 @@
             q('target-input').addEventListener('change', applyTargetInput);
             q('target-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { applyTargetInput(); this.blur(); } });
             q('copy-btn').addEventListener('click', copySchedule);
+            q('settings-btn').addEventListener('click', function () { setSettingsOpen(!settingsOpen()); });
             q('select-all-btn').addEventListener('click', function () {
                 callers.forEach(function (c) { if (!c.wave) c.wave = 1; }); saveState(); renderCallers(); updateSchedule();
             });
@@ -703,6 +737,7 @@
                     counterLabel = C.cleanLabel(this.value);
                     store(K.label, counterLabel);
                     renderName();
+                    renderSummary();
                 });
                 q('label-input').addEventListener('change', function () { this.value = counterLabel; });
                 return;
@@ -723,6 +758,8 @@
         function renderAll() {
             renderDurationSelect();
             renderName();
+            renderSettingsOpen();
+            renderSummary();
             renderLock();
             renderWaves();
             q('edit-btn').textContent = editMode ? t('done_btn') : t('edit_list');
@@ -1015,6 +1052,8 @@
         buildCounterPanel();
         var now = Date.now();
         autoResetMin = C.normalizeAutoReset(read('rally_auto_reset'));
+        try { uiOpen = JSON.parse(read('rally_ui_open')) || {}; } catch (e) { uiOpen = {}; }
+        if (typeof uiOpen !== 'object' || Array.isArray(uiOpen)) uiOpen = {};
         C.LISTS.forEach(function (k) {
             panels[k] = createPanel(k);
             panels[k].load(now);
