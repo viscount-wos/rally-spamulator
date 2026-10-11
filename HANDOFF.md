@@ -73,6 +73,9 @@ The service reads GATE_PASSWORD from the Secret Manager secret rally-gate-passwo
 commit the real password; local and test copies only ever use 'test-gate-pw'.
 
 ## Owner preferences
+- Works with either Claude Code or Codex. In Claude Code: use Sonnet 5.5 (`claude-sonnet-5-5`) and look at
+  screenshots directly with the Read tool. Don't spawn `claude -p` reviewers: each call carries ~25k tokens of
+  overhead.
 - Short, plain answers. Discuss ideas before building big things. Keep all languages working. Add the new
   strings in all 9 languages.
 - The behaviour, copy text, maths and storage keys are guarded by the tests; don't change them without asking.
