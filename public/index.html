@@ -54,6 +54,10 @@
                     <option value="300" data-i18n="buf_5m">5 min</option>
                 </select>
             </div>
+            <div class="config-row">
+                <label for="auto-reset-select" data-i18n="auto_reset_label">Auto-reset after:</label>
+                <select id="auto-reset-select"></select>
+            </div>
             <div class="config-row waves-row">
                 <span class="cfg-label" data-i18n="waves_label">Waves:</span>
                 <span class="wave-stepper">
@@ -92,7 +96,10 @@
                 <div class="arrival-time" id="arrival-time">--:--:--</div>
                 <div class="wave-landings" id="wave-landings" hidden></div>
                 <div class="plan-row">
-                    <span class="plan-status" id="plan-status" role="status">LIVE</span>
+                    <span class="plan-meta">
+                        <span class="plan-status" id="plan-status" role="status">LIVE</span>
+                        <span class="auto-reset-cd" id="auto-reset-cd" hidden></span>
+                    </span>
                     <button type="button" class="btn btn-reset" id="reset-btn" hidden data-i18n="reset_btn">Reset</button>
                 </div>
             </div>
@@ -168,6 +175,9 @@
             </div>
         </section>
     </main>
+
+    <!-- brief notices (auto-reset, stale copy): floats over the page, never moves the layout -->
+    <div id="plan-toast" class="float-toast" role="status" aria-live="polite" hidden></div>
 
     <footer class="app-footer">
         <a href="/logout" class="logout-link" data-i18n="log_out">Log out</a>

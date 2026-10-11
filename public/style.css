@@ -195,6 +195,12 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
     content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green);
     animation: pulse 1s infinite;
 }
+/* LOCKED pill with the auto-reset countdown under it (fits the fixed 56px row) */
+.plan-meta { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+.auto-reset-cd {
+    font-size: 0.75rem; line-height: 1.2; color: var(--orange); font-variant-numeric: tabular-nums;
+    max-width: 11rem; text-align: center;
+}
 .btn-reset {
     min-height: 48px; min-width: 120px; padding: 8px 22px;
     background: var(--orange); color: var(--bg-dark);
@@ -472,6 +478,19 @@ textarea { width: 100%; font-family: var(--mono); resize: vertical; }
     .area-g-roster { grid-area: roster; }
     .area-g-incoming { grid-area: incoming; position: sticky; top: 130px; }
     .section { padding: 16px; margin-bottom: 12px; }
+}
+
+/* brief notice floating above the page bottom: never moves the layout */
+.float-toast {
+    position: fixed; z-index: 50;
+    left: 50%; transform: translateX(-50%);
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    width: max-content; max-width: calc(100vw - 24px);
+    padding: 12px 16px; border-radius: 10px;
+    background: #1f3b2e; color: var(--text); border: 1px solid var(--green);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    font-size: 0.95rem; font-weight: 600; text-align: center;
+    pointer-events: none;
 }
 
 /* hidden textarea used by the copy fallback on plain http */

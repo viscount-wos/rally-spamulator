@@ -41,6 +41,7 @@
         document.title = t('title');
         document.querySelectorAll('[data-i18n]').forEach(function (e) { e.textContent = t(e.dataset.i18n); });
         document.querySelectorAll('[data-i18n-ph]').forEach(function (e) { e.placeholder = t(e.dataset.i18nPh); });
+        renderAutoResetSelect();
         renderLock();
         renderWaves();
         $('edit-btn').textContent = editMode ? t('done_btn') : t('edit_list');
@@ -59,10 +60,13 @@
     var nextId = 1;
     var bufferSeconds = 30;
     var rallyDurationSeconds = 300;
-    // { mode: 'live' } | { mode: 'frozen', firstStartMs } | { mode: 'fixed', arrivalMs, landMs: [per wave] }
+    // { mode: 'live' } | { mode: 'frozen', firstStartMs, frozenAtMs }
+    // | { mode: 'fixed', arrivalMs, landMs: [per wave], frozenAtMs }
     // (see RallyCore.planArrivalMs). LIVE follows the clock; Copy Schedule or
     // LOCK freezes it; a typed "Land at" time fixes it; Reset goes back to LIVE.
+    // frozenAtMs = when it stopped being live: the auto-reset counts from it.
     var plan = { mode: 'live' };
+    var autoResetMin = C.DEFAULT_AUTO_RESET_MIN;   // 0 = Off
     var editMode = false;
     var lastPreview = null;
 
@@ -95,13 +99,16 @@
         if (b) { bufferSeconds = b; $('buffer-select').value = String(b); }
         var d = parseInt(read('rally_duration'), 10);
         if (d) { rallyDurationSeconds = d; $('rally-duration-select').value = String(d); }
+        autoResetMin = C.normalizeAutoReset(read('rally_auto_reset'));
         var a = parseInt(read('rally_arrival_ms'), 10);
         var f = parseInt(read('rally_frozen_ms'), 10);
+        // saved by an older version without a freeze time: count from now
+        var at = parseInt(read('rally_frozen_at_ms'), 10) || Date.now();
         var lands = null;
         try { lands = JSON.parse(read('rally_land_ms')); } catch (e) { lands = null; }
         if (!Array.isArray(lands) || lands[0] !== a) lands = [a];
-        if (a && a > Date.now() - 3600 * 1000) plan = { mode: 'fixed', arrivalMs: a, landMs: lands.slice(0, waves.count) };
-        else if (f && f > Date.now() - 3600 * 1000) plan = { mode: 'frozen', firstStartMs: f };
+        if (a && a > Date.now() - 3600 * 1000) plan = { mode: 'fixed', arrivalMs: a, landMs: lands.slice(0, waves.count), frozenAtMs: at };
+        else if (f && f > Date.now() - 3600 * 1000) plan = { mode: 'frozen', firstStartMs: f, frozenAtMs: at };
     }
 
     // ===== Callers list =====
@@ -235,6 +242,7 @@
         $('plan-status').textContent = live ? t('live_ind') : t('locked_ind');
         $('reset-btn').hidden = live;
         $('plan-hint').textContent = live ? t('hint_live') : t('hint_locked');
+        renderAutoResetCd(Date.now());
         var input = $('target-input');
         if (document.activeElement !== input) input.value = plan.mode === 'fixed' ? fixedLandings().map(formatUTC).join(', ') : '';
         renderTargetError();
@@ -372,7 +380,7 @@
             var l = fixedLandings().slice(0, waves.count);
             waves = C.normalizeWaves(waves);
             saveWaves();
-            setPlan({ mode: 'fixed', arrivalMs: l[0], landMs: l });
+            setPlan({ mode: 'fixed', arrivalMs: l[0], landMs: l, frozenAtMs: plan.frozenAtMs });
         }
         wavesChanged();
     }
@@ -382,6 +390,7 @@
         try {
             localStorage.removeItem('rally_arrival_ms');
             localStorage.removeItem('rally_frozen_ms');
+            localStorage.removeItem('rally_frozen_at_ms');
         } catch (e) { /* ignore */ }
         try { localStorage.removeItem('rally_land_ms'); } catch (e) { /* ignore */ }
         if (p.mode === 'fixed') {
@@ -389,6 +398,10 @@
             if (p.landMs && p.landMs.length > 1) store('rally_land_ms', JSON.stringify(p.landMs));
         }
         if (p.mode === 'frozen') store('rally_frozen_ms', String(p.firstStartMs));
+        if (p.mode !== 'live') {
+            if (typeof p.frozenAtMs !== 'number') p.frozenAtMs = Date.now();
+            store('rally_frozen_at_ms', String(p.frozenAtMs));
+        }
         targetError = null;
         renderLock();
         renderWaves();
@@ -402,13 +415,53 @@
         setPlan({ mode: 'live' });
     }
 
+    // ===== Auto-reset =====
+    // A frozen or typed plan goes back to LIVE (exactly like Reset) a set time
+    // after it was frozen. Checked against the real clock on every tick, so a
+    // reload or a sleeping phone resets on the next tick once it is overdue.
+    function renderAutoResetSelect() {
+        var sel = $('auto-reset-select');
+        sel.textContent = '';
+        C.AUTO_RESET_CHOICES.forEach(function (m) {
+            var o = el('option', null, m ? LANG[currentLang].minutes_n(m) : t('auto_reset_off'));
+            o.value = String(m);
+            sel.appendChild(o);
+        });
+        sel.value = String(autoResetMin);
+    }
+
+    function renderAutoResetCd(now) {
+        var cd = $('auto-reset-cd');
+        var left = plan.mode === 'live' ? null : C.autoResetRemainingSec(plan.frozenAtMs, autoResetMin, now);
+        cd.hidden = left === null;
+        if (left !== null) cd.textContent = LANG[currentLang].auto_reset_in(formatMarch(left));
+    }
+
+    // true when it reset the plan
+    function autoResetIfDue(now, quiet) {
+        if (plan.mode === 'live' || !C.autoResetDue(plan.frozenAtMs, autoResetMin, now)) return false;
+        resetPlan();
+        if (!quiet) showToast(t('auto_reset_done'));
+        return true;
+    }
+
+    var floatTimer = null;
+    function showToast(msg) {
+        var box = $('plan-toast');
+        box.textContent = msg;
+        box.hidden = false;
+        clearTimeout(floatTimer);
+        floatTimer = setTimeout(function () { box.hidden = true; }, 4000);
+    }
+
     function applyTargetInput() {
         var v = $('target-input').value.trim();
         if (!v) { if (plan.mode === 'fixed') resetPlan(); else { targetError = null; renderTargetError(); } return; }
         // one UTC time per wave, separated by commas or spaces
         var res = C.parseLandAt(v, Date.now(), waves.count);
         if (res.error) { targetError = res; renderTargetError(); return; }
-        setPlan({ mode: 'fixed', arrivalMs: res.times[0], landMs: res.times });
+        // a newly typed time is a new plan: the auto-reset counts from now
+        setPlan({ mode: 'fixed', arrivalMs: res.times[0], landMs: res.times, frozenAtMs: Date.now() });
     }
 
     // ===== Schedule =====
@@ -577,11 +630,18 @@
 
     // Copy = freeze: a LIVE plan is frozen at this instant and the copied
     // text is built from the frozen plan, so it matches what is shown. Once
-    // frozen (or fixed), copying again copies the same times.
+    // frozen (or fixed), copying again copies the same times, unless the
+    // earliest start has already passed (stale-copy guard): then it resets,
+    // freezes fresh times and copies those, with a notice.
     function copySchedule() {
         if (!selectedCallers().length) return;
+        var now = Date.now();
+        autoResetIfDue(now, true);   // overdue but not ticked yet (phone just woke): fresh times below
+        var stale = plan.mode !== 'live' && C.copyIsStale(plan, now, callers, bufferSeconds, rallyDurationSeconds, waves);
+        if (stale) resetPlan();
         if (plan.mode === 'live') freezeNow();
         else updateSchedule();
+        if (stale) showToast(t('stale_recopied'));
         var text = currentCopyText(Date.now());
         var btn = $('copy-btn');
         copyText(text).then(function (ok) {
@@ -814,6 +874,11 @@
             if (plan.mode === 'live') freezeNow(); else resetPlan();
         });
         $('reset-btn').addEventListener('click', resetPlan);
+        $('auto-reset-select').addEventListener('change', function () {
+            autoResetMin = C.normalizeAutoReset(this.value);
+            store('rally_auto_reset', String(autoResetMin));
+            renderAutoResetCd(Date.now());
+        });
         $('target-input').addEventListener('change', applyTargetInput);
         $('add-wave-btn').addEventListener('click', addWave);
         $('remove-wave-btn').addEventListener('click', removeWave);
@@ -861,11 +926,22 @@
         // Clock and schedule tick together, once per second, just after each
         // second boundary, so the clock and the live times change in step.
         var tick = function () {
-            $('utc-clock').textContent = formatUTC(Date.now());
+            var now = Date.now();
+            $('utc-clock').textContent = formatUTC(now);
+            autoResetIfDue(now, false);
+            renderAutoResetCd(now);
             updateSchedule();
             setTimeout(tick, 1000 - (Date.now() % 1000) + 5);
         };
         tick();
+        // a phone waking up: check the auto-reset straight away
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) return;
+            var now = Date.now();
+            autoResetIfDue(now, false);
+            renderAutoResetCd(now);
+            updateSchedule();
+        });
         setInterval(updateActiveRallies, 250); // Garrison Defense: unchanged
     }
 
