@@ -106,7 +106,7 @@ test('gate on: login page and its own assets are open, CSP-clean, next is escape
   assert.doesNotMatch(page, /<b>/, 'next is HTML-escaped');
   assert.match(page, /name="next" value="\/index.html\?a=%22%3E%3Cb%3E"/);
   assert.doesNotMatch(page, /<script>|<style>|\son[a-z]+="|style="/, 'no inline script/style (CSP)');
-  for (const p of ['/login.css', '/login.js', '/icon.svg']) assert.equal((await get(base + p)).status, 200, p);
+  for (const p of ['/login.css', '/login.js', '/icon.svg', '/tokens.css', '/theme.js', '/robots.txt']) assert.equal((await get(base + p)).status, 200, p);
 });
 
 test('wrong password: 401 + translated error code, no cookie', async () => {

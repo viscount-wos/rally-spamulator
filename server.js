@@ -14,7 +14,7 @@ const COOKIE_MAX_AGE = 30 * 24 * 3600; // seconds
 const RATE_MAX = 10;                    // wrong POST /login attempts per client IP ...
 const RATE_WINDOW_MS = 15 * 60 * 1000;  // ... per 15 minutes
 // Reachable without the cookie (the login page needs its own CSS/JS).
-const OPEN_PATHS = new Set(['/health', '/robots.txt', '/login', '/login.html', '/login.css', '/login.js', '/icon.svg', '/favicon.ico', '/logout']);
+const OPEN_PATHS = new Set(['/health', '/robots.txt', '/login', '/login.html', '/login.css', '/login.js', '/tokens.css', '/theme.js', '/icon.svg', '/favicon.ico', '/logout']);
 // Private tool (shared by password only): ask search engines to stay out of every response.
 const ROBOTS_TAG = 'noindex, nofollow';
 const ROBOTS_TXT = 'User-agent: *\nDisallow: /\n';

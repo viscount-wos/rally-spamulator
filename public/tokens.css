@@ -1,0 +1,167 @@
+/*
+ * Theme tokens, copied from the event app (wos-events frontend/src/index.css)
+ * so both tools look alike. Values are space-separated RGB channels, used as
+ * rgb(var(--c-accent)) or rgb(var(--c-accent) / 0.2) for tints.
+ *
+ * :root is the default dark theme ("ministry-dark" id, shown as Dark). A theme
+ * is applied by stamping data-theme on <html> (theme.js); the default stamps
+ * nothing. Never hardcode a colour in style.css/login.css: add a token here.
+ *
+ * The event app measured every text pair against WCAG 2.x AA on the page
+ * ground and on cards, and borders against the 3:1 non-text threshold.
+ * Rally's extra tokens (waves, counter, ink) are checked the same way by
+ * test/theme.test.js.
+ */
+:root {
+    color-scheme: dark;
+
+    --c-dark-bg: 15 25 35;              /* #0f1923 */
+    --c-dark-card: 26 39 51;            /* #1a2733 */
+    --c-dark-card-hover: 31 48 64;      /* #1f3040 */
+    --c-dark-input: 20 32 44;           /* #14202c */
+
+    --c-theme-text: 224 230 237;        /* #e0e6ed */
+    --c-theme-dim: 136 153 166;         /* #8899a6 */
+    --c-theme-border: 99 118 138;       /* #63768a */
+
+    --c-accent: 232 166 57;             /* #e8a639 */
+    --c-accent-dim: 201 139 46;         /* #c98b2e */
+    --c-accent-light: 240 192 96;       /* #f0c060 */
+
+    --c-success: 46 204 113;            /* #2ecc71 */
+    --c-success-dark: 39 174 96;        /* #27ae60 */
+    --c-danger: 240 104 90;             /* #f0685a */
+    --c-danger-dark: 217 83 74;         /* #d9534a */
+    --c-warning: 243 156 18;            /* #f39c12 */
+    --c-warning-dark: 214 137 16;       /* #d68910 */
+
+    --c-heat-low: 74 143 214;           /* #4a8fd6 */
+    --c-heat-mid: 217 154 43;           /* #d99a2b */
+    --c-heat-high: 224 97 86;           /* #e06156 */
+
+    /* rally: the Counter list's colour. The event app's "counter" team hue
+       (heat-high) is 4.35:1 on cards in this theme, so the AA-raised danger
+       red stands in here; the other themes use heat-high itself. */
+    --c-counter: var(--c-danger);
+    /* text on a filled coloured button/badge = the page ground (flips per theme) */
+    --c-ink: var(--c-dark-bg);
+    /* waves: Okabe-Ito (colour-blind safe); the number is always in the badge too */
+    --c-wave-1: 86 180 233;             /* #56b4e9 */
+    --c-wave-2: 230 159 0;              /* #e69f00 */
+    --c-wave-3: 204 121 167;            /* #cc79a7 */
+    --c-wave-4: 26 176 130;             /* #1ab082 (Okabe-Ito #009e73, lifted for AA) */
+    --c-wave-5: 240 228 66;             /* #f0e442 */
+    --c-wave-6: 240 112 60;             /* #f0703c (Okabe-Ito #d55e00, lifted for AA) */
+    --c-shadow: 0 0 0;
+}
+
+/* Reading: warm light ground, dark non-black text. */
+:root[data-theme='reading'] {
+    color-scheme: light;
+
+    --c-dark-bg: 247 243 232;           /* #f7f3e8 */
+    --c-dark-card: 255 252 244;         /* #fffcf4 */
+    --c-dark-card-hover: 241 233 216;   /* #f1e9d8 */
+    --c-dark-input: 255 253 247;        /* #fffdf7 */
+
+    --c-theme-text: 34 48 60;           /* #22303c */
+    --c-theme-dim: 92 102 112;          /* #5c6670 */
+    --c-theme-border: 148 135 111;      /* #94876f */
+
+    --c-accent: 138 90 18;              /* #8a5a12 */
+    --c-accent-dim: 110 71 16;          /* #6e4710 */
+    --c-accent-light: 148 99 21;        /* #946315 */
+
+    --c-success: 31 107 63;             /* #1f6b3f */
+    --c-success-dark: 23 83 47;         /* #17532f */
+    --c-danger: 163 43 30;              /* #a32b1e */
+    --c-danger-dark: 130 34 22;         /* #822216 */
+    --c-warning: 138 90 18;             /* #8a5a12 */
+    --c-warning-dark: 110 71 16;        /* #6e4710 */
+
+    --c-heat-low: 31 95 143;            /* #1f5f8f */
+    --c-heat-mid: 138 90 18;            /* #8a5a12 */
+    --c-heat-high: 163 43 30;           /* #a32b1e */
+    --c-counter: var(--c-heat-high);
+
+    /* darker wave hues: readable as text on the light ground */
+    --c-wave-1: 11 98 148;              /* #0b6294 */
+    --c-wave-2: 138 86 0;               /* #8a5600 */
+    --c-wave-3: 150 58 112;             /* #963a70 */
+    --c-wave-4: 0 112 79;               /* #00704f */
+    --c-wave-5: 102 94 0;               /* #665e00 */
+    --c-wave-6: 168 63 0;               /* #a83f00 */
+    --c-shadow: 60 50 30;
+}
+
+/* Low Glare: still dark, the saturated gold pulled back to a muted brass. */
+:root[data-theme='low-glare'] {
+    color-scheme: dark;
+
+    --c-dark-bg: 27 34 41;              /* #1b2229 */
+    --c-dark-card: 36 44 52;            /* #242c34 */
+    --c-dark-card-hover: 44 53 62;      /* #2c353e */
+    --c-dark-input: 24 31 38;           /* #181f26 */
+
+    --c-theme-text: 212 216 220;        /* #d4d8dc */
+    --c-theme-dim: 150 160 168;         /* #96a0a8 */
+    --c-theme-border: 109 122 132;      /* #6d7a84 */
+
+    --c-accent: 201 165 92;             /* #c9a55c */
+    --c-accent-dim: 171 138 72;         /* #ab8a48 */
+    --c-accent-light: 220 189 124;      /* #dcbd7c */
+
+    --c-success: 111 185 138;           /* #6fb98a */
+    --c-success-dark: 85 154 112;       /* #559a70 */
+    --c-danger: 221 129 117;            /* #dd8175 */
+    --c-danger-dark: 198 106 94;        /* #c66a5e */
+    --c-warning: 201 165 92;            /* #c9a55c */
+    --c-warning-dark: 171 138 72;       /* #ab8a48 */
+
+    --c-heat-low: 111 159 196;          /* #6f9fc4 */
+    --c-heat-mid: 192 154 82;           /* #c09a52 */
+    --c-heat-high: 207 127 116;         /* #cf7f74 */
+    --c-counter: var(--c-heat-high);
+
+    /* softened wave hues */
+    --c-wave-1: 120 175 210;            /* #78afd2 */
+    --c-wave-2: 205 160 70;             /* #cda046 */
+    --c-wave-3: 196 140 172;            /* #c48cac */
+    --c-wave-4: 92 168 136;             /* #5ca888 */
+    --c-wave-5: 214 205 110;            /* #d6cd6e */
+    --c-wave-6: 205 128 84;             /* #cd8054 */
+}
+
+/* Shared base (app + login page) */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    background: rgb(var(--c-dark-bg));
+    color: rgb(var(--c-theme-text));
+    min-height: 100vh;
+    line-height: 1.4;
+}
+
+/* Keyboard focus is always visible (inputs also get a ring on any focus). */
+:focus-visible { outline: 2px solid rgb(var(--c-accent)); outline-offset: 2px; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgb(var(--c-dark-bg)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--c-theme-border)); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--c-accent-dim)); }
+
+/* Honour a system request for less motion (as in the event app). */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}

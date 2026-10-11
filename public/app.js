@@ -41,7 +41,15 @@
         document.title = t('title');
         document.querySelectorAll('[data-i18n]').forEach(function (e) { e.textContent = t(e.dataset.i18n); });
         document.querySelectorAll('[data-i18n-ph]').forEach(function (e) { e.placeholder = t(e.dataset.i18nPh); });
+        document.querySelectorAll('[data-i18n-aria]').forEach(function (e) { e.setAttribute('aria-label', t(e.dataset.i18nAria)); });
+        $('lang-display').textContent = LANG[code].lang_name;
+        $('lang-display').lang = code;
+        $('lang-select').setAttribute('aria-label', t('language'));
+        $('lang-chip').title = t('language');
+        renderThemeSelect();
+        renderDurationSelect();
         renderAutoResetSelect();
+        renderListSwitch();
         renderLock();
         renderWaves();
         $('edit-btn').textContent = editMode ? t('done_btn') : t('edit_list');
@@ -52,7 +60,44 @@
         updateActiveRallies();
     }
 
+    // ===== Theme (palettes in tokens.css; applied early by theme.js) =====
+    var THEME_LABEL = { 'ministry-dark': 'theme_dark', reading: 'theme_reading', 'low-glare': 'theme_low_glare' };
+    function renderThemeSelect() {
+        var sel = $('theme-select');
+        var cur = window.RallyTheme.saved();
+        sel.textContent = '';
+        window.RallyTheme.THEMES.forEach(function (id) {
+            var o = el('option', null, t(THEME_LABEL[id]));
+            o.value = id;
+            sel.appendChild(o);
+        });
+        sel.value = cur;
+        sel.setAttribute('aria-label', t('theme_title'));
+        $('theme-chip').title = t('theme_title');
+        $('theme-display').textContent = t(THEME_LABEL[cur]);
+    }
+
     // ===== Rally Spam state =====
+    // Two independent caller lists, Attack and Counter (RallyCore.LIST_KEYS).
+    // The ACTIVE list lives in the variables below (callers, waves, plan,
+    // bufferSeconds, rallyDurationSeconds); the other one waits in `lists`
+    // until the switch swaps them. Each list saves only to its own keys, so
+    // freezing, resetting or editing one never touches the other. The
+    // auto-reset minutes are shared; each list counts from its own freeze time.
+    var listKind = 'attack';
+    var lists = { attack: null, counter: null };
+    var counterLabel = '';
+    function isCounter() { return listKind === 'counter'; }
+    function K() { return C.LIST_KEYS[listKind]; }
+    function otherKind() { return isCounter() ? 'attack' : 'counter'; }
+    function listName(kind) { return kind === 'counter' ? LANG[currentLang].list_tab(counterLabel) : t('list_attack'); }
+    function applyStorage(obj) {
+        Object.keys(obj).forEach(function (k) {
+            if (obj[k] === null) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+            else store(k, obj[k]);
+        });
+    }
+
     var callers = [];          // { id, name, marchSeconds, wave }  wave: 0 = off, 1..waves.count
     // Waves: { count, defaultDelay, gaps: [s | null] } (see RallyCore.normalizeWaves).
     var waves = C.normalizeWaves({});
@@ -78,37 +123,98 @@
         return C.planLandingsMs(plan, now, callers, bufferSeconds, rallyDurationSeconds, waves);
     }
 
-    function saveState() {
-        // `selected` is kept so an older version of the page still reads the list.
-        store('rally_callers', JSON.stringify(callers.map(function (c) {
-            return { name: c.name, marchSeconds: c.marchSeconds, selected: c.wave > 0, wave: c.wave };
-        })));
+    function saveState() { store(K().callers, C.callersStorage(callers)); }
+
+    function saveWaves() { if (!isCounter()) store(C.LIST_KEYS.attack.waves, JSON.stringify(waves)); }
+
+    // Both lists from storage (saved data from before Counter existed is the
+    // Attack list: it uses the same keys). Old {selected} lists become wave 1 / off.
+    function loadState() {
+        var now = Date.now();
+        C.LISTS.forEach(function (kind) {
+            var l = C.loadList(read, kind, now);
+            if (kind === 'counter') counterLabel = l.label;
+            lists[kind] = {
+                callers: l.callers.map(function (c) { return { id: nextId++, name: c.name, marchSeconds: c.marchSeconds, wave: c.wave }; }),
+                waves: l.waves, plan: l.plan, reaction: l.reactionSec, duration: l.durationSec
+            };
+        });
+        autoResetMin = C.normalizeAutoReset(read('rally_auto_reset'));
+        listKind = read('rally_list') === 'counter' ? 'counter' : 'attack';
+        activate(lists[listKind]);
+        $('counter-label-input').value = counterLabel;
     }
 
-    function saveWaves() { store('rally_waves', JSON.stringify(waves)); }
+    // Make a stored list the active one (and the other way round).
+    function activate(s) {
+        callers = s.callers; waves = s.waves; plan = s.plan;
+        bufferSeconds = s.reaction; rallyDurationSeconds = s.duration;
+        lists[listKind] = null;
+        $('buffer-select').value = String(bufferSeconds);
+        $('rally-duration-select').value = String(rallyDurationSeconds);
+    }
+    function stash() {
+        lists[listKind] = { callers: callers, waves: waves, plan: plan, reaction: bufferSeconds, duration: rallyDurationSeconds };
+    }
 
-    function loadState() {
-        try { waves = C.normalizeWaves(JSON.parse(read('rally_waves'))); } catch (e) { waves = C.normalizeWaves({}); }
-        try {
-            // Old saved lists ({selected}) become wave 1 / off.
-            callers = C.migrateCallers(JSON.parse(read('rally_callers')), waves.count).map(function (c) {
-                return { id: nextId++, name: c.name, marchSeconds: c.marchSeconds, wave: c.wave };
-            });
-        } catch (e) { /* ignore */ }
-        var b = parseInt(read('rally_buffer'), 10);
-        if (b) { bufferSeconds = b; $('buffer-select').value = String(b); }
-        var d = parseInt(read('rally_duration'), 10);
-        if (d) { rallyDurationSeconds = d; $('rally-duration-select').value = String(d); }
-        autoResetMin = C.normalizeAutoReset(read('rally_auto_reset'));
-        var a = parseInt(read('rally_arrival_ms'), 10);
-        var f = parseInt(read('rally_frozen_ms'), 10);
-        // saved by an older version without a freeze time: count from now
-        var at = parseInt(read('rally_frozen_at_ms'), 10) || Date.now();
-        var lands = null;
-        try { lands = JSON.parse(read('rally_land_ms')); } catch (e) { lands = null; }
-        if (!Array.isArray(lands) || lands[0] !== a) lands = [a];
-        if (a && a > Date.now() - 3600 * 1000) plan = { mode: 'fixed', arrivalMs: a, landMs: lands.slice(0, waves.count), frozenAtMs: at };
-        else if (f && f > Date.now() - 3600 * 1000) plan = { mode: 'frozen', firstStartMs: f, frozenAtMs: at };
+    // Attack | Counter switch: nothing is shared between the two lists except
+    // the auto-reset minutes, so switching just swaps which one is shown.
+    function switchList(kind) {
+        if (kind === listKind || !lists[kind]) return;
+        stash();
+        listKind = kind;
+        store('rally_list', kind);
+        activate(lists[kind]);
+        editMode = false;
+        clearTimeout(toastTimer);
+        hideToast();               // Randomise's Undo belongs to the list it was made in
+        targetError = null;
+        $('target-input').value = '';
+        $('edit-btn').textContent = t('edit_list');
+        $('edit-btn').classList.remove('active');
+        renderListSwitch();
+        renderLock();
+        renderWaves();
+        renderCallers();
+        lastPreview = null;
+        scheduleKey = '';
+        updateSchedule();
+    }
+
+    function renderListSwitch() {
+        var counter = isCounter();
+        document.body.classList.toggle('list-counter', counter);
+        $('list-counter-name').textContent = LANG[currentLang].list_tab(counterLabel);
+        C.LISTS.forEach(function (kind) {
+            var b = $('list-' + kind);
+            var on = kind === listKind;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-checked', on ? 'true' : 'false');
+            b.tabIndex = on ? 0 : -1;
+            var p = on ? plan : (lists[kind] && lists[kind].plan);
+            var lock = $('list-' + kind + '-lock');
+            lock.hidden = !p || p.mode === 'live';
+            lock.textContent = t('locked_ind');
+        });
+        $('counter-box').hidden = !counter;
+        var cb = $('counter-copy-btn');
+        if (!cb.classList.contains('done')) cb.textContent = LANG[currentLang].copy_counter_btn(counterLabel);
+    }
+
+    function copyBtnLabel(btn) {
+        return btn.id === 'counter-copy-btn' ? LANG[currentLang].copy_counter_btn(counterLabel) : t('copy_schedule');
+    }
+
+    // Rally duration: 1, 2, 3, 5 or 10 minutes (per list).
+    function renderDurationSelect() {
+        var sel = $('rally-duration-select');
+        sel.textContent = '';
+        C.DURATION_CHOICES.forEach(function (s) {
+            var o = el('option', null, LANG[currentLang].dur_n(s / 60));
+            o.value = String(s);
+            sel.appendChild(o);
+        });
+        sel.value = String(rallyDurationSeconds);
     }
 
     // ===== Callers list =====
@@ -243,6 +349,7 @@
         $('reset-btn').hidden = live;
         $('plan-hint').textContent = live ? t('hint_live') : t('hint_locked');
         renderAutoResetCd(Date.now());
+        renderListSwitch();
         var input = $('target-input');
         if (document.activeElement !== input) input.value = plan.mode === 'fixed' ? fixedLandings().map(formatUTC).join(', ') : '';
         renderTargetError();
@@ -259,6 +366,8 @@
     // ===== Waves =====
     function renderWaves() {
         var multi = multiWave();
+        // Counter is a single wave: no wave controls at all
+        $('waves-row').hidden = isCounter();
         $('wave-count').textContent = String(waves.count);
         $('remove-wave-btn').disabled = waves.count <= 1;
         $('remove-wave-btn').setAttribute('aria-label', t('remove_wave'));
@@ -362,7 +471,7 @@
     }
 
     function addWave() {
-        if (waves.count >= C.MAX_WAVES) return;
+        if (isCounter() || waves.count >= C.MAX_WAVES) return;
         waves.count += 1;
         waves.gaps.push(null);
         wavesChanged();
@@ -387,21 +496,9 @@
 
     function setPlan(p) {
         plan = p;
-        try {
-            localStorage.removeItem('rally_arrival_ms');
-            localStorage.removeItem('rally_frozen_ms');
-            localStorage.removeItem('rally_frozen_at_ms');
-        } catch (e) { /* ignore */ }
-        try { localStorage.removeItem('rally_land_ms'); } catch (e) { /* ignore */ }
-        if (p.mode === 'fixed') {
-            store('rally_arrival_ms', String(p.arrivalMs));
-            if (p.landMs && p.landMs.length > 1) store('rally_land_ms', JSON.stringify(p.landMs));
-        }
-        if (p.mode === 'frozen') store('rally_frozen_ms', String(p.firstStartMs));
-        if (p.mode !== 'live') {
-            if (typeof p.frozenAtMs !== 'number') p.frozenAtMs = Date.now();
-            store('rally_frozen_at_ms', String(p.frozenAtMs));
-        }
+        if (p.mode !== 'live' && typeof p.frozenAtMs !== 'number') p.frozenAtMs = Date.now();
+        // only this list's keys (RallyCore.planStorage): the other list is never touched
+        applyStorage(C.planStorage(listKind, p));
         targetError = null;
         renderLock();
         renderWaves();
@@ -445,6 +542,17 @@
         return true;
     }
 
+    // The list that is not on screen keeps its own deadline: it goes back to
+    // LIVE at the right moment too, with a notice naming the list.
+    function autoResetOtherIfDue(now) {
+        var kind = otherKind(), s = lists[kind];
+        if (!s || s.plan.mode === 'live' || !C.autoResetDue(s.plan.frozenAtMs, autoResetMin, now)) return;
+        s.plan = { mode: 'live' };
+        applyStorage(C.planStorage(kind, s.plan));
+        renderListSwitch();
+        showToast(LANG[currentLang].list_auto_reset(listName(kind)));
+    }
+
     var floatTimer = null;
     function showToast(msg) {
         var box = $('plan-toast');
@@ -473,7 +581,13 @@
     function currentCopyText(now) {
         var sel = selectedCallers();
         if (!sel.length) return '';
-        return C.buildWavesCopyText(sel, getLandings(now), rallyDurationSeconds, LANG[currentLang]);
+        return buildText(sel, getLandings(now), LANG[currentLang]);
+    }
+
+    // Attack: the usual (wave) text, unchanged. Counter: "COUNTER - land ..." heading.
+    function buildText(sel, landings, L) {
+        return isCounter() ? C.buildCounterCopyText(sel, landings[0], rallyDurationSeconds, L)
+            : C.buildWavesCopyText(sel, landings, rallyDurationSeconds, L);
     }
 
     // Rows are rebuilt only when the callers, waves or language change; every
@@ -491,7 +605,8 @@
         var empty = sel.length === 0;
         $('arrival-label').textContent = multi ? t('arrival_label_w1') : t('arrival_label');
         $('no-callers').hidden = !empty;
-        $('copy-btn').hidden = empty;
+        $('copy-btn').hidden = empty || isCounter();
+        $('counter-copy-btn').hidden = empty || !isCounter();
         $('plan-hint').hidden = empty;
         $('preview-wrap').hidden = empty;
         $('wave-landings').hidden = empty || !multi;
@@ -557,7 +672,7 @@
             });
         });
 
-        var text = C.buildWavesCopyText(sel, landings, rallyDurationSeconds, L);
+        var text = buildText(sel, landings, L);
         if (text !== lastPreview) { $('copy-preview').textContent = text; lastPreview = text; }
     }
 
@@ -643,12 +758,12 @@
         else updateSchedule();
         if (stale) showToast(t('stale_recopied'));
         var text = currentCopyText(Date.now());
-        var btn = $('copy-btn');
+        var btn = isCounter() ? $('counter-copy-btn') : $('copy-btn');
         copyText(text).then(function (ok) {
             if (!ok) { selectNode($('copy-preview')); return; }
             btn.textContent = t('copied');
             btn.classList.add('done');
-            setTimeout(function () { btn.textContent = t('copy_schedule'); btn.classList.remove('done'); }, 1500);
+            setTimeout(function () { btn.textContent = copyBtnLabel(btn); btn.classList.remove('done'); }, 1500);
         });
     }
 
@@ -852,19 +967,40 @@
             ls.appendChild(o);
         });
         ls.addEventListener('change', function () { setLang(this.value, true); });
+        $('theme-select').addEventListener('change', function () {
+            window.RallyTheme.choose(this.value);
+            renderThemeSelect();
+        });
+        document.querySelectorAll('.list-btn').forEach(function (b) {
+            b.addEventListener('click', function () { switchList(b.dataset.list); });
+        });
+        // arrow keys move between Attack and Counter (radio group)
+        $('list-switch').addEventListener('keydown', function (e) {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].indexOf(e.key) === -1) return;
+            e.preventDefault();
+            switchList(otherKind());
+            $('list-' + listKind).focus();
+        });
+        $('counter-label-input').addEventListener('input', function () {
+            counterLabel = C.cleanLabel(this.value);
+            store(C.LIST_KEYS.counter.label, counterLabel);
+            renderListSwitch();
+        });
+        $('counter-label-input').addEventListener('change', function () { this.value = counterLabel; });
+        renderDurationSelect();
 
         document.querySelectorAll('.tab-btn').forEach(function (b) {
             b.addEventListener('click', function () { switchTab(b.dataset.tab); });
         });
 
         $('rally-duration-select').addEventListener('change', function () {
-            rallyDurationSeconds = parseInt(this.value, 10);
-            store('rally_duration', rallyDurationSeconds);
+            rallyDurationSeconds = C.normalizeDuration(this.value);
+            store(K().duration, rallyDurationSeconds);
             updateSchedule();
         });
         $('buffer-select').addEventListener('change', function () {
-            bufferSeconds = parseInt(this.value, 10);
-            store('rally_buffer', bufferSeconds);
+            bufferSeconds = C.normalizeReaction(this.value);
+            store(K().reaction, bufferSeconds);
             // Reaction time only decides where a LIVE plan starts, so changing
             // it releases a frozen plan (a typed Land at time is kept).
             if (plan.mode === 'frozen') setPlan({ mode: 'live' });
@@ -893,6 +1029,7 @@
         $('target-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { applyTargetInput(); this.blur(); } });
 
         $('copy-btn').addEventListener('click', copySchedule);
+        $('counter-copy-btn').addEventListener('click', copySchedule);
         $('select-all-btn').addEventListener('click', function () {
             callers.forEach(function (c) { if (!c.wave) c.wave = 1; }); saveState(); renderCallers(); updateSchedule();
         });
@@ -929,6 +1066,7 @@
             var now = Date.now();
             $('utc-clock').textContent = formatUTC(now);
             autoResetIfDue(now, false);
+            autoResetOtherIfDue(now);
             renderAutoResetCd(now);
             updateSchedule();
             setTimeout(tick, 1000 - (Date.now() % 1000) + 5);
@@ -939,6 +1077,7 @@
             if (document.hidden) return;
             var now = Date.now();
             autoResetIfDue(now, false);
+            autoResetOtherIfDue(now);
             renderAutoResetCd(now);
             updateSchedule();
         });

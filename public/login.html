@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#0a0e1a">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#0f1923">
     <meta name="robots" content="noindex">
     <title>Viscount's Rally Spamulator</title>
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/tokens.css">
     <link rel="stylesheet" href="/login.css">
+    <script src="/theme.js"></script>
     <script src="/login.js" defer></script>
 </head>
 <body data-error="">
     <main class="gate">
+        <img src="/icon.svg" class="gate-icon" alt="" width="56" height="56">
         <h1 class="gate-title" data-t="title">Viscount's Rally Spamulator</h1>
         <form class="gate-card" method="post" action="/login" autocomplete="on">
             <label for="password" class="gate-label" data-t="prompt">Enter the password</label>

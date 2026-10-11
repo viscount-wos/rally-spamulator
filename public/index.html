@@ -3,43 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#0a0e1a">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#0f1923">
     <title>Viscount's Rally Spamulator</title>
     <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="tokens.css">
     <link rel="stylesheet" href="style.css">
+    <!-- theme.js runs before first paint (no defer) so a saved theme never flashes -->
+    <script src="theme.js"></script>
     <script src="core.js" defer></script>
     <script src="i18n.js" defer></script>
     <script src="app.js" defer></script>
 </head>
 <body>
-    <header class="top-bar">
-        <h1 class="app-title" data-i18n="title">Viscount's Rally Spamulator</h1>
-        <select id="lang-select" aria-label="Language"></select>
+    <header class="top-bar" id="site-header">
+        <div class="brand">
+            <img src="icon.svg" class="brand-icon" alt="" width="32" height="32">
+            <h1 class="app-title" data-i18n="title">Viscount's Rally Spamulator</h1>
+        </div>
+        <div class="header-controls">
+            <!-- compact chip with a native <select> stretched invisibly over it (as in the event app) -->
+            <div class="chip" id="lang-chip">
+                <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                <span class="chip-text" id="lang-display" aria-hidden="true">English</span>
+                <svg class="chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                <select id="lang-select" aria-label="Language"></select>
+            </div>
+            <div class="chip" id="theme-chip">
+                <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.2"/><circle cx="17.5" cy="10.5" r="1.2"/><circle cx="8.5" cy="7.5" r="1.2"/><circle cx="6.5" cy="12.5" r="1.2"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.55-2.5 5.55-5.55C21.97 6.01 17.46 2 12 2z"/></svg>
+                <span class="chip-text chip-text-wide" id="theme-display" aria-hidden="true">Dark</span>
+                <svg class="chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                <select id="theme-select" aria-label="Theme"></select>
+            </div>
+        </div>
     </header>
 
-    <!-- UTC Clock (sticky) -->
-    <div class="clock">
-        <div class="clock-time" id="utc-clock">00:00:00</div>
-        <div class="clock-label" data-i18n="clock_label">Current UTC Time</div>
+    <!-- UTC clock + tabs (sticky) -->
+    <div class="clock-bar" id="clock-bar">
+        <div class="clock">
+            <div class="clock-time" id="utc-clock">00:00:00</div>
+            <div class="clock-label" data-i18n="clock_label">Current UTC Time</div>
+        </div>
+        <nav class="tab-bar" role="tablist">
+            <button type="button" class="tab-btn active" data-tab="rally" role="tab" aria-selected="true" data-i18n="tab_rally">Rally Spam</button>
+            <button type="button" class="tab-btn" data-tab="garrison" role="tab" aria-selected="false" data-i18n="tab_garrison">Garrison Defense</button>
+        </nav>
     </div>
-
-    <nav class="tab-bar">
-        <button type="button" class="tab-btn active" data-tab="rally" data-i18n="tab_rally">Rally Spam</button>
-        <button type="button" class="tab-btn" data-tab="garrison" data-i18n="tab_garrison">Garrison Defense</button>
-    </nav>
 
     <!-- ==================== TAB: RALLY SPAM ==================== -->
     <main id="tab-rally" class="tab-panel active">
+
+        <!-- Attack | Counter: two independent caller lists -->
+        <div class="list-switch-row area-switch">
+            <div class="list-switch" id="list-switch" role="radiogroup" data-i18n-aria="list_switch" aria-label="Caller list">
+                <button type="button" class="list-btn active" id="list-attack" data-list="attack" role="radio" aria-checked="true">
+                    <span class="list-name" id="list-attack-name" data-i18n="list_attack">Attack</span>
+                    <span class="list-lock" id="list-attack-lock" hidden></span>
+                </button>
+                <button type="button" class="list-btn" id="list-counter" data-list="counter" role="radio" aria-checked="false">
+                    <span class="list-name" id="list-counter-name">Counter</span>
+                    <span class="list-lock" id="list-counter-lock" hidden></span>
+                </button>
+            </div>
+        </div>
 
         <section class="section area-settings">
             <h2 class="section-title" data-i18n="rally_settings">Rally Settings</h2>
             <div class="config-row">
                 <label for="rally-duration-select" data-i18n="rally_duration">Rally duration:</label>
-                <select id="rally-duration-select">
-                    <option value="300" selected data-i18n="dur_5min">5 minutes</option>
-                    <option value="600" data-i18n="dur_10min">10 minutes</option>
-                </select>
+                <select id="rally-duration-select"></select>
             </div>
             <div class="config-row">
                 <label for="buffer-select" data-i18n="reaction_time">Reaction time:</label>
@@ -58,7 +90,7 @@
                 <label for="auto-reset-select" data-i18n="auto_reset_label">Auto-reset after:</label>
                 <select id="auto-reset-select"></select>
             </div>
-            <div class="config-row waves-row">
+            <div class="config-row waves-row" id="waves-row">
                 <span class="cfg-label" data-i18n="waves_label">Waves:</span>
                 <span class="wave-stepper">
                     <button type="button" class="btn btn-ghost" id="remove-wave-btn" aria-label="Remove last wave">&minus;</button>
@@ -106,6 +138,7 @@
             <ol id="schedule-list" class="schedule-list"></ol>
             <div id="no-callers" class="empty-msg" data-i18n="no_callers">Tick callers below to see the schedule</div>
             <button type="button" class="btn btn-copy" id="copy-btn" hidden data-i18n="copy_schedule">Copy Schedule</button>
+            <button type="button" class="btn btn-copy btn-copy-counter" id="counter-copy-btn" hidden>Copy Counter</button>
             <div id="plan-hint" class="plan-hint" hidden></div>
             <div id="preview-wrap" hidden>
                 <div class="preview-label" data-i18n="chat_preview">Chat text (UTC)</div>
@@ -115,12 +148,20 @@
 
         <section class="section area-callers">
             <h2 class="section-title" data-i18n="caller_setup">Caller Setup</h2>
+            <div class="counter-box" id="counter-box" hidden>
+                <div class="config-row">
+                    <label for="counter-label-input" data-i18n="counter_alliance">Counter alliance:</label>
+                    <input type="text" id="counter-label-input" class="tag-input" maxlength="12" autocomplete="off"
+                           autocapitalize="characters" spellcheck="false" data-i18n-ph="ph_tag" placeholder="Tag">
+                </div>
+                <p class="hint" data-i18n="counter_help"></p>
+            </div>
             <div class="qs-actions">
                 <button type="button" class="btn btn-ghost" id="select-all-btn" data-i18n="all">All</button>
                 <button type="button" class="btn btn-ghost" id="select-none-btn" data-i18n="none_btn">None</button>
                 <button type="button" class="btn btn-ghost btn-edit" id="edit-btn" data-i18n="edit_list">Edit list</button>
             </div>
-            <p id="wave-help" class="wave-help" hidden data-i18n="wave_help"></p>
+            <p id="wave-help" class="hint wave-help" hidden data-i18n="wave_help"></p>
             <ul id="caller-list" class="caller-list"></ul>
             <div class="caller-actions">
                 <button type="button" class="btn btn-primary" id="add-caller-btn" data-i18n="add_caller">Add/Edit</button>

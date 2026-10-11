@@ -5,6 +5,12 @@
     var T = {
         en: { title: "Viscount's Rally Spamulator", prompt: 'Enter the password', enter: 'Enter',
               bad: 'Wrong password. Try again.', rate: 'Too many attempts. Wait 15 minutes and try again.' },
+        es: { title: 'Rally Spamulator de Viscount', prompt: 'Escribe la contraseña', enter: 'Entrar',
+              bad: 'Contraseña incorrecta. Inténtalo de nuevo.', rate: 'Demasiados intentos. Espera 15 minutos y vuelve a intentarlo.' },
+        fr: { title: 'Rally Spamulator de Viscount', prompt: 'Saisissez le mot de passe', enter: 'Entrer',
+              bad: 'Mot de passe incorrect. Réessayez.', rate: 'Trop de tentatives. Attendez 15 minutes et réessayez.' },
+        de: { title: 'Viscounts Rally Spamulator', prompt: 'Passwort eingeben', enter: 'Weiter',
+              bad: 'Falsches Passwort. Bitte erneut versuchen.', rate: 'Zu viele Versuche. Warte 15 Minuten und versuche es erneut.' },
         tr: { title: "Viscount'un Rally Spamulator'ı", prompt: 'Şifreyi girin', enter: 'Giriş',
               bad: 'Yanlış şifre. Tekrar deneyin.', rate: 'Çok fazla deneme. 15 dakika bekleyip tekrar deneyin.' },
         pl: { title: 'Rally Spamulator Viscounta', prompt: 'Wpisz hasło', enter: 'Wejdź',
