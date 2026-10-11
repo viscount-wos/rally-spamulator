@@ -1,13 +1,13 @@
 # Viscount's Rally Spamulator
 
-A small web tool for **Whiteout Survival** rally leaders. Tick your callers and it works out when each one must start their rally so every rally lands at the same moment. Attack and Counter plans sit side by side on desktop, each with its own copy button and live/frozen state. One tap copies the schedule as plain text to paste into game chat. A Garrison Defense tab tells defenders when to send reinforcements.
+A small web tool for **Whiteout Survival** rally leaders. Tick your callers and it works out when each one must start their rally so every rally lands at the same moment. The Rally Spam screen is a **battle view**: the Attack and Counter plans sit side by side on one desktop screen, so you see the whole picture at once. Each plan has its own Copy button and live/frozen state, and one tap copies its schedule as plain text to paste into game chat. A Garrison Defense tab tells defenders when to send reinforcements.
 
 Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). Player guide: [USAGE.md](USAGE.md). The site sits behind one shared alliance password (see [Password gate](#password-gate)); players have no accounts.
 
 ## What it does
 
 **Rally Spam**
-- **Battle view:** on desktop, *Attack* and *Counter* are side by side so both plans remain visible together; on narrower screens they stack with Attack first. *Attack* is the normal list (waves included; this is also the counter-counter, planned ahead). *Counter* is ONE separate list for a counter by another alliance: an editable alliance tag (*Counter alliance*, max 12 characters; its panel then reads *Counter: BDE*), a single wave fired as soon as possible (wave controls hidden), its own **Copy Counter: BDE** button. Each list has its own callers, rally duration, reaction time, Land at, LOCK/frozen plan, auto-reset countdown and stale-copy guard; freezing, resetting or editing one never touches the other. Only the *Auto-reset after* minutes are shared (each list counts from its own freeze time). Both lists persist independently across a reload.
+- **Battle view:** on desktop (from 900px wide, fitted to one screen from 1100 x 700), *Attack* and *Counter* are side by side with no tabs between them, so both plans remain visible together; on narrower screens they stack with Attack first. Both panels have the same head: name, LIVE/LOCKED status with the auto-reset countdown, LOCK (Reset in its place once frozen), the landing time(s), a large **NEXT** line (who starts next, and in how many seconds) and a full-width Copy button (Attack gold, Counter red). Settings fold behind a one-line summary with *Land at* always visible; below are the schedule (waves as columns), the caller chips and the chat text. The only things shared between the panels are the header (UTC clock, tabs, *Auto-reset after*, language, theme, Log out). *Attack* is the normal list (waves included; this is also the counter-counter, planned ahead). *Counter* is ONE separate list for a counter by another alliance: an editable alliance tag (*Counter alliance*, max 12 characters; its panel then reads *Counter: BDE*), a single wave fired as soon as possible (wave controls hidden), its own **Copy Counter: BDE** button. Each list has its own callers, rally duration, reaction time, Land at, LOCK/frozen plan, auto-reset countdown and stale-copy guard; freezing, resetting or editing one never touches the other. Only the *Auto-reset after* minutes are shared (each list counts from its own freeze time). Both lists persist independently across a reload.
 - Callers (name + march time) are remembered in your browser (localStorage). Tap a caller to tick them in or out of this rally.
 - *Add/Edit* adds a caller row and opens the list for editing; *Edit list* opens it without adding: rename, change march time, move up/down, remove. *Clear list* asks first.
 - Rally duration 1, 2, 3, **5** (default) or 10 minutes, per list.
@@ -42,7 +42,7 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 
 **Languages**: English, Español, Français, Deutsch, Polski, 한국어, 中文, Türkçe, العربية (Arabic is right-to-left), on the app and the login page. The phone's language is used unless you pick another one.
 
-**Look**: the event app's theme tokens ported to plain CSS custom properties (`public/tokens.css`, no framework or build step) with its three themes, *Dark* (`ministry-dark`, default), *Reading* and *Low Glare*, picked from a compact chip in the header next to the language (saved in `preferred_theme`; `theme.js` applies it before first paint). Desktop first: the Rally tab is a battle view with Attack and Counter panels side by side from 900px (Attack gets more room for waves from 1200px); each panel puts status, the next start, landing time, Copy, settings, schedule, callers and chat text in one plan. Below 900px the panels stack without sideways scroll down to 320px. There are no links to or from the event app.
+**Look**: the event app's theme tokens ported to plain CSS custom properties (`public/tokens.css`, no framework or build step) with its three themes, *Dark* (`ministry-dark`, default), *Reading* and *Low Glare*, picked from a compact chip in the header next to the language (saved in `preferred_theme`; `theme.js` applies it before first paint). Desktop first: the Rally tab is the battle view with Attack and Counter panels side by side from 900px (Attack gets more room for waves from 1200px), scaled up on 1920 x 1080 screens; each panel puts status, the next start, landing time, Copy, settings, schedule, callers and chat text in one plan. Below 900px the panels stack without sideways scroll down to 320px. There are no links to or from the event app.
 
 ## How the maths works
 
@@ -109,7 +109,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 | `public/app.js` | UI, localStorage, clipboard |
 | `public/tokens.css` | Theme tokens (the event app's 3 palettes) + base styles, shared with the login page |
 | `public/theme.js` | Theme picker (applied before first paint) |
-| `public/style.css` | Styles (desktop first: three columns from 1180px, two from 900px, one below) |
+| `public/style.css` | Styles (desktop first: battle view with two panels from 900px, fitted to one screen from 1100 x 700, stacked below 900px) |
 | `public/login.html`, `login.js`, `login.css` | Password page (own small translations) |
 | `server.js` | Static server + password gate |
 
@@ -118,7 +118,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 ```bash
 npm test                                    # node --test: maths, live/frozen/fixed plans, auto-reset + stale-copy helpers, midnight UTC, waves (delays, earliest-start anchoring, multi-time Land at, grouped copy text, migration), Attack/Counter lists (independence, migration, Counter heading in 9 languages), durations, no missing i18n keys, theme contrast, copy text, garrison, server headers (incl. X-Robots-Tag, robots.txt), password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
 GATE_PASSWORD=test-gate-pw npm start &      # then:
-python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, auto-reset + stale-copy guard, waves (tap cycling, gaps, multi Land at, copy text), Attack | Counter flow + clipboard, per-list auto-reset, 3 themes, es/fr/de, Arabic RTL, CSP/console errors; screenshots in e2e/out/. `ONLY=new` runs just the Counter/look checks
+python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, auto-reset + stale-copy guard, waves (tap cycling, gaps, multi Land at, copy text), battle view (Attack + Counter side by side: flow, layout fit, clipboard), per-list auto-reset, 3 themes, es/fr/de, Arabic RTL, CSP/console errors; screenshots in e2e/out/. `ONLY=new` runs just the Counter/look checks. `python3 e2e/battle_shots.py <url>` writes the battle-view screenshots (`e2e/out/battle-*.png`) for a design review
 INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
 ```
 
