@@ -2,7 +2,7 @@
 
 Open the link your alliance shares and type the alliance password once; the phone remembers it for 30 days (*Log out* at the bottom forgets it). There are no accounts: everything you enter stays in your own browser on that phone or computer. All times are **UTC (game time)**, and the big clock at the top shows the current UTC time.
 
-Choose your language from the menu at the top right (English, Türkçe, Polski, 中文, 한국어, العربية).
+Choose your language and colour theme from the two small menus at the top right. Languages: English, Español, Français, Deutsch, Polski, 한국어, 中文, Türkçe, العربية. Themes: **Dark** (default), **Reading** (light) and **Low Glare** (soft dark). Both choices are remembered. The tool is laid out for a computer screen; it still works on a phone.
 
 ---
 
@@ -16,7 +16,7 @@ Choose your language from the menu at the top right (English, Türkçe, Polski, 
 
 ### Run a rally
 1. Tap callers to tick (✓) the ones in this rally. **All** / **None** tick or untick everyone.
-2. Pick the **Rally duration** (5 or 10 minutes, as in game).
+2. Pick the **Rally duration**: 1, 2, 3, **5** (the default) or 10 minutes, as in game.
 3. The **Set-Off Schedule** lists each caller's start time ("Call at") with a countdown. The longest march starts first.
    - **LIVE** (green, the default): the first caller starts one **Reaction time** from now, and every time counts up with the clock, second by second, so the plan is always fresh. The chat text under the button moves with it.
 4. Press **Copy Schedule** and paste into game chat. Copying **locks** the times at that instant: the box shows **LOCKED**, the times stop moving and are exactly what you copied, and each caller's countdown keeps counting down to their start. Pressing Copy Schedule again copies the same text (it does not pick new times), as long as the first start time is still ahead. The text looks like this:
@@ -92,6 +92,26 @@ Wave 3 - land 12:05:30
 
 With one wave nothing changes: the text is the same as above.
 
+### Counter: a second list for a counter rally
+Above the cards, the **Attack | Counter** switch picks which list you are working on.
+- **Attack** is everything above (waves included). Use it for your own hits and for a counter-counter planned ahead.
+- **Counter** is for a counter by another alliance: they rally the castle we hold so they land just after an enemy hit, as soon as possible. Type their tag in **Counter alliance** (e.g. `BDE`); the switch then reads **Counter: BDE**.
+
+The Counter list:
+- has its own callers (add them with **Add/Edit** as usual), its own rally duration and reaction time;
+- is always ONE wave fired as soon as possible: the wave controls are hidden and tapping a caller just ticks them in or out;
+- has its own button, **Copy Counter: BDE**, and its own LOCKED/Reset, auto-reset countdown and "old times had passed" guard. Copying or resetting the Counter never touches the Attack times, and the other way round. Only the *Auto-reset after* minutes are shared; each list counts from when it was locked.
+
+The copied Counter text starts with its own line:
+
+```
+COUNTER - land 18:06:42
+18:00:30 - Moss (march 1:12)
+18:00:54 - Kai (march 0:48)
+```
+
+Both lists, and which one was open, are remembered. Lists saved before this switch existed open as the Attack list.
+
 ---
 
 ## 2. Garrison Defense: when to send reinforcements
@@ -112,6 +132,6 @@ The maths: hit time = now + rally countdown + enemy march; send time = hit time 
 
 ## 3. Good to know
 
-- Your callers, enemies, settings and language are saved in this browser only. A different phone or browser starts empty.
+- Your callers (both lists), enemies, settings, language and theme are saved in this browser only. A different phone or browser starts empty.
 - Clearing your browser data clears the lists (and you'll need the password again).
 - If the password changes, everyone is asked for the new one.

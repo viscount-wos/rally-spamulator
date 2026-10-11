@@ -7,9 +7,10 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 ## What it does
 
 **Rally Spam**
+- **Attack | Counter** switch above the cards. *Attack* is the normal list (waves included; this is also the counter-counter, planned ahead). *Counter* is ONE separate list for a counter by another alliance: an editable alliance tag (*Counter alliance*, max 12 characters; the switch then reads *Counter: BDE*), a single wave fired as soon as possible (wave controls hidden), its own **Copy Counter: BDE** button. Each list has its own callers, rally duration, reaction time, Land at, LOCK/frozen plan, auto-reset countdown and stale-copy guard; freezing, resetting or editing one never touches the other. Only the *Auto-reset after* minutes are shared (each list counts from its own freeze time). Both lists and the selected one survive a reload.
 - Callers (name + march time) are remembered in your browser (localStorage). Tap a caller to tick them in or out of this rally.
 - *Add/Edit* adds a caller row and opens the list for editing; *Edit list* opens it without adding: rename, change march time, move up/down, remove. *Clear list* asks first.
-- Rally duration 5 or 10 minutes.
+- Rally duration 1, 2, 3, **5** (default) or 10 minutes, per list.
 - **LIVE** by default: the first start is now + reaction time and every time counts up with the clock once a second (the chat preview too).
 - **Copy Schedule freezes** the plan at that instant (box shows LOCKED); the copied text is exactly the frozen times, countdowns keep running down, and copying again re-copies the same text. **Reset** returns to LIVE; it turns red with a warning once the first start time has passed. **LOCK** freezes without copying.
 - **Stale-copy guard**: Copy on a frozen (or typed) plan whose earliest start has already passed doesn't copy the old times: it resets, freezes fresh times, copies those and shows *Old times had passed: copied new times* (with auto-reset on or off).
@@ -27,11 +28,21 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
   23:59:30 - Charlie (march 0:30)
   ```
 
+  The Attack text is unchanged by the Counter work. The Counter text starts with its own heading (translated, e.g. es `CONTRAATAQUE - llegada …`):
+
+  ```
+  COUNTER - land 18:06:42
+  18:00:30 - Moss (march 1:12)
+  18:00:54 - Kai (march 0:48)
+  ```
+
 **Garrison Defense**
 - Keep a roster of enemies (name, alliance, march time) and your own march time. All of it is stored in the browser.
 - Pick an enemy, type the in-game rally countdown and press Track. It shows when the rally hits and when to send reinforcements, with SEND NOW / LANDED alerts.
 
-**Languages**: English, Türkçe, Polski, 中文, 한국어, العربية (Arabic is right-to-left). The phone's language is used unless you pick another one.
+**Languages**: English, Español, Français, Deutsch, Polski, 한국어, 中文, Türkçe, العربية (Arabic is right-to-left), on the app and the login page. The phone's language is used unless you pick another one.
+
+**Look**: the event app's theme tokens ported to plain CSS custom properties (`public/tokens.css`, no framework or build step) with its three themes, *Dark* (`ministry-dark`, default), *Reading* and *Low Glare*, picked from a compact chip in the header next to the language (saved in `preferred_theme`; `theme.js` applies it before first paint). Desktop first: settings | callers | schedule in three columns from 1180px, two from 900px, one below (no sideways scroll down to 320px). There are no links to or from the event app.
 
 ## How the maths works
 
@@ -41,6 +52,7 @@ All times are UTC (game time).
 - Each caller's start = arrival − rally duration − their march. Longest march goes first; equal marches keep list order.
 - Waves (`planLandingsMs`): wave k lands at wave 1's landing + the gaps before it (each gap = its override or the default delay). LIVE/FROZEN anchor the **earliest start across all waves** on the (live or frozen) first start, so wave 1 lands at first start + duration + max over callers of (march − their wave's offset). FIXED: wave k lands at the k-th typed time; waves after the last typed time follow the delays; later typed times never go backwards (a smaller time = next day UTC).
 - Auto-reset (`autoResetDue`, `autoResetRemainingSec`): due when now ≥ frozenAt + minutes; 0 (Off) never fires; the countdown is the whole seconds left, rounded up (5:00 at the freeze). The stale-copy check is `copyIsStale` = `firstStartPassed`.
+- Lists (`LIST_KEYS`, `loadList`, `planStorage` in `core.js`): Attack keeps the original keys below, so data saved before the switch existed simply is the Attack list. Counter uses `rally_counter_callers`, `rally_counter_duration`, `rally_counter_buffer`, `rally_counter_arrival_ms`, `rally_counter_frozen_ms`, `rally_counter_frozen_at_ms` and `rally_counter_label`; `rally_list` remembers the selected list.
 - Saved state: `rally_auto_reset` holds the minutes (0 = Off); `rally_frozen_at_ms` the freeze time of a frozen or typed plan. `rally_callers` items carry `wave` (0 = off) next to the old `selected` flag; old lists migrate as ticked = wave 1. `rally_waves` holds `{count, defaultDelay, gaps}`; several typed land times go in `rally_land_ms`.
 - Garrison: hit = now + rally countdown + enemy march; send = hit − your march.
 
@@ -64,13 +76,15 @@ There is no database and no `.env`. The only setting is `GATE_PASSWORD` (plus `P
 - security headers (strict CSP, nosniff, frame-deny);
 - gzip compression;
 - `Cache-Control: no-cache` with ETags;
+- `X-Robots-Tag: noindex, nofollow` on every response (incl. the login page, `/health` and 401s);
+- an open `GET /robots.txt` (`User-agent: *` / `Disallow: /`);
 - `GET /health`.
 
 The page makes no external requests (no fonts or CDNs).
 
 ## Password gate
 
-The whole site (page, scripts, styles) needs one shared password. Only `/health` and the login page with its own `login.css` / `login.js` / icon are open. Unknown visitors are sent to `/login?next=<page>`; other requests without the cookie get `401`.
+The whole site (page, scripts, styles) needs one shared password. Only `/health`, `/robots.txt` and the login page with its own `login.css` / `login.js` / `tokens.css` / `theme.js` / icon are open. Unknown visitors are sent to `/login?next=<page>`; other requests without the cookie get `401`.
 
 - **Where the password lives**: only in the `GATE_PASSWORD` environment variable. In production Cloud Run fills it from the Secret Manager secret **`rally-gate-password`** (project `viscount-wos-tools`), e.g. `--set-secrets GATE_PASSWORD=rally-gate-password:latest`. It is never in this repo, the image or the logs. Locally and in tests use a dummy such as `test-gate-pw`.
 - **Unset**: with `NODE_ENV=production` (the Docker image) the server refuses to start. Otherwise (dev) it runs with the gate **disabled** and logs a warning.
@@ -83,7 +97,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 - **Cookie** `rally_gate`: HttpOnly, SameSite=Lax, Path=/, 30 days, Secure over https (`trust proxy 1` reads Cloud Run's `X-Forwarded-Proto`). *Log out* in the footer clears it.
 - **Login**: the password is compared in constant time (SHA-256 digests + `timingSafeEqual`). After login you go back to `next` if it is a same-site path, else `/`.
 - **Rate limit**: 10 wrong passwords per client IP per 15 minutes, then `429` with a translated message (in memory, per instance; right-most `X-Forwarded-For`).
-- The login page follows the phone's language like the app (6 languages, Arabic right-to-left).
+- The login page follows the phone's language like the app (9 languages, Arabic right-to-left) and the saved theme.
 
 ## Code layout
 
@@ -93,16 +107,18 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 | `public/core.js` | Pure maths and text (schedule, copy text, garrison), shared with the tests |
 | `public/i18n.js` | All translations |
 | `public/app.js` | UI, localStorage, clipboard |
-| `public/style.css` | Styles (phone first, two columns from 900px) |
+| `public/tokens.css` | Theme tokens (the event app's 3 palettes) + base styles, shared with the login page |
+| `public/theme.js` | Theme picker (applied before first paint) |
+| `public/style.css` | Styles (desktop first: three columns from 1180px, two from 900px, one below) |
 | `public/login.html`, `login.js`, `login.css` | Password page (own small translations) |
 | `server.js` | Static server + password gate |
 
 ## Tests
 
 ```bash
-npm test                                    # node --test: maths, live/frozen/fixed plans, auto-reset + stale-copy helpers, midnight UTC, waves (delays, earliest-start anchoring, multi-time Land at, grouped copy text, migration), copy text in 6 languages, garrison, server headers, password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
+npm test                                    # node --test: maths, live/frozen/fixed plans, auto-reset + stale-copy helpers, midnight UTC, waves (delays, earliest-start anchoring, multi-time Land at, grouped copy text, migration), Attack/Counter lists (independence, migration, Counter heading in 9 languages), durations, no missing i18n keys, theme contrast, copy text, garrison, server headers (incl. X-Robots-Tag, robots.txt), password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
 GATE_PASSWORD=test-gate-pw npm start &      # then:
-python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, auto-reset + stale-copy guard, waves (tap cycling, gaps, multi Land at, copy text); screenshots in e2e/out/
+python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, auto-reset + stale-copy guard, waves (tap cycling, gaps, multi Land at, copy text), Attack | Counter flow + clipboard, per-list auto-reset, 3 themes, es/fr/de, Arabic RTL, CSP/console errors; screenshots in e2e/out/. `ONLY=new` runs just the Counter/look checks
 INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
 ```
 
