@@ -75,19 +75,24 @@
                     <div class="arrival-time" id="arrival-time">--:--:--</div>
                     <div class="wave-landings" id="wave-landings" hidden></div>
                 </div>
-                <!-- one line, always there: the hint, or the "first start passed" warning in its place -->
+                <!-- one line, always there: who starts next, or the "first start passed" warning in its place -->
                 <div class="ph-msg">
-                    <div id="plan-hint" class="plan-hint" hidden></div>
+                    <div class="next-start" id="next-start" hidden>
+                        <span class="ns-label" data-i18n="next_label">Next:</span>
+                        <span class="ns-name" id="next-name"></span>
+                        <span class="ns-time" id="next-time"></span>
+                        <span class="ns-cd" id="next-cd"></span>
+                    </div>
                     <div id="schedule-warning" class="warning" role="alert" hidden></div>
                 </div>
-                <button type="button" class="btn btn-copy" id="copy-btn" hidden><svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><span class="copy-label">Copy</span></button>
+                <button type="button" class="btn btn-copy" id="copy-btn" hidden><svg class="copy-icon icon-copy" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><svg class="copy-icon icon-done" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span class="copy-label">Copy</span></button>
             </div>
 
             <!-- settings: Land at stays in view; the rest folds away behind a summary of its state -->
             <div class="panel-settings">
                 <button type="button" class="btn btn-ghost btn-sm settings-toggle" id="settings-btn" aria-expanded="false" aria-controls="settings-body">
                     <svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    <span data-i18n="settings_btn">Settings</span>
+                    <span class="st-text" data-i18n="settings_btn">Settings</span>
                     <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
                 <span class="settings-sum" id="settings-sum"></span>
@@ -168,7 +173,10 @@
                     </div>
                 </div>
                 <div class="preview-wrap" id="preview-wrap" hidden>
-                    <div class="preview-label" data-i18n="chat_preview">Chat text (UTC)</div>
+                    <div class="preview-head">
+                        <span class="preview-label" data-i18n="chat_preview">Chat text (UTC)</span>
+                        <span id="plan-hint" class="plan-hint" hidden></span>
+                    </div>
                     <pre id="copy-preview" class="copy-preview" dir="auto"></pre>
                 </div>
             </div>

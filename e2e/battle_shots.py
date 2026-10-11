@@ -95,6 +95,10 @@ def main():
         # passed: Counter's first start (30s) has passed
         at(page, 45)
         page.screenshot(path=f"{OUT}/battle-1440-passed.png")
+        # keyboard focus on the Counter Copy (Tab from LOCK)
+        page.focus("#counter-settings-btn")
+        page.keyboard.press("Shift+Tab")
+        page.screenshot(path=f"{OUT}/battle-1440-focus.png")
         # edit mode on Attack
         page.click("#counter-reset-btn")
         page.click("#reset-btn")

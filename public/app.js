@@ -169,6 +169,7 @@
             var on = settingsOpen();
             q('settings-body').hidden = !on;
             q('settings-btn').setAttribute('aria-expanded', on ? 'true' : 'false');
+            q('settings-btn').title = t('settings_btn');
             root.classList.toggle('settings-open', on);
         }
         function renderSummary() {
@@ -178,6 +179,7 @@
                 L.sum_reaction(react.options[react.selectedIndex] ? react.options[react.selectedIndex].textContent : '')];
             if (!counter) parts.push(L.sum_waves(waves.count));
             q('settings-sum').textContent = parts.join(' \u00b7 ');
+            q('settings-sum').title = q('settings-sum').textContent;
         }
 
         // Rally duration: 1, 2, 3, 5 or 10 minutes (per list).
@@ -318,8 +320,10 @@
             q('arrival-display').classList.toggle('locked', !live);
             q('arrival-display').classList.toggle('live', live);
             q('plan-status').textContent = live ? t('live_ind') : t('locked_ind');
+            q('plan-status').title = live ? t('hint_live') : t('hint_locked');
             q('reset-btn').hidden = live;
             q('plan-hint').textContent = live ? t('hint_live') : t('hint_locked');
+            q('plan-hint').title = q('plan-hint').textContent;
             renderAutoResetCd(Date.now());
             var input = q('target-input');
             if (document.activeElement !== input) input.value = plan.mode === 'fixed' ? fixedLandings().map(formatUTC).join(', ') : '';
@@ -555,7 +559,8 @@
             q('arrival-label').textContent = multi ? t('arrival_label_w1') : t('arrival_label');
             q('no-callers').hidden = !empty;
             q('copy-btn').hidden = empty;
-            q('plan-hint').hidden = empty;   // the passed warning takes its place below
+            q('plan-hint').hidden = empty;
+            q('next-start').hidden = empty;
             q('preview-wrap').hidden = empty;
             q('wave-landings').hidden = empty || !multi;
             if (empty) {
@@ -577,9 +582,11 @@
 
             var passed = C.firstStartPassed(plan, now, callers, bufferSeconds, rallyDurationSeconds, waves);
             warningEl.hidden = !passed;
-            q('plan-hint').hidden = passed;
             if (passed) warningEl.textContent = t('passed_warning');
             root.classList.toggle('passed', passed);
+            // Copy is still the right button once the first start has passed: the
+            // stale-copy guard copies fresh times. Say so on the button (CSS shows it).
+            q('copy-btn').dataset.fresh = passed ? t('copy_fresh') : '';
             q('reset-btn').classList.toggle('attention', passed);
 
             var key = currentLang + '|' + multi + '|' + groups.map(function (g) {
@@ -616,6 +623,17 @@
             groups.forEach(function (g) {
                 g.items.forEach(function (s) { if (s.setOffMs - now >= 0 && s.setOffMs < nextMs) nextMs = s.setOffMs; });
             });
+            // the line above Copy: who starts next (the passed warning replaces it)
+            var nextItem = null;
+            groups.forEach(function (g) { g.items.forEach(function (s) { if (s.setOffMs === nextMs && !nextItem) nextItem = s; }); });
+            q('next-start').hidden = passed || !nextItem;
+            if (nextItem && !passed) {
+                var nsecs = Math.floor((nextItem.setOffMs - now) / 1000);
+                q('next-name').textContent = nextItem.name || t('unnamed');
+                q('next-time').textContent = formatUTC(nextItem.setOffMs);
+                q('next-cd').textContent = formatCountdown(nsecs);
+                q('next-start').classList.toggle('imminent', nsecs <= 10);
+            }
             var r = 0;
             groups.forEach(function (g, gi) {
                 if (multi) waveHeads[gi].textContent = L.wave_lands(g.wave, formatUTC(g.landMs));

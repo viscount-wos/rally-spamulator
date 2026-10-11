@@ -157,7 +157,8 @@ select { cursor: pointer; }
 .btn-danger-outline { background: transparent; color: rgb(var(--c-danger)); border-color: rgb(var(--c-danger) / 0.6); }
 .btn-icon { background: rgb(var(--c-dark-input)); color: rgb(var(--c-theme-text)); border-color: rgb(var(--c-theme-border)); padding: 4px; }
 .btn-icon:disabled { opacity: 0.3; }
-.btn-lock { background: rgb(var(--c-warning) / 0.14); color: rgb(var(--c-warning)); border-color: rgb(var(--c-warning) / 0.6); white-space: nowrap; }
+.btn-lock { background: rgb(var(--c-dark-input)); color: rgb(var(--c-theme-text)); border-color: rgb(var(--c-theme-border)); white-space: nowrap; }
+.btn-lock:hover { border-color: rgb(var(--c-warning)); color: rgb(var(--c-warning)); }
 .btn-lock.active { background: rgb(var(--c-warning)); color: rgb(var(--c-ink)); }
 .btn-link { background: transparent; color: rgb(var(--c-accent)); text-decoration: underline; }
 
@@ -207,8 +208,8 @@ select { cursor: pointer; }
 .plan-meta { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
 .plan-status {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 3px 10px; border-radius: 999px;
-    font-size: 0.8rem; font-weight: 800; letter-spacing: 1px;
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 0.9rem; font-weight: 800; letter-spacing: 1px;
     color: rgb(var(--c-warning)); border: 1px solid rgb(var(--c-warning));
 }
 .plan-panel.live .plan-status { color: rgb(var(--c-success)); border-color: rgb(var(--c-success)); }
@@ -222,25 +223,30 @@ select { cursor: pointer; }
 }
 .btn-reset {
     min-height: 48px; min-width: 110px; padding: 8px 20px;
-    background: rgb(var(--c-warning)); color: rgb(var(--c-ink));
+    background: rgb(var(--c-dark-input)); color: rgb(var(--c-warning));
+    border: 2px solid rgb(var(--c-warning));
     font-size: 1.05rem; font-weight: 800;
 }
+.btn-reset:hover { background: rgb(var(--c-warning) / 0.16); }
 .btn-reset.attention {
-    background: rgb(var(--c-danger)); color: rgb(var(--c-ink));
-    box-shadow: 0 0 0 3px rgb(var(--c-danger) / 0.35); animation: pulse 1s infinite;
+    background: rgb(var(--c-danger) / 0.14); color: rgb(var(--c-danger)); border-color: rgb(var(--c-danger));
+    box-shadow: 0 0 0 4px rgb(var(--c-danger) / 0.35); animation: pulse 1s infinite;
 }
 
 .arrival-display { grid-area: arr; align-self: center; text-align: end; min-width: 0; }
 .arrival-label { font-size: 0.75rem; color: rgb(var(--c-theme-dim)); letter-spacing: 1px; text-transform: uppercase; }
 .arrival-time {
-    font-family: var(--mono); font-size: 2.2rem; font-weight: 700; line-height: 1.1;
+    font-family: var(--mono); font-size: 2.05rem; font-weight: 700; line-height: 1.1;
     color: rgb(var(--c-warning)); direction: ltr; font-variant-numeric: tabular-nums;
 }
 .arrival-display.live .arrival-time { color: rgb(var(--c-success)); }
-.wave-landings { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 10px; margin-top: 2px; font-size: 0.82rem; }
+/* the per-wave landing line keeps its height even when empty (Counter, one wave),
+   so both heads are the same height and both Copy buttons line up */
+.arrival-display .wave-landings[hidden] { display: flex !important; visibility: hidden; }
+.wave-landings { min-height: 1.6rem; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px 10px; margin-top: 2px; font-size: 0.9rem; }
 .wl-chip { display: inline-flex; align-items: center; gap: 4px; }
 .wl-time { direction: ltr; unicode-bidi: isolate; font-family: var(--mono); font-weight: 700; }
-.wl-gap { color: rgb(var(--c-theme-dim)); font-family: var(--mono); font-size: 0.75rem; }
+.wl-gap { color: rgb(var(--c-theme-dim)); font-family: var(--mono); font-size: 0.82rem; }
 
 /* The Copy button: the list's own colour, full width, same place in both panels */
 .btn-copy {
@@ -255,14 +261,33 @@ select { cursor: pointer; }
 .btn-copy { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .copy-icon { width: 22px; height: 22px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .btn-copy:hover { filter: brightness(1.08); }
-.btn-copy.done { background: rgb(var(--c-success)); box-shadow: 0 4px 14px rgb(var(--c-success) / 0.28); }
+.icon-done { display: none; }
+/* passed: Copy re-freezes and copies fresh times (stale-copy guard); a tag says so */
+.btn-copy[data-fresh]:not([data-fresh=""])::after {
+    content: '\21BB  ' attr(data-fresh);
+    padding: 2px 10px; border-radius: 999px; white-space: nowrap;
+    background: rgb(var(--c-ink)); color: rgb(var(--list));
+    font-size: 0.85rem; font-weight: 800;
+}
+/* copied (1.5 s): inverted - dark fill, the list's colour on the border and text, a tick */
+.btn-copy.done { background: rgb(var(--c-dark-input)); color: rgb(var(--list)); border: 3px solid rgb(var(--list)); box-shadow: none; }
+.btn-copy.done .icon-copy { display: none; }
+.btn-copy.done .icon-done { display: block; stroke-width: 3; }
 
-.ph-msg { grid-area: msg; min-height: 1.6rem; display: flex; align-items: center; min-width: 0; }
-.plan-hint { font-size: 0.82rem; color: rgb(var(--c-theme-dim)); }
+.ph-msg { grid-area: msg; min-height: 2.1rem; display: flex; align-items: center; min-width: 0; }
+.next-start { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; min-width: 0; font-size: 1.1rem; }
+.ns-label { color: rgb(var(--c-theme-dim)); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.8px; }
+.ns-name { font-weight: 800; }
+.ns-time { font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: rgb(var(--c-success)); direction: ltr; unicode-bidi: isolate; }
+.ns-cd { font-size: 1.3rem; font-weight: 800; color: rgb(var(--c-success)); font-variant-numeric: tabular-nums; }
+.plan-panel.locked .ns-time { color: rgb(var(--c-warning)); }
+.next-start.imminent .ns-cd, .next-start.imminent .ns-time { color: rgb(var(--c-warning)); }
+.plan-hint { font-size: 0.78rem; color: rgb(var(--c-theme-dim)); }
+/* the passed warning: a hazard bar (stripes), so it never reads as Counter's red Copy */
 .warning {
-    width: 100%; padding: 2px 10px;
-    background: rgb(var(--c-danger) / 0.14);
-    border: 1px solid rgb(var(--c-danger) / 0.7);
+    width: 100%; padding: 3px 10px;
+    background: repeating-linear-gradient(-45deg, rgb(var(--c-danger) / 0.22) 0 10px, rgb(var(--c-danger) / 0.08) 10px 20px);
+    border: 2px solid rgb(var(--c-danger));
     border-radius: var(--radius-sm);
     color: rgb(var(--c-danger)); font-size: 0.88rem; font-weight: 700;
     display: flex; align-items: center; gap: 8px;
@@ -284,14 +309,16 @@ select { cursor: pointer; }
 .settings-toggle[aria-expanded="true"] { border-color: rgb(var(--list)); }
 .settings-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
 .settings-sum { font-size: 0.88rem; color: rgb(var(--c-theme-dim)); min-width: 0; flex: 1 1 8rem; }
+/* one line: the summary shortens with an ellipsis (full text in its tooltip) rather than wrap */
+.settings-sum { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .set-land { margin-inline-start: auto; }
 .set-item { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .set-item label, .set-item .cfg-label { font-size: 0.82rem; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
 .set-item select { padding: 6px 8px; font-size: 0.95rem; }
-.time-input { width: 9.5rem; font-family: var(--mono); text-align: center; direction: ltr; padding: 6px 8px; }
+.time-input { width: 8rem; font-family: var(--mono); text-align: center; direction: ltr; padding: 6px 8px; }
 .multi .time-input { width: 13rem; }
 .tag-input { width: 6.5rem; font-weight: 700; text-transform: uppercase; padding: 6px 8px; }
-.plan-row .btn-lock { min-height: 48px; min-width: 110px; padding: 8px 18px; font-size: 1rem; font-weight: 800; }
+.plan-row .btn-lock { min-height: 48px; min-width: 110px; padding: 8px 18px; font-size: 1rem; font-weight: 800; letter-spacing: 0.5px; }
 
 .wave-stepper { display: inline-flex; align-items: center; gap: 4px; }
 .wave-count { font-family: var(--mono); font-weight: 800; font-size: 1.15rem; min-width: 1.4em; text-align: center; }
@@ -336,7 +363,7 @@ select { cursor: pointer; }
     border-radius: var(--radius-sm);
     break-inside: avoid;
 }
-.schedule-item.overdue { border-inline-start-color: rgb(var(--c-danger)); opacity: 0.7; }
+.schedule-item.overdue { border-inline-start-color: rgb(var(--c-danger)); opacity: 0.6; }
 .schedule-item.imminent { border-inline-start-color: rgb(var(--c-warning)); animation: pulse 1s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 .si-left { display: flex; flex-direction: column; min-width: 0; }
@@ -350,7 +377,7 @@ select { cursor: pointer; }
 .si-countdown { font-size: 0.85rem; line-height: 1.15; font-weight: 600; color: rgb(var(--c-theme-text)); font-variant-numeric: tabular-nums; }
 /* the next caller to start: stands out in its column */
 .schedule-item.next { background: rgb(var(--c-success) / 0.12); border-color: rgb(var(--c-success) / 0.8); border-inline-start-width: 6px; }
-.schedule-item.next .si-countdown { color: rgb(var(--c-success)); font-weight: 800; }
+.schedule-item.next .si-countdown { color: rgb(var(--c-success)); font-weight: 800; font-size: 0.95rem; }
 .schedule-item.next.imminent { background: rgb(var(--c-warning) / 0.14); border-color: rgb(var(--c-warning)); }
 .schedule-item.imminent .si-countdown, .schedule-item.next.imminent .si-countdown { color: rgb(var(--c-warning)); font-weight: 800; }
 /* one wave with many callers: two columns when the panel is wide */
@@ -376,7 +403,7 @@ select { cursor: pointer; }
 
 /* ---- Foot: roster (tap to cycle) | chat text ---- */
 .panel-foot { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
-@container (min-width: 600px) {
+@container (min-width: 760px) {
     .panel-foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 17.5rem); grid-template-rows: minmax(0, 1fr); }
     .plan-panel.editing .panel-foot, .plan-panel.empty .panel-foot { grid-template-columns: minmax(0, 1fr); }
 }
@@ -398,7 +425,7 @@ select { cursor: pointer; }
 .wave-help { margin: 6px 0 0; font-size: 0.78rem; line-height: 1.2; flex: none; }
 .plan-panel.editing .wave-help { display: none; }
 .caller-list { min-height: 0; }
-.caller-list.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.4rem, 1fr)); gap: 6px; align-content: start; }
+.caller-list.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.2rem, 1fr)); gap: 6px; align-content: start; }
 .caller-list.chips > li { min-width: 0; }
 
 /* roster chip: the whole chip is one toggle */
@@ -426,7 +453,7 @@ select { cursor: pointer; }
 /* edit mode: inputs + move/remove */
 .caller-row, .enemy-row {
     display: flex; align-items: center; gap: 6px;
-    margin-bottom: 6px; padding: 6px;
+    margin-bottom: 4px; padding: 3px 6px;
     background: rgb(var(--c-dark-input));
     border: 1px solid rgb(var(--c-theme-border) / 0.5);
     border-radius: var(--radius-sm);
@@ -438,7 +465,10 @@ select { cursor: pointer; }
 }
 .wave-select { min-width: 64px; flex: 0 0 auto; }
 
-.preview-label { font-size: 0.78rem; color: rgb(var(--c-theme-dim)); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0 10px; margin-bottom: 4px; min-width: 0; }
+.preview-head .preview-label { flex: none; }
+.preview-head .plan-hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.preview-label { font-size: 0.78rem; color: rgb(var(--c-theme-dim)); text-transform: uppercase; letter-spacing: 1px; }
 .copy-preview {
     flex: 1; min-height: 0; overflow: auto;
     padding: 8px 10px;
@@ -620,8 +650,10 @@ select { cursor: pointer; }
 
 /* big screens: scale the whole UI up a step (everything is in rem) */
 @media (min-width: 1800px) and (min-height: 1000px) {
-    html { font-size: 18px; }
-    .si-time { font-size: 1.4rem; }
+    html { font-size: 20px; }
+    .schedule-item { padding: 7px 12px; margin-bottom: 6px; }
+    .si-name { font-size: 1.08rem; }
+    .si-time { font-size: 1.5rem; }
 }
 
 /* ---- Battle view fits one screen: panels fill the height, only their insides scroll ---- */
@@ -637,8 +669,13 @@ select { cursor: pointer; }
        roster and chat text take what is left and scroll inside */
     .panel-schedule { flex: 0 1 auto; overflow: auto; min-height: 120px; }
     .panel-foot { flex: 1 1 0; min-height: 150px; }
-    .plan-panel.editing .panel-schedule { min-height: 96px; max-height: 40%; }
-    .plan-panel.editing .panel-foot { min-height: 50%; }
+    /* editing (preparation): the roster gets most of the room, the schedule stays in view above it */
+    .plan-panel.editing .panel-schedule { max-height: 34%; }
+    .plan-panel.editing .panel-foot { min-height: 240px; }
     .roster, .preview-wrap { overflow: hidden; }
+    /* roster and chat text run to the panel's bottom edge, so both panels end on one line */
+    .panel-foot > .roster, .panel-foot > .preview-wrap { align-self: stretch; }
+    .panel-foot > .preview-wrap { flex: 1 1 auto; }
+    .panel-foot { flex: 1 1 0; }
     .caller-list { overflow: auto; flex: 0 1 auto; min-height: 0; }
 }
