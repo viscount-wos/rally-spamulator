@@ -142,4 +142,5 @@ Attack and Counter sit side by side on one screen (no tabs); below 900px wide th
 
 - Each panel's head is the same: name, LIVE/LOCKED with the auto-reset countdown, LOCK (Reset in the same place once frozen), the landing time(s), a NEXT line (who starts next, in Xs) and the big Copy button (Attack in gold, Counter in red). The "first start passed" warning replaces the NEXT line, so nothing moves; Copy then says "new times" because it copies fresh ones.
 - Below: Settings (duration, reaction, waves and delays, counter tag) fold away behind a one-line summary; Land at stays in view. Then the schedule (waves as columns), the caller roster as tap-to-cycle chips (Edit list / Add/Edit for preparation; Clear list only while editing) and the chat text.
+- Untick **Counter** in the header to hide the Counter panel: Attack then takes the full width (good for widescreens). It is only hidden, so Counter keeps its callers and any frozen plan; tick it again to bring it back. The choice is remembered in the browser.
 - The UTC clock, Rally Spam | Garrison Defense, the shared auto-reset, language, theme and Log out are in the header.

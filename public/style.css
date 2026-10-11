@@ -54,6 +54,11 @@ body { padding: 0 12px 24px; }
     opacity: 0; cursor: pointer; font-size: 1rem;
     background: rgb(var(--c-dark-input)); color: rgb(var(--c-theme-text));
 }
+.counter-toggle { display: inline-flex; align-items: center; gap: 4px; margin-inline-end: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.counter-toggle input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--c-danger)); cursor: pointer; }
+.counter-toggle:focus-within { outline: 3px solid rgb(var(--c-accent)); outline-offset: 2px; border-radius: var(--radius-sm); }
+body.no-counter #panel-counter { display: none; }
+body.no-counter #tab-rally.active { grid-template-columns: minmax(0, 1fr); }
 .auto-reset-box { display: inline-flex; align-items: center; gap: 6px; }
 .auto-reset-box label { font-size: 0.8rem; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
 .auto-reset-box select { min-width: 0; padding: 6px 8px; font-size: 0.9rem; }
@@ -615,7 +620,8 @@ select { cursor: pointer; }
 @media (min-width: 900px) {
     body { padding: 0 20px 16px; }
     .top-bar { padding: 4px 0 6px; }
-    .app-title { font-size: 1.05rem; }
+    .app-title { font-size: 0.98rem; }
+    .header-controls { gap: 4px 5px; }
     #tab-rally.active {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

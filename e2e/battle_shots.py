@@ -107,6 +107,18 @@ def main():
         facts(page, "1440 edit")
         page.context.close()
 
+        # Counter toggled off: Attack alone, full width; remembered after a reload
+        for w, h in ((1920, 1080), (1440, 900)):
+            page = ctx_page(w, h)
+            seed(page)
+            page.uncheck("#show-counter")
+            at(page, 28)
+            page.screenshot(path=f"{OUT}/battle-{w}-nocounter.png")
+            facts(page, f"{w} no counter")
+            page.reload()
+            print("remembered after reload:", not page.is_visible("#panel-counter"), not page.is_checked("#show-counter"))
+            page.context.close()
+
         # 2) 1920: Attack frozen, Counter LIVE
         page = ctx_page(1920, 1080)
         seed(page)

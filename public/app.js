@@ -1077,6 +1077,15 @@
             panels[k].load(now);
             panels[k].wire();
         });
+        // Counter off: Attack alone, full width (display only; the Counter plan keeps its state)
+        var showCounter = $('show-counter');
+        function applyShowCounter() { document.body.classList.toggle('no-counter', !showCounter.checked); }
+        showCounter.checked = read('rally_show_counter') !== '0';
+        applyShowCounter();
+        showCounter.addEventListener('change', function () {
+            store('rally_show_counter', showCounter.checked ? '1' : '0');
+            applyShowCounter();
+        });
         $('auto-reset-select').addEventListener('change', function () {
             autoResetMin = C.normalizeAutoReset(this.value);
             store('rally_auto_reset', String(autoResetMin));
