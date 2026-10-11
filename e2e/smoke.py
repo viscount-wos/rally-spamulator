@@ -372,6 +372,197 @@ def live_freeze(pw, label, ctx_args, lang):
     browser.close()
 
 
+A0 = dt.datetime(2026, 10, 9, 12, 0, 0, tzinfo=dt.timezone.utc)
+
+
+def auto_reset(pw, label, ctx_args, lang):
+    """Auto-reset (default 5 min after Copy/LOCK) with its countdown, 1 min, Off,
+    typed Land at, reload while frozen, and the stale-copy guard."""
+    tag = f"[autoreset/{label}/{lang}]"
+    browser = pw.chromium.launch()
+    ctx = browser.new_context(**ctx_args, locale="en-GB")
+    ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=BASE)
+    page = ctx.new_page()
+    errors = []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.clock.set_fixed_time(A0)
+    gate_login(page)
+    page.evaluate(f"localStorage.clear(); localStorage.setItem('app_lang', '{lang}'); localStorage.setItem('rally_callers', JSON.stringify({THREE}))")
+    page.reload()
+
+    def L(key, *args):
+        if args:
+            return page.evaluate(f"RallyLang['{lang}']['{key}'](...{list(args)!r})")
+        return page.evaluate(f"RallyLang['{lang}']['{key}']")
+
+    def go(sec):
+        t = A0 + dt.timedelta(seconds=sec)
+        page.clock.set_fixed_time(t)
+        expect(page.locator("#utc-clock")).to_have_text(t.strftime("%H:%M:%S"))
+
+    def clip():
+        return page.evaluate("navigator.clipboard.readText()")
+
+    def hhmmss(sec):
+        return (A0 + dt.timedelta(seconds=sec)).strftime("%H:%M:%S")
+
+    status, cd, toast = page.locator("#plan-status"), page.locator("#auto-reset-cd"), page.locator("#plan-toast")
+    sel = page.locator("#auto-reset-select")
+    doc_y = "document.querySelector('#schedule-list').getBoundingClientRect().top + window.scrollY"
+
+    # --- the setting: 7 choices, default 5 min, translated ---
+    opts = sel.locator("option").evaluate_all("os => os.map(o => [o.value, o.textContent])")
+    check(f"{tag} choices Off,1,2,3,5,10,15", [v for v, _ in opts] == ["0", "1", "2", "3", "5", "10", "15"], str(opts))
+    check(f"{tag} default is 5 min", sel.input_value() == "5")
+    check(f"{tag} option labels translated", opts[0][1] == L("auto_reset_off") and opts[4][1] == L("minutes_n", 5), str(opts))
+    check(f"{tag} label translated", page.inner_text("label[for=auto-reset-select]") == L("auto_reset_label"))
+    check(f"{tag} live: no countdown", cd.is_hidden())
+
+    # reaction 3 min, so the first start is still ahead when re-copying a minute later
+    page.select_option("#buffer-select", "180")
+
+    # --- Copy: frozen, countdown from 5:00 ---
+    y0 = page.evaluate(doc_y)
+    page.click("#copy-btn")
+    expect(status).to_have_text(L("locked_ind"))
+    expect(cd).to_have_text(L("auto_reset_in", "5:00"))
+    check(f"{tag} countdown does not move the list", abs(page.evaluate(doc_y) - y0) < 1)
+    first_clip = clip()
+    check(f"{tag} copy starts at now + 3 min", first_clip.split("\n")[1].startswith(hhmmss(180)), first_clip)
+    go(28)
+    expect(cd).to_have_text(L("auto_reset_in", "4:32"))
+    check(f"{tag} no horizontal scroll (countdown)", no_hscroll(page))
+    os.makedirs(OUT, exist_ok=True)
+    shot(page, f"{OUT}/{label}-autoreset-{lang}.png")
+
+    # --- re-copy and edits while frozen don't restart it ---
+    go(60)
+    page.evaluate("navigator.clipboard.writeText('x')")
+    page.click("#copy-btn")
+    expect(page.locator("#copy-btn")).to_have_text(L("copied"))
+    check(f"{tag} re-copy: same frozen text", clip() == first_clip)
+    expect(cd).to_have_text(L("auto_reset_in", "4:00"))
+    page.locator(".caller-toggle", has_text="Charlie").click()
+    page.locator(".caller-toggle", has_text="Charlie").click()
+    page.select_option("#rally-duration-select", "600")
+    page.select_option("#rally-duration-select", "300")
+    check(f"{tag} edits keep the countdown", cd.inner_text() == L("auto_reset_in", "4:00"), cd.inner_text())
+    check(f"{tag} no toast yet", toast.is_hidden())
+
+    # --- 5 minutes after the freeze: LIVE again, with the toast ---
+    go(299)
+    expect(cd).to_have_text(L("auto_reset_in", "0:01"))
+    check(f"{tag} still locked at 4:59", status.inner_text() == L("locked_ind"))
+    go(300)
+    expect(status).to_have_text(L("live_ind"))
+    expect(toast).to_have_text(L("auto_reset_done"))
+    expect(toast).to_be_visible()
+    check(f"{tag} auto-reset: countdown gone, Reset hidden", cd.is_hidden() and page.locator("#reset-btn").is_hidden())
+    check(f"{tag} auto-reset: times live again", page.locator(".si-time").first.inner_text() == hhmmss(480))
+    check(f"{tag} toast floats (position fixed)",
+          page.evaluate("getComputedStyle(document.querySelector('#plan-toast')).position") == "fixed")
+    y_with_toast = page.evaluate(doc_y)
+    page_h = page.evaluate("document.documentElement.scrollHeight")
+    tb = toast.bounding_box()
+    vw = page.evaluate("window.innerWidth")
+    check(f"{tag} toast inside the screen", tb and tb["x"] >= 0 and tb["x"] + tb["width"] <= vw + 1, str(tb))
+    shot(page, f"{OUT}/{label}-autoreset-toast-{lang}.png")
+    expect(toast).to_be_hidden(timeout=7000)
+    check(f"{tag} the toast did not move the layout", abs(page.evaluate(doc_y) - y_with_toast) < 1
+          and page.evaluate("document.documentElement.scrollHeight") == page_h)
+
+    # --- 1 minute; LOCK starts it too; the choice is remembered ---
+    sel.select_option("1")
+    page.reload()
+    check(f"{tag} setting saved", sel.input_value() == "1")
+    go(310)
+    page.click("#lock-btn")
+    expect(cd).to_have_text(L("auto_reset_in", "1:00"))
+    go(369)
+    expect(cd).to_have_text(L("auto_reset_in", "0:01"))
+    go(370)
+    expect(status).to_have_text(L("live_ind"))
+    expect(toast).to_have_text(L("auto_reset_done"))
+
+    # --- a typed Land at time is reset too (cleared like Reset) ---
+    page.fill("#target-input", hhmmss(1800)[:5])
+    page.press("#target-input", "Enter")
+    expect(status).to_have_text(L("locked_ind"))
+    expect(cd).to_have_text(L("auto_reset_in", "1:00"))
+    go(430)
+    expect(status).to_have_text(L("live_ind"))
+    check(f"{tag} auto-reset clears the typed Land at", page.input_value("#target-input") == "")
+
+    # --- reload while frozen: the countdown carries on; overdue -> reset on load ---
+    sel.select_option("5")
+    go(500)
+    page.click("#copy-btn")
+    expect(cd).to_have_text(L("auto_reset_in", "5:00"))
+    go(600)
+    expect(cd).to_have_text(L("auto_reset_in", "3:20"))
+    page.reload()
+    expect(status).to_have_text(L("locked_ind"))
+    expect(cd).to_have_text(L("auto_reset_in", "3:20"))
+    go(610)
+    expect(cd).to_have_text(L("auto_reset_in", "3:10"))
+    page.clock.set_fixed_time(A0 + dt.timedelta(seconds=900))  # phone asleep past the deadline, then reopened
+    page.reload()
+    expect(status).to_have_text(L("live_ind"))
+    expect(toast).to_have_text(L("auto_reset_done"))
+
+    # --- Off: no countdown, never resets ---
+    sel.select_option("0")
+    go(1000)
+    page.click("#lock-btn")
+    expect(status).to_have_text(L("locked_ind"))
+    check(f"{tag} Off: no countdown", cd.is_hidden())
+    go(1000 + 20 * 60)
+    check(f"{tag} Off: still locked 20 min later", status.inner_text() == L("locked_ind") and cd.is_hidden())
+    page.click("#reset-btn")
+    expect(status).to_have_text(L("live_ind"))
+
+    # --- stale-copy guard (auto-reset Off): Copy after the first start passed gives NEW times ---
+    page.select_option("#buffer-select", "30")
+    go(3000)
+    page.click("#copy-btn")
+    expect(status).to_have_text(L("locked_ind"))
+    old = clip()
+    go(3040)  # first start (3030) has passed
+    expect(page.locator("#schedule-warning")).to_have_text(L("passed_warning"))
+    page.click("#copy-btn")
+    expect(toast).to_have_text(L("stale_recopied"))
+    new = clip()
+    check(f"{tag} stale copy: new times, not the old ones", new != old and new.split("\n")[1].startswith(hhmmss(3070)), repr(old) + " -> " + repr(new))
+    check(f"{tag} stale copy: clipboard == preview", new == page.inner_text("#copy-preview"))
+    check(f"{tag} stale copy: frozen again, warning gone", status.inner_text() == L("locked_ind") and page.locator("#schedule-warning").is_hidden())
+    go(3050)  # first start still ahead: plain re-copy, no notice
+    page.evaluate("document.querySelector('#plan-toast').hidden = true")
+    page.click("#copy-btn")
+    expect(page.locator("#copy-btn")).to_have_text(L("copied"))
+    check(f"{tag} fresh frozen plan re-copies the same text", clip() == new and toast.is_hidden())
+    # a typed Land at time whose first start passed: fresh live times, typed time cleared
+    page.fill("#target-input", hhmmss(3600))  # 13:00:00: first start 12:53:15
+    page.press("#target-input", "Enter")
+    page.click("#copy-btn")
+    typed_clip = clip()
+    go(3700)
+    page.click("#copy-btn")
+    expect(toast).to_have_text(L("stale_recopied"))
+    check(f"{tag} stale typed plan: new live times, box cleared",
+          clip() != typed_clip and clip().split("\n")[1].startswith(hhmmss(3730)) and page.input_value("#target-input") == "", repr(clip()))
+
+    # --- 320px wide, frozen with the countdown: no sideways scroll ---
+    sel.select_option("5")
+    page.set_viewport_size({"width": 320, "height": 700})
+    expect(cd).to_be_visible()
+    check(f"{tag} no horizontal scroll at 320px", no_hscroll(page))
+    pr = page.evaluate("(() => { const r = document.querySelector('.plan-row').getBoundingClientRect(); return [r.height, r.right <= window.innerWidth + 1]; })()")
+    check(f"{tag} plan row keeps its height at 320px", pr[0] == 56 and pr[1], str(pr))
+    check(f"{tag} no console errors", not errors, str(errors))
+    browser.close()
+
+
 FIVE_OLD = "[{name:'rima',marchSeconds:34,selected:true},{name:'Bravo',marchSeconds:65,selected:true},{name:'Alpha',marchSeconds:105,selected:true},{name:'Charlie',marchSeconds:30,selected:true},{name:'Delta',marchSeconds:55,selected:true}]"
 W0 = dt.datetime(2026, 10, 9, 12, 0, 0, tzinfo=dt.timezone.utc)
 
@@ -637,6 +828,8 @@ with sync_playwright() as pw:
         live_freeze(pw, "iphone", iphone_device(pw), lang)
         waves(pw, "desktop", {"viewport": {"width": 1280, "height": 900}}, lang)
         waves(pw, "iphone", iphone_device(pw), lang)
+        auto_reset(pw, "desktop", {"viewport": {"width": 1280, "height": 900}}, lang)
+        auto_reset(pw, "iphone", iphone_device(pw), lang)
     if os.environ.get("INSECURE_URL"):  # e.g. http://hannah.localdomain:8096
         insecure_copy(pw, os.environ["INSECURE_URL"])
 
