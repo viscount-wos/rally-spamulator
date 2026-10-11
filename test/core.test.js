@@ -34,7 +34,7 @@ test('FROZEN: times stay put as the clock runs; first-start-passed detection', (
   const t0 = at('2026-10-09T12:00:05Z');
   const callers = [{ name: 'A', marchSeconds: 105 }, { name: 'B', marchSeconds: 55 }];
   const plan = C.freezePlan(t0, 30);
-  assert.deepEqual(plan, { mode: 'frozen', firstStartMs: at('2026-10-09T12:00:35Z') });
+  assert.deepEqual(plan, { mode: 'frozen', firstStartMs: at('2026-10-09T12:00:35Z'), frozenAtMs: t0 });
   const a0 = C.planArrivalMs(plan, t0, callers, 30, 300);
   for (const dt of [1000, 29000, 60000, 3600e3]) {
     assert.equal(C.planArrivalMs(plan, t0 + dt, callers, 30, 300), a0, 'unchanged after ' + dt + 'ms');
@@ -411,4 +411,90 @@ test('Randomise targets: callers in a wave only (off stay off); everyone when no
   const m = C.randomiseWaves(C.randomiseTargets(cs, W(3)), 3, seeded(5));
   assert.equal(m[2], undefined);
   assert.deepEqual(sizesOf(m, 3), [1, 1, 1]);
+});
+
+// ---- Auto-reset + stale-copy guard ----
+test('auto-reset: choices, default 5 min, saved values normalised', () => {
+  assert.deepEqual(C.AUTO_RESET_CHOICES, [0, 1, 2, 3, 5, 10, 15]);
+  assert.equal(C.DEFAULT_AUTO_RESET_MIN, 5);
+  assert.equal(C.normalizeAutoReset(null), 5);       // nothing saved -> default
+  assert.equal(C.normalizeAutoReset(''), 5);
+  assert.equal(C.normalizeAutoReset('0'), 0);        // Off is a real choice
+  assert.equal(C.normalizeAutoReset('10'), 10);
+  assert.equal(C.normalizeAutoReset(15), 15);
+  assert.equal(C.normalizeAutoReset('7'), 5);        // not on the menu
+  assert.equal(C.normalizeAutoReset('junk'), 5);
+});
+
+test('freezePlan records the freeze time', () => {
+  const t0 = at('2026-10-09T12:00:00.250Z');
+  const p = C.freezePlan(t0, 30);
+  assert.equal(p.frozenAtMs, t0);
+  assert.equal(C.formatUTC(p.firstStartMs), '12:00:30');
+});
+
+test('autoResetDue: fires at frozenAt + minutes, not a moment before', () => {
+  const t0 = at('2026-10-09T12:00:00Z');
+  assert.equal(C.autoResetDue(t0, 5, t0), false);
+  assert.equal(C.autoResetDue(t0, 5, t0 + 5 * 60000 - 1), false);
+  assert.equal(C.autoResetDue(t0, 5, t0 + 5 * 60000), true);
+  assert.equal(C.autoResetDue(t0, 1, t0 + 60000), true);
+  assert.equal(C.autoResetDue(t0, 15, t0 + 14 * 60000), false);
+  // reload / phone asleep long past the deadline: due straight away
+  assert.equal(C.autoResetDue(t0, 5, t0 + 3 * 3600e3), true);
+  assert.equal(C.autoResetDeadlineMs(t0, 10), t0 + 600000);
+});
+
+test('autoResetDue: Off (0) or no freeze time never fires', () => {
+  const t0 = at('2026-10-09T12:00:00Z');
+  for (const later of [0, 60000, 3600e3, 30 * 86400e3]) assert.equal(C.autoResetDue(t0, 0, t0 + later), false);
+  assert.equal(C.autoResetDue(undefined, 5, t0), false);
+  assert.equal(C.autoResetDue(NaN, 5, t0), false);
+  assert.equal(C.autoResetDeadlineMs(t0, 0), null);
+  assert.equal(C.autoResetRemainingSec(t0, 0, t0), null);
+});
+
+test('autoResetRemainingSec: the countdown shown under LOCKED', () => {
+  const t0 = at('2026-10-09T12:00:00.400Z');
+  assert.equal(C.autoResetRemainingSec(t0, 5, t0), 300);             // 5:00 at the moment of freezing
+  assert.equal(C.formatMarch(C.autoResetRemainingSec(t0, 5, t0)), '5:00');
+  assert.equal(C.autoResetRemainingSec(t0, 5, t0 + 200), 300);       // rounds up
+  assert.equal(C.autoResetRemainingSec(t0, 5, t0 + 1000), 299);
+  assert.equal(C.formatMarch(C.autoResetRemainingSec(t0, 5, t0 + 28000)), '4:32');
+  assert.equal(C.autoResetRemainingSec(t0, 1, t0 + 59001), 1);
+  assert.equal(C.autoResetRemainingSec(t0, 1, t0 + 60000), 0);
+  assert.equal(C.autoResetRemainingSec(t0, 1, t0 + 120000), 0);      // never negative
+});
+
+test('copyIsStale = firstStartPassed: frozen copy is stale once the earliest start is behind us', () => {
+  const t0 = at('2026-10-09T12:00:00Z');
+  const callers = [{ name: 'A', marchSeconds: 105 }, { name: 'B', marchSeconds: 30 }];
+  const plan = C.freezePlan(t0, 30); // first start 12:00:30
+  for (const dt of [0, 15000, 30000, 30001, 31000, 600000]) {
+    assert.equal(C.copyIsStale(plan, t0 + dt, callers, 30, 300), C.firstStartPassed(plan, t0 + dt, callers, 30, 300), String(dt));
+  }
+  assert.equal(C.copyIsStale(plan, t0 + 29000, callers, 30, 300), false); // still in the future: re-copy as before
+  assert.equal(C.copyIsStale(plan, t0 + 31000, callers, 30, 300), true);
+  assert.equal(C.copyIsStale({ mode: 'live' }, t0 + 3600e3, callers, 30, 300), false); // live is never stale
+  // a typed Land at time whose first start has passed is stale too
+  const fixed = { mode: 'fixed', arrivalMs: at('2026-10-09T12:05:00Z') }; // A starts 11:58:15
+  assert.equal(C.copyIsStale(fixed, at('2026-10-09T11:58:00Z'), callers, 30, 300), false);
+  assert.equal(C.copyIsStale(fixed, at('2026-10-09T11:58:16Z'), callers, 30, 300), true);
+  // waves: the earliest start of ANY wave counts
+  const waves = { count: 2, defaultDelay: 10, gaps: [null] };
+  const wc = [{ name: 'A', marchSeconds: 30, wave: 1 }, { name: 'B', marchSeconds: 105, wave: 2 }];
+  assert.equal(C.copyIsStale(plan, t0 + 31000, wc, 30, 300, waves), true);
+  assert.equal(C.copyIsStale(plan, t0 + 29000, wc, 30, 300, waves), false);
+});
+
+test('every language has the auto-reset texts', () => {
+  for (const code of Object.keys(LANG)) {
+    const L = LANG[code];
+    assert.match(L.auto_reset_in('4:32'), /4:32/, code);
+    for (const k of ['auto_reset_label', 'auto_reset_off', 'auto_reset_done', 'stale_recopied']) {
+      assert.equal(typeof L[k], 'string', code + ' ' + k);
+      assert.ok(L[k].length > 0, code + ' ' + k);
+    }
+    assert.match(L.minutes_n(10), /10/, code);
+  }
 });

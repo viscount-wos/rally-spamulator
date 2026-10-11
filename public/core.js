@@ -53,8 +53,41 @@
 
     // Freeze the live plan at this instant: the first start is kept, so
     // later edits (callers, duration) recompute around the same first start.
+    // frozenAtMs records when it was frozen, for the auto-reset countdown.
     function freezePlan(nowMs, reactionSeconds) {
-        return { mode: 'frozen', firstStartMs: liveFirstStartMs(nowMs, reactionSeconds) };
+        return { mode: 'frozen', firstStartMs: liveFirstStartMs(nowMs, reactionSeconds), frozenAtMs: nowMs };
+    }
+
+    // ---- Auto-reset ----
+    // A frozen (or typed Land at) plan goes back to LIVE by itself a set
+    // number of minutes after it was frozen. 0 = Off.
+    var AUTO_RESET_CHOICES = [0, 1, 2, 3, 5, 10, 15];
+    var DEFAULT_AUTO_RESET_MIN = 5;
+
+    // Saved value -> one of the choices; anything else is the default.
+    function normalizeAutoReset(v) {
+        var n = typeof v === 'number' ? v : parseInt(String(v === null || v === undefined ? '' : v).trim(), 10);
+        return AUTO_RESET_CHOICES.indexOf(n) !== -1 ? n : DEFAULT_AUTO_RESET_MIN;
+    }
+
+    // When the plan resets itself, or null (Off, or no freeze time).
+    function autoResetDeadlineMs(frozenAtMs, minutes) {
+        if (!(minutes > 0) || typeof frozenAtMs !== 'number' || !isFinite(frozenAtMs)) return null;
+        return frozenAtMs + minutes * 60000;
+    }
+
+    // True once the deadline has been reached (never when Off).
+    function autoResetDue(frozenAtMs, minutes, nowMs) {
+        var d = autoResetDeadlineMs(frozenAtMs, minutes);
+        return d !== null && nowMs >= d;
+    }
+
+    // Whole seconds left before the auto-reset (rounded up, so it shows
+    // 5:00 at the moment of freezing and 0:00 only when it is due), or null when Off.
+    function autoResetRemainingSec(frozenAtMs, minutes, nowMs) {
+        var d = autoResetDeadlineMs(frozenAtMs, minutes);
+        if (d === null) return null;
+        return Math.max(0, Math.ceil((d - nowMs) / 1000));
     }
 
     // ---- Waves ----
@@ -166,6 +199,13 @@
     function firstStartPassed(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds, waves) {
         if (!includedCallers(callers, waves).length || !plan || plan.mode === 'live') return false;
         return planFirstStartMs(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds, waves) < nowMs;
+    }
+
+    // Stale-copy guard: copying a frozen (or typed) plan whose earliest
+    // start is already behind us would paste old times into chat, so Copy
+    // takes fresh times instead. Same rule as the "first start has passed" warning.
+    function copyIsStale(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds, waves) {
+        return firstStartPassed(plan, nowMs, callers, reactionSeconds, rallyDurationSeconds, waves);
     }
 
     // Parse a typed UTC clock time ("21:05", "21:05:30", "2105") into
@@ -352,6 +392,9 @@
         callerWave: callerWave, nextWave: nextWave, includedCallers: includedCallers, leadSeconds: leadSeconds,
         planLandingsMs: planLandingsMs, parseLandAt: parseLandAt, buildWaveSchedule: buildWaveSchedule,
         buildWavesCopyText: buildWavesCopyText, migrateCallers: migrateCallers,
-        randomiseWaves: randomiseWaves, randomiseTargets: randomiseTargets
+        randomiseWaves: randomiseWaves, randomiseTargets: randomiseTargets,
+        AUTO_RESET_CHOICES: AUTO_RESET_CHOICES, DEFAULT_AUTO_RESET_MIN: DEFAULT_AUTO_RESET_MIN,
+        normalizeAutoReset: normalizeAutoReset, autoResetDeadlineMs: autoResetDeadlineMs,
+        autoResetDue: autoResetDue, autoResetRemainingSec: autoResetRemainingSec, copyIsStale: copyIsStale
     };
 });

@@ -109,7 +109,13 @@
             wave_help: "Tap a caller to change their wave: off → 1 → 2 … → off",
             randomise: "Randomise",
             randomised: "Randomised.",
-            undo: "Undo"
+            undo: "Undo",
+            auto_reset_label: "Auto-reset after:",
+            auto_reset_off: "Off",
+            minutes_n: function(n) { return n + ' min'; },
+            auto_reset_in: function(t) { return 'Auto-reset in ' + t; },
+            auto_reset_done: "Auto-reset: times are live again",
+            stale_recopied: "Old times had passed: copied new times"
         },
         tr: {
             lang_name: "Türkçe",
@@ -213,7 +219,13 @@
             wave_help: "Dalgasını değiştirmek için çağrıcıya dokunun: kapalı → 1 → 2 … → kapalı",
             randomise: "Rastgele dağıt",
             randomised: "Rastgele dağıtıldı.",
-            undo: "Geri al"
+            undo: "Geri al",
+            auto_reset_label: "Otomatik sıfırlama:",
+            auto_reset_off: "Kapalı",
+            minutes_n: function(n) { return n + ' dk'; },
+            auto_reset_in: function(t) { return 'Otomatik sıfırlama: ' + t; },
+            auto_reset_done: "Otomatik sıfırlandı: saatler yeniden canlı",
+            stale_recopied: "Eski saatler geçmişti: yeni saatler kopyalandı"
         },
         pl: {
             lang_name: "Polski",
@@ -317,7 +329,13 @@
             wave_help: "Dotknij gracza, aby zmienić jego falę: wył. → 1 → 2 … → wył.",
             randomise: "Losuj",
             randomised: "Wylosowano.",
-            undo: "Cofnij"
+            undo: "Cofnij",
+            auto_reset_label: "Autoreset po:",
+            auto_reset_off: "Wył.",
+            minutes_n: function(n) { return n + ' min'; },
+            auto_reset_in: function(t) { return 'Autoreset za ' + t; },
+            auto_reset_done: "Autoreset: godziny znowu na żywo",
+            stale_recopied: "Stare godziny minęły: skopiowano nowe"
         },
         zh: {
             lang_name: "中文",
@@ -421,7 +439,13 @@
             wave_help: "点击召唤者更改其波次：关 → 1 → 2 … → 关",
             randomise: "随机分配",
             randomised: "已随机分配。",
-            undo: "撤销"
+            undo: "撤销",
+            auto_reset_label: "自动重置：",
+            auto_reset_off: "关闭",
+            minutes_n: function(n) { return n + ' 分钟'; },
+            auto_reset_in: function(t) { return t + ' 后自动重置'; },
+            auto_reset_done: "已自动重置：时间重新实时更新",
+            stale_recopied: "旧时间已过：已复制新时间"
         },
         ko: {
             lang_name: "한국어",
@@ -525,7 +549,13 @@
             wave_help: "소환자를 눌러 웨이브를 바꾸세요: 제외 → 1 → 2 … → 제외",
             randomise: "무작위 배정",
             randomised: "무작위로 배정했습니다.",
-            undo: "실행 취소"
+            undo: "실행 취소",
+            auto_reset_label: "자동 초기화:",
+            auto_reset_off: "끔",
+            minutes_n: function(n) { return n + '분'; },
+            auto_reset_in: function(t) { return t + ' 후 자동 초기화'; },
+            auto_reset_done: "자동 초기화: 시간이 다시 실시간입니다",
+            stale_recopied: "이전 시간이 지났습니다: 새 시간을 복사했습니다"
         },
         ar: {
             lang_name: "العربية",
@@ -629,7 +659,13 @@
             wave_help: "اضغط على المنادي لتغيير موجته: خارج ← 1 ← 2 … ← خارج",
             randomise: "توزيع عشوائي",
             randomised: "تم التوزيع العشوائي.",
-            undo: "تراجع"
+            undo: "تراجع",
+            auto_reset_label: "إعادة الضبط التلقائي بعد:",
+            auto_reset_off: "إيقاف",
+            minutes_n: function(n) { return n === 1 ? '1 دقيقة' : n === 2 ? '2 دقيقتان' : n <= 10 ? n + ' دقائق' : n + ' دقيقة'; },
+            auto_reset_in: function(t) { return 'إعادة ضبط تلقائية خلال ' + t; },
+            auto_reset_done: "إعادة ضبط تلقائية: الأوقات مباشرة من جديد",
+            stale_recopied: "انقضت الأوقات القديمة: نُسخت أوقات جديدة"
         }
     };
     return LANG;
