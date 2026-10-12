@@ -1,83 +1,96 @@
-# Rally Spamulator: handoff (2026-10-11 ~16:00 BST)
+# Rally Spamulator: handoff (2026-10-12)
 
 The owner is Viscount (Whiteout Survival, alliance LOV, state #2807). This is his rally-timing tool for SVS
 castle fights. It's live at https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`, GCP project
-viscount-wos-tools, us-central1, behind a shared password). The tool is private: shared only with trusted
-people via the one password. No public links, and it is noindexed.
+viscount-wos-tools, us-central1, behind one shared password). The tool is private: shared only with trusted
+people via the password. No public links, and it is noindexed.
 
-## Repo and branches
-- /home/bevans/ai/fun/wos/rally-spamulator; GitHub viscount-wos/rally-spamulator (PUBLIC repo).
-- Git author: viscount <viscount-wos@users.noreply.github.com>.
+## State: everything is shipped, nothing is in progress
+- `main` = `guide` = 716c286 is LIVE (Cloud Run revision `rally-spamulator-00011-n9z`), pushed to GitHub
+  (viscount-wos/rally-spamulator, PUBLIC repo; git author viscount <viscount-wos@users.noreply.github.com>).
+- Tests on 716c286: `npm test` 72/72; Playwright smoke 783/783; `e2e/help_shots.py` all passed.
+- Live checks done after deploy: /health ok; /, /help, /changelog redirect to /login for browsers; /core.js,
+  /help-content.js, /changelog-content.js return 401 without the cookie. I did not log in on the live site.
+- The local test copy (LAN) runs the same code: http://hannah.localdomain:8096 (container `rally-strip`).
 - IGNORE the repo's CLAUDE.md: it is stale (it describes the old Discord app) and a scanner flagged it.
-- `main` = cd2f30f is LIVE: the no-login strip-back, live schedule until Copy freezes, Reset, waves
-  (1-6, delays, tap to cycle, Randomise), the multi-time Land at box, auto-reset (default 5 min), the
-  stale-copy guard, Garrison Defense, 6 languages and the password gate.
-- `counter` = the work in progress, NOT merged or deployed. On top of main it adds:
-  - Attack + Counter caller lists. Counter is ONE other alliance with an editable label ("Counter: BDE"),
-    a single wave fired ASAP, with its own callers, freeze, auto-reset, duration, reaction and Land at.
-    Attack keeps the old storage keys, so old saved data opens as Attack.
-  - A separate red Copy button. The Counter copy text starts "COUNTER - land HH:MM:SS"; the Attack copy
-    text is unchanged.
-  - Rally durations 1/2/3/5/10 min, default 5.
-  - 9 languages: en es fr de pl ko zh tr ar (Arabic RTL).
-  - The look of the owner's event app (/home/bevans/ai/fun/wos/wos-events/frontend): tokens.css, and
-    3 themes Dark/Reading/Low Glare.
-  - X-Robots-Tag noindex,nofollow on every response, and an ungated /robots.txt with Disallow: /.
-  - BATTLE VIEW (commits c06b2a0, 310e3bd, bb94930): Attack and Counter side by side on one desktop
-    screen, replacing the Attack|Counter tabs. Details are in USAGE.md "Battle view".
+  README.md and USAGE.md are current.
 
-## Status of the battle view (unfinished)
-- The owner asked for: "I need to have the whole picture in front of me at once". Desktop first; phone is low
-  priority (stacked under 900px, but no horizontal scroll at 390px).
-- The quality target was 8.5/10 on this rubric:
-  - at-a-glance clarity of both plans 25%
-  - speed and safety of the right Copy 20%
-  - hierarchy 15%
-  - no wasted space or overflow at 1440x900 and 1920x1080 15%
-  - polish and consistency with the event app 15%
-  - accessibility 10%
-- The last independent score was 7.6, and the self-score about 8.4. The work stopped because the owner ran out
-  of tokens.
-- Remaining issues from the last review:
-  - The NEXT line should outrank the landing time. A round-7 tweak did this, but it hasn't been reviewed.
-  - The Attack chat text clips slightly at 1440x900 with 3 waves and 12 callers.
-  - There is dead space under Counter and in the Attack roster at 1920.
-- The round-7 tweaks are built but unreviewed: a bigger NEXT line, a pulsing outlined red Reset once the
-  first start has passed, the hint moved into a tooltip on the status pill, and the preview filling its column.
-- README.md still describes the old tabs; USAGE.md is up to date.
+## What the tool is now
+- One Rally screen: **Attack** and **Counter** panels side by side on desktop (stacked under 900px). Counter is
+  ONE other alliance (editable tag), one wave fired ASAP, own callers/lock/reset/auto-reset/Copy; its copy text
+  starts "COUNTER - land HH:MM:SS". Attack has waves (1-6), Randomise, Land at (one time per wave).
+- A **Counter** tick box in the header hides the Counter panel so Attack runs full width (`rally_show_counter`,
+  display only; Counter keeps its state).
+- Live schedule until Copy freezes it; Reset; auto-reset (default 5 min); stale-copy guard; NEXT line per panel.
+- Rally durations 1/2/3/5/10 min. Garrison Defense tab. 3 themes (Dark, Reading, Low Glare). 9 languages:
+  en es fr de pl ko zh tr ar (Arabic RTL).
+- **Guide** (`/help`): a **?** button in the header opens it. Quick start, timing, waves, battle view, reset,
+  Garrison, a strategy guide (tool-based tactics only, no game rules) and tips, in all 9 languages.
+  Text: `public/help-content.js`; page: `help.html`, `help.js`, `help.css`. Button names in the text are written
+  `{key}` and replaced at runtime by the app's own label from `i18n.js`, so they always match the UI.
+- **What's new** (`/changelog`): linked from the Guide footer. Text in `public/changelog-content.js` (9
+  languages); English copy in `CHANGELOG.md`. To add a release, edit BOTH and every language;
+  `test/changelog.test.js` fails if the languages or `CHANGELOG.md` disagree.
+- Server: password gate (cookie `rally_gate`, HMAC of the password), CSP with no inline script/style,
+  `X-Robots-Tag: noindex,nofollow` everywhere, open `/robots.txt` (Disallow: /), `/health`. `/help` and
+  `/changelog` are routes in `server.js`, behind the gate like everything else.
 
-## Tests
-- `npm test` (node --test): 65/65 pass on the final code.
-- Playwright smoke: NOT yet run in full on the final code. Run:
-  `INSECURE_URL=http://hannah.localdomain:8096 /home/bevans/ai/fun/wos/wos-events-wt/frontend-wiring/e2e/.venv/bin/python e2e/smoke.py http://localhost:8096`
-  It logs in with the dummy password 'test-gate-pw', and `ONLY=new` runs only the new checks. The battle
-  checks are `battle_flow` and `battle_layout`. If anything fails, the likely suspects are the hint moved into a
-  tooltip (a live_freeze check reads the hint text) and the layout-fit checks after the round-7 CSS.
-- Screenshots: `e2e/battle_shots.py <url>` writes e2e/out/battle-*.png.
-  Earlier review rounds: /home/bevans/.hermes/cache/scratch/rally-review/r1..r7.
+## Things worth knowing before you change anything
+- **Do not change behaviour, copy text, maths or storage keys without asking**: the tests guard them.
+  Storage keys include `rally_callers`, `rally_counter_*`, `rally_show_counter`, `rally_ui_open`,
+  `app_lang`, `preferred_theme`.
+- **New UI text goes in all 9 languages** (`public/i18n.js`; a test fails on a missing key). Guide and
+  change-log text go in their own content files, all 9 languages.
+- **Header width is tight on 900-1599px.** The header (brand, clock, tabs, ? guide, Counter tick, Auto-reset,
+  language, theme, Log out) must stay ONE row, or the battle-view panels lose height and clip. To keep it so,
+  `style.css` shrinks the clock between 900 and 1599px and hides the "Auto-reset after" label visually in es, fr,
+  de and tr (still the select's accessible name and tooltip). Adding anything to the header needs
+  `e2e/help_shots.py` (it checks "header stays one row" in all 9 languages at 1440).
+- The battle view is fitted to one screen from 1100x700 (panels fill the height, only their insides scroll).
+  Check it with `e2e/battle_shots.py <url>` (prints scroll/client heights; clipped = scrollHeight > clientHeight)
+  and look at `e2e/out/battle-*.png` yourself.
+- The message line under the head (`.ph-msg`) has a FIXED height so the "passed" warning and the NEXT line never
+  move the schedule (a smoke check guards this).
+
+## Open items (none blocking)
+- **Native-speaker review** of the guide and change-log translations (especially ko, tr, ar). They were written
+  by Claude and proof-read by one agent per language against the UI wording. Quirk: a few UI labels end with a
+  colon or "+" (the guide strips these), and the tr/pl/ko text avoids suffixes/particles after a button name.
+- The strategy guide is deliberately tool-based. If the owner supplies his own tactics, add them to the
+  `strategy` section of every language in `help-content.js`.
+- Phone is low priority (no horizontal scroll at 390px is tested, not polished).
+
+## Tests and screenshots
+```
+npm test
+# Playwright (venv from the owner's event app; it logs in with the dummy password 'test-gate-pw'):
+PY=/home/bevans/ai/fun/wos/wos-events-wt/frontend-wiring/e2e/.venv/bin/python
+INSECURE_URL=http://hannah.localdomain:8096 $PY e2e/smoke.py http://localhost:8096   # full smoke; ONLY=new = new checks only
+$PY e2e/battle_shots.py http://localhost:8096   # battle view, no-counter, passed, edit, ar, themes -> e2e/out/battle-*.png
+$PY e2e/help_shots.py   http://localhost:8096   # guide + what's new in 9 languages at 1440 and 390 -> e2e/out/help-*.png, changelog-*.png
+```
 
 ## Local test copy (LAN)
 docker build -t rally-strip . && docker rm -f rally-strip && docker run -d --name rally-strip --restart unless-stopped -e GATE_PASSWORD=test-gate-pw -p 0.0.0.0:8096:8080 rally-strip
-It's at http://hannah.localdomain:8096 and is currently running the `counter` head.
 
 ## Deploy (ONLY when the owner says "ship it")
-git checkout main && git merge --ff-only counter && git push origin main counter
+git checkout main && git merge --ff-only <branch> && git push origin main <branch>
 SHA=$(git rev-parse --short HEAD); D=$TMPDIR/rally-build-$SHA; rm -rf $D; mkdir -p $D; git archive HEAD | tar -x -C $D
 cd $D && ~/.local/bin/gcloud builds submit --tag us-central1-docker.pkg.dev/viscount-wos-tools/cloud-run-source-deploy/rally-spamulator:$SHA .
 ~/.local/bin/gcloud run deploy rally-spamulator --image us-central1-docker.pkg.dev/viscount-wos-tools/cloud-run-source-deploy/rally-spamulator:$SHA --region us-central1
-Then check:
-- https://rally.hunterisadonkey.com/health returns ok;
-- / redirects to /login (302);
-- /core.js returns 401 without the cookie.
-The service reads GATE_PASSWORD from the Secret Manager secret rally-gate-password. Never print, type or
-commit the real password; local and test copies only ever use 'test-gate-pw'.
+Then check: /health returns ok; a browser request to / (Accept: text/html) is a 302 to /login (a bare curl gets 401,
+that is normal); /core.js returns 401 without the cookie.
+The service reads GATE_PASSWORD from the Secret Manager secret rally-gate-password. Never print, type or commit
+the real password; local and test copies only ever use 'test-gate-pw'.
 
 ## Owner preferences
 - Works with either Claude Code or Codex. In Claude Code: use Sonnet 5.5 (`claude-sonnet-5-5`) and look at
-  screenshots directly with the Read tool. Don't spawn `claude -p` reviewers: each call carries ~25k tokens of
-  overhead.
-- Short, plain answers. Discuss ideas before building big things. Keep all languages working. Add the new
-  strings in all 9 languages.
-- The behaviour, copy text, maths and storage keys are guarded by the tests; don't change them without asking.
+  screenshots directly with the Read tool. Don't spawn `claude -p` reviewers (~25k tokens of overhead each).
+  Parallel Agent subagents are fine when he asks (he asked for them for translations: one agent per language,
+  each writing a fixes/translation JSON to the scratchpad that you apply with a script, so there are no
+  concurrent edits to one file).
+- Short, plain answers. Discuss ideas before building big things. Keep all languages working.
+- He says "ship it" to mean merge, push and deploy. Don't do any of those before he says it, and ask what
+  "publish" means if it's unclear (the GitHub repo is public).
 - Two people using the tool at once is fine: there is no server state and everything is per-browser.
 - He watches token use closely, so keep review loops short.
