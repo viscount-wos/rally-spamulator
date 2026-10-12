@@ -46,6 +46,8 @@
         $('lang-display').lang = code;
         $('lang-select').setAttribute('aria-label', t('language'));
         $('lang-chip').title = t('language');
+        $('guide-link').title = t('guide_link');
+        $('auto-reset-select').title = t('auto_reset_label');
         renderThemeSelect();
         renderAutoResetSelect();
         C.LISTS.forEach(function (k) { panels[k].renderAll(); });

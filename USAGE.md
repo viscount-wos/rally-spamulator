@@ -6,6 +6,10 @@ Choose your language and colour theme from the two small menus at the top right.
 
 ---
 
+The **?** button at the top right opens the in-app **Guide**: a quick start, how the timing works, a strategy guide and tips, in your language (it follows the language you picked in the tool).
+
+---
+
 ## 1. Rally Spam: make several rallies land together
 
 ### Set up your callers (once)

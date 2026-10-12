@@ -1,0 +1,43 @@
+/* The guide page. Colours come from tokens.css (the same three themes as the tool). */
+:root { --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace; --radius-sm: 8px; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0 16px 48px; background: rgb(var(--c-dark-bg)); color: rgb(var(--c-theme-text)); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; line-height: 1.55; }
+.help-bar {
+    position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+    max-width: 1100px; margin: 0 auto; padding: 10px 0;
+    background: rgb(var(--c-dark-bg)); border-bottom: 1px solid rgb(var(--c-theme-border));
+}
+.help-back { color: rgb(var(--c-accent)); font-weight: 700; text-decoration: none; white-space: nowrap; padding: 8px 4px; }
+.help-back:hover { text-decoration: underline; }
+.help-title { flex: 1 1 auto; min-width: 0; margin: 0; font-size: 1.25rem; color: rgb(var(--c-accent)); }
+#help-lang {
+    max-width: 100%;
+    min-height: 40px; padding: 6px 10px; font-size: 0.95rem; border-radius: var(--radius-sm);
+    background: rgb(var(--c-dark-input)); color: rgb(var(--c-theme-text)); border: 1px solid rgb(var(--c-theme-border));
+}
+.help-back:focus-visible, #help-lang:focus-visible, .help-toc a:focus-visible { outline: 3px solid rgb(var(--c-accent)); outline-offset: 2px; }
+.help-layout { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; padding-top: 20px; }
+.help-toc { position: sticky; top: 76px; font-size: 0.95rem; }
+.help-toc h2 { margin: 0 0 8px; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; color: rgb(var(--c-theme-dim)); }
+.help-toc ol { margin: 0; padding: 0; list-style: none; }
+.help-toc a { display: block; padding: 6px 8px; border-radius: var(--radius-sm); color: rgb(var(--c-theme-text)); text-decoration: none; }
+.help-toc a:hover { background: rgb(var(--c-dark-input)); color: rgb(var(--c-accent)); }
+.help-body section { margin-bottom: 36px; scroll-margin-top: 76px; }
+.help-body h2 { margin: 0 0 10px; font-size: 1.4rem; color: rgb(var(--c-accent)); border-bottom: 1px solid rgb(var(--c-theme-border)); padding-bottom: 6px; }
+.help-body h3 { margin: 18px 0 6px; font-size: 1.05rem; color: rgb(var(--c-success)); }
+.help-body p { margin: 0 0 10px; }
+.help-body ul, .help-body ol { margin: 0 0 12px; padding-inline-start: 1.5rem; }
+.help-body li { margin-bottom: 6px; }
+.ui-label { color: rgb(var(--c-warning)); font-weight: 700; }
+.help-body pre {
+    margin: 0 0 12px; padding: 10px 12px; overflow-x: auto; text-align: left;
+    background: rgb(var(--c-dark-input)); border: 1px dashed rgb(var(--c-theme-border)); border-radius: var(--radius-sm);
+    font-family: var(--mono, ui-monospace, monospace); font-size: 0.9rem; color: rgb(var(--c-theme-text));
+}
+@media (max-width: 800px) {
+    .help-layout { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .help-toc { position: static; }
+    .help-toc ol { display: flex; flex-wrap: wrap; gap: 4px; }
+    .help-toc a { border: 1px solid rgb(var(--c-theme-border)); padding: 6px 10px; }
+    .help-body section { scroll-margin-top: 64px; }
+}

@@ -54,6 +54,13 @@ body { padding: 0 12px 24px; }
     opacity: 0; cursor: pointer; font-size: 1rem;
     background: rgb(var(--c-dark-input)); color: rgb(var(--c-theme-text));
 }
+.guide-link {
+    display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; flex: none;
+    border-radius: 50%; border: 1px solid rgb(var(--c-theme-border)); background: rgb(var(--c-dark-input));
+    color: rgb(var(--c-accent)); font-weight: 800; font-size: 1rem; text-decoration: none;
+}
+.guide-link:hover { border-color: rgb(var(--c-accent)); }
+.guide-link:focus-visible { outline: 3px solid rgb(var(--c-accent)); outline-offset: 2px; }
 .counter-toggle { display: inline-flex; align-items: center; gap: 4px; margin-inline-end: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .counter-toggle input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--c-danger)); cursor: pointer; }
 .counter-toggle:focus-within { outline: 3px solid rgb(var(--c-accent)); outline-offset: 2px; border-radius: var(--radius-sm); }
@@ -688,4 +695,22 @@ select { cursor: pointer; }
     .panel-foot > .preview-wrap { flex: 1 1 auto; }
     .panel-foot { flex: 1 1 0; }
     .caller-list { overflow: auto; flex: 0 1 auto; min-height: 0; }
+}
+
+/* medium desktops: the header (clock, tabs, Counter tick, ? guide, menus) has to stay on one row */
+@media (min-width: 900px) and (max-width: 1599px) {
+    .top-bar { column-gap: 6px; }
+    .clock-time { font-size: 1.9rem; letter-spacing: 0; }
+    .clock { gap: 8px; padding: 2px 10px; }
+    .counter-toggle { margin-inline-end: 2px; }
+    .logout-link { font-size: 0.85rem; }
+}
+
+/* long-label languages at 900-1599px: the Auto-reset label is hidden visually (still the select's
+   accessible name, and its tooltip) so the header stays on one row */
+@media (min-width: 900px) and (max-width: 1599px) {
+    html:lang(es) .auto-reset-box label, html:lang(fr) .auto-reset-box label,
+    html:lang(de) .auto-reset-box label, html:lang(tr) .auto-reset-box label {
+        position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+    }
 }

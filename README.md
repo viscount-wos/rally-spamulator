@@ -36,6 +36,8 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
   18:00:54 - Kai (march 0:48)
   ```
 
+**Guide**: the **?** button in the header opens `/help` (behind the same password gate): a quick start, how the timing works, waves, the battle view, reset and auto-reset, Garrison Defense, a strategy guide (tool-based tactics only, no game rules) and tips, in all 9 languages. The text lives in `public/help-content.js` and is drawn by `help.js` with `textContent` only; button names are written as `{key}` and replaced with the app's own label from `i18n.js`, so the guide always uses the words on the buttons. It follows the language saved in the tool (`app_lang`) and has its own language menu. Translations were written by Claude and proof-read by one reviewer per language against the UI wording; a native speaker's check is still welcome.
+
 **Garrison Defense**
 - Keep a roster of enemies (name, alliance, march time) and your own march time. All of it is stored in the browser.
 - Pick an enemy, type the in-game rally countdown and press Track. It shows when the rally hits and when to send reinforcements, with SEND NOW / LANDED alerts.
@@ -106,6 +108,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 | `public/index.html` | Markup only |
 | `public/core.js` | Pure maths and text (schedule, copy text, garrison), shared with the tests |
 | `public/i18n.js` | All translations |
+| `public/help.html`, `help.js`, `help.css`, `help-content.js` | The guide page (`/help`) and its 9-language text |
 | `public/app.js` | UI, localStorage, clipboard |
 | `public/tokens.css` | Theme tokens (the event app's 3 palettes) + base styles, shared with the login page |
 | `public/theme.js` | Theme picker (applied before first paint) |
@@ -118,7 +121,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 ```bash
 npm test                                    # node --test: maths, live/frozen/fixed plans, auto-reset + stale-copy helpers, midnight UTC, waves (delays, earliest-start anchoring, multi-time Land at, grouped copy text, migration), Attack/Counter lists (independence, migration, Counter heading in 9 languages), durations, no missing i18n keys, theme contrast, copy text, garrison, server headers (incl. X-Robots-Tag, robots.txt), password gate (off/on, redirect/401, cookie, tampering, open redirect, rate limit, prod refusal)
 GATE_PASSWORD=test-gate-pw npm start &      # then:
-python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, auto-reset + stale-copy guard, waves (tap cycling, gaps, multi Land at, copy text), battle view (Attack + Counter side by side: flow, layout fit, clipboard), per-list auto-reset, 3 themes, es/fr/de, Arabic RTL, CSP/console errors; screenshots in e2e/out/. `ONLY=new` runs just the Counter/look checks. `python3 e2e/battle_shots.py <url>` writes the battle-view screenshots (`e2e/out/battle-*.png`) for a design review
+python3 e2e/smoke.py http://localhost:8080  # Playwright (Chromium): logs in first (GATE_PASSWORD env, default test-gate-pw); login page en + ar; desktop + iPhone 13, clipboard, Arabic RTL, live -> copy/freeze -> reset with a controlled clock, auto-reset + stale-copy guard, waves (tap cycling, gaps, multi Land at, copy text), battle view (Attack + Counter side by side: flow, layout fit, clipboard), per-list auto-reset, 3 themes, es/fr/de, Arabic RTL, CSP/console errors; screenshots in e2e/out/. `ONLY=new` runs just the Counter/look checks. `python3 e2e/help_shots.py <url>` checks the guide in all 9 languages at 1440 and 390 wide (header stays one row, no sideways scroll, no raw `{tokens}`) and writes `e2e/out/help-*.png`. `python3 e2e/battle_shots.py <url>` writes the battle-view screenshots (`e2e/out/battle-*.png`) for a design review
 INSECURE_URL=http://<lan-host>:8080 python3 e2e/smoke.py http://localhost:8080   # also checks copying over plain http
 ```
 

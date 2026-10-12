@@ -179,6 +179,12 @@ function createApp(opts = {}) {
     app.get(['/login', '/login.html', '/logout'], (req, res) => res.redirect(302, '/'));
   }
 
+  // The guide (behind the gate like everything else)
+  app.get('/help', (req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.sendFile(path.join(PUBLIC, 'help.html'));
+  });
+
   // Old links from the Discord-login era land on the app.
   app.get('/auth/*', (req, res) => res.redirect(302, '/'));
 
