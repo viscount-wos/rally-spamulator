@@ -46,6 +46,18 @@ def main():
                 if code in ("en", "ar", "ko", "de"):
                     page.screenshot(path=f"{OUT}/help-{tag}-{code}.png")
                 page.go_back()
+            # What's new: reached from the guide's footer link, 4 releases, no sideways scroll
+            for code in CODES:
+                page.evaluate(f"localStorage.setItem('app_lang', '{code}')")
+                page.goto(BASE + "/help")
+                page.click("#help-changelog")
+                expect(page).to_have_url(re.compile("/changelog$"))
+                page.wait_for_selector("#cl-body section")
+                check(f"[{tag}/{code}] changelog: 4 releases", page.locator("#cl-body section").count() == 4)
+                check(f"[{tag}/{code}] changelog: lang + no sideways scroll", page.evaluate("document.documentElement.lang") == code
+                      and page.evaluate("document.documentElement.scrollWidth <= innerWidth"))
+                if code in ("en", "ar"):
+                    page.screenshot(path=f"{OUT}/changelog-{tag}-{code}.png")
             # language switch on the page is remembered by the tool
             page.goto(BASE + "/help")
             page.select_option("#help-lang", "fr")

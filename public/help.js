@@ -57,6 +57,7 @@
         $('help-title').textContent = H.page_title;
         $('help-toc-title').textContent = H.contents;
         $('help-lang').value = lang;
+        if (window.RallyChangelog) $('help-changelog').textContent = window.RallyChangelog[lang].whats_new;
         $('help-lang').setAttribute('aria-label', LANG[lang].language || 'Language');
 
         var toc = $('help-toc-list'), body = $('help-body');

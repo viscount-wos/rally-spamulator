@@ -6,7 +6,7 @@ Choose your language and colour theme from the two small menus at the top right.
 
 ---
 
-The **?** button at the top right opens the in-app **Guide**: a quick start, how the timing works, a strategy guide and tips, in your language (it follows the language you picked in the tool).
+The **?** button at the top right opens the in-app **Guide**: a quick start, how the timing works, a strategy guide and tips, in your language (it follows the language you picked in the tool). At the bottom of the Guide, **What's new** lists what changed in each release.
 
 ---
 

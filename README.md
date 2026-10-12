@@ -38,6 +38,8 @@ Live: https://rally.hunterisadonkey.com (Cloud Run service `rally-spamulator`). 
 
 **Guide**: the **?** button in the header opens `/help` (behind the same password gate): a quick start, how the timing works, waves, the battle view, reset and auto-reset, Garrison Defense, a strategy guide (tool-based tactics only, no game rules) and tips, in all 9 languages. The text lives in `public/help-content.js` and is drawn by `help.js` with `textContent` only; button names are written as `{key}` and replaced with the app's own label from `i18n.js`, so the guide always uses the words on the buttons. It follows the language saved in the tool (`app_lang`) and has its own language menu. Translations were written by Claude and proof-read by one reviewer per language against the UI wording; a native speaker's check is still welcome.
 
+**What's new**: the guide's footer links to `/changelog` (also behind the gate), a newest-first list of releases in all 9 languages (`public/changelog-content.js`, drawn by `changelog.js`). The English text is also kept in [CHANGELOG.md](CHANGELOG.md); `test/changelog.test.js` checks that every language has the same releases and that `CHANGELOG.md` matches the English. To add a release, edit both and every language in the content file.
+
 **Garrison Defense**
 - Keep a roster of enemies (name, alliance, march time) and your own march time. All of it is stored in the browser.
 - Pick an enemy, type the in-game rally countdown and press Track. It shows when the rally hits and when to send reinforcements, with SEND NOW / LANDED alerts.
@@ -109,6 +111,7 @@ The whole site (page, scripts, styles) needs one shared password. Only `/health`
 | `public/core.js` | Pure maths and text (schedule, copy text, garrison), shared with the tests |
 | `public/i18n.js` | All translations |
 | `public/help.html`, `help.js`, `help.css`, `help-content.js` | The guide page (`/help`) and its 9-language text |
+| `public/changelog.html`, `changelog.js`, `changelog-content.js` | The What's new page (`/changelog`) and its 9-language text; English copy in `CHANGELOG.md` |
 | `public/app.js` | UI, localStorage, clipboard |
 | `public/tokens.css` | Theme tokens (the event app's 3 palettes) + base styles, shared with the login page |
 | `public/theme.js` | Theme picker (applied before first paint) |

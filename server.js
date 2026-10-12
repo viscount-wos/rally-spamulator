@@ -185,6 +185,11 @@ function createApp(opts = {}) {
     res.sendFile(path.join(PUBLIC, 'help.html'));
   });
 
+  app.get('/changelog', (req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.sendFile(path.join(PUBLIC, 'changelog.html'));
+  });
+
   // Old links from the Discord-login era land on the app.
   app.get('/auth/*', (req, res) => res.redirect(302, '/'));
 
