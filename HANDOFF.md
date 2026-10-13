@@ -44,11 +44,10 @@ people via the password. No public links, and it is noindexed.
   `app_lang`, `preferred_theme`.
 - **New UI text goes in all 9 languages** (`public/i18n.js`; a test fails on a missing key). Guide and
   change-log text go in their own content files, all 9 languages.
-- **Header width is tight on 900-1599px.** The header (brand, clock, tabs, ? guide, Counter tick, Auto-reset,
-  language, theme, Log out) must stay ONE row, or the battle-view panels lose height and clip. To keep it so,
-  `style.css` shrinks the clock between 900 and 1599px and hides the "Auto-reset after" label visually in es, fr,
-  de and tr (still the select's accessible name and tooltip). Adding anything to the header needs
-  `e2e/help_shots.py` (it checks "header stays one row" in all 9 languages at 1440).
+- **Header is brand, clock, tabs, ? and Menu.** Counter tick, Auto-reset, Sound cues, language, theme, keys and
+  Log out are in the Menu popover (`#menu-panel`), so the header fits on one row at any width/language (still
+  checked by `e2e/help_shots.py`). Don't put controls back in the header. In e2e, open the menu first
+  (`menu(page)`, `hsel(...)` in smoke.py). `ONLY=run` runs just the two basic smoke runs.
 - The battle view is fitted to one screen from 1100x700 (panels fill the height, only their insides scroll).
   Check it with `e2e/battle_shots.py <url>` (prints scroll/client heights; clipped = scrollHeight > clientHeight)
   and look at `e2e/out/battle-*.png` yourself.

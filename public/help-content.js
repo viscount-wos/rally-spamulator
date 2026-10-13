@@ -57,7 +57,7 @@
                     'Attack is your own plan (waves included). Counter is one separate list for a counter-rally by another alliance: one wave, as soon as possible. Type that alliance\'s tag in the Counter title (e.g. BDE).',
                     'Each list has its own callers, duration, reaction time, Land at, LIVE/LOCKED state, Copy button and Auto-reset. Copying or resetting one never touches the other.',
                     'Each panel has a {next_label} line: who has to start next, and in how many seconds.',
-                    'Untick {show_counter} in the header to hide Counter and give Attack the full width. Counter keeps its state, and your choice is remembered.',
+                    'Untick {show_counter} in {menu_btn} to hide Counter and give Attack the full width. Counter keeps its state, and your choice is remembered.',
                     'The Counter text starts with its own heading, so it can\'t be mixed up with the Attack text.'
                 ]]
             ]],
@@ -65,7 +65,7 @@
                 ['ul', [
                     '{reset_btn} goes back to {live_ind}. Once the first start has passed it turns red with a warning.',
                     'Forgot to reset? Copy never sends old times: it resets, locks fresh times, copies them and tells you the old times had passed.',
-                    '{auto_reset_label} (in the header): Off, 1, 2, 3, 5 (default), 10 or 15 minutes. A locked plan goes back to LIVE by itself, with a countdown under {locked_ind}. Each list counts from its own lock time. Copying again or editing does not restart it.',
+                    '{auto_reset_label} (in {menu_btn}): Off, 1, 2, 3, 5 (default), 10 or 15 minutes. A locked plan goes back to LIVE by itself, with a countdown under {locked_ind}. Each list counts from its own lock time. Copying again or editing does not restart it.',
                     'Editing while locked keeps the first start where it is. Changing the {reaction_time} goes back to {live_ind}.'
                 ]]
             ]],
@@ -159,7 +159,7 @@
                     'Ataque es tu propio plan (con oleadas). Contraataque es una lista aparte para un rally de contraataque de otra alianza: una oleada, lo antes posible. Escribe la etiqueta de esa alianza en el título de Contraataque (p. ej. BDE).',
                     'Cada lista tiene sus propios llamadores, duración, tiempo de reacción, hora de llegada, estado EN VIVO/BLOQUEADO, botón de copiar y reinicio automático. Copiar o reiniciar una nunca afecta a la otra.',
                     'Cada panel tiene una línea {next_label}: quién debe salir a continuación y en cuántos segundos.',
-                    'Desmarca {show_counter} en la cabecera para ocultar el Contraataque y dar todo el ancho al Ataque. El Contraataque conserva su estado y se recuerda tu elección.',
+                    'Desmarca {show_counter} en {menu_btn} para ocultar el Contraataque y dar todo el ancho al Ataque. El Contraataque conserva su estado y se recuerda tu elección.',
                     'El texto del Contraataque empieza con su propio encabezado, así no se confunde con el del Ataque.'
                 ]]
             ]],
@@ -167,7 +167,7 @@
                 ['ul', [
                     '{reset_btn} vuelve a {live_ind}. Cuando ya ha pasado la primera salida, se pone rojo con un aviso.',
                     '¿Olvidaste reiniciar? Copiar nunca envía horas antiguas: reinicia, bloquea horas nuevas, las copia y te avisa de que las antiguas habían pasado.',
-                    '{auto_reset_label} (en la cabecera): No, 1, 2, 3, 5 (por defecto), 10 o 15 minutos. Un plan bloqueado vuelve a EN VIVO solo, con una cuenta atrás bajo {locked_ind}. Cada lista cuenta desde su propio bloqueo. Copiar de nuevo o editar no lo reinicia.',
+                    '{auto_reset_label} (en {menu_btn}): No, 1, 2, 3, 5 (por defecto), 10 o 15 minutos. Un plan bloqueado vuelve a EN VIVO solo, con una cuenta atrás bajo {locked_ind}. Cada lista cuenta desde su propio bloqueo. Copiar de nuevo o editar no lo reinicia.',
                     'Editar con el plan bloqueado mantiene la primera salida donde está. Cambiar el {reaction_time} vuelve a {live_ind}.'
                 ]]
             ]],
@@ -261,7 +261,7 @@
                     'Attaque est votre propre plan (vagues comprises). Contre-attaque est une liste séparée pour un contre-rally d\'une autre alliance : une vague, dès que possible. Saisissez le tag de cette alliance dans le titre Contre-attaque (p. ex. BDE).',
                     'Chaque liste a ses propres lanceurs, durée, temps de réaction, heure d\'arrivée, état EN DIRECT/VERROUILLÉ, bouton Copier et réinitialisation auto. Copier ou réinitialiser l\'une ne touche jamais l\'autre.',
                     'Chaque panneau a une ligne {next_label} : qui doit partir ensuite, et dans combien de secondes.',
-                    'Décochez {show_counter} dans l\'en-tête pour masquer la Contre-attaque et donner toute la largeur à l\'Attaque. La Contre-attaque garde son état et votre choix est mémorisé.',
+                    'Décochez {show_counter} dans {menu_btn} pour masquer la Contre-attaque et donner toute la largeur à l\'Attaque. La Contre-attaque garde son état et votre choix est mémorisé.',
                     'Le texte de la Contre-attaque commence par son propre intitulé, pour ne jamais le confondre avec celui de l\'Attaque.'
                 ]]
             ]],
@@ -269,7 +269,7 @@
                 ['ul', [
                     '{reset_btn} revient à {live_ind}. Une fois le premier départ passé, il devient rouge avec un avertissement.',
                     'Vous avez oublié de réinitialiser ? Copier n\'envoie jamais d\'anciennes heures : il réinitialise, fige de nouvelles heures, les copie et indique que les anciennes étaient passées.',
-                    '{auto_reset_label} (dans l\'en-tête) : Désactivée, 1, 2, 3, 5 (par défaut), 10 ou 15 minutes. Un plan verrouillé revient tout seul en direct, avec un compte à rebours sous {locked_ind}. Chaque liste compte depuis son propre verrouillage. Copier à nouveau ou modifier ne le relance pas.',
+                    '{auto_reset_label} (dans {menu_btn}) : Désactivée, 1, 2, 3, 5 (par défaut), 10 ou 15 minutes. Un plan verrouillé revient tout seul en direct, avec un compte à rebours sous {locked_ind}. Chaque liste compte depuis son propre verrouillage. Copier à nouveau ou modifier ne le relance pas.',
                     'Modifier pendant le verrouillage garde le premier départ en place. Changer le {reaction_time} revient à {live_ind}.'
                 ]]
             ]],
@@ -363,7 +363,7 @@
                     'Angriff ist dein eigener Plan (mit Wellen). Konter ist eine eigene Liste für ein Konter-Rally einer anderen Allianz: eine Welle, so schnell wie möglich. Gib das Kürzel dieser Allianz im Konter-Titel ein (z. B. BDE).',
                     'Jede Liste hat eigene Rufer, Dauer, Reaktionszeit, Landezeit, LIVE/GESPERRT-Zustand, Kopieren-Schaltfläche und Auto-Reset. Kopieren oder Zurücksetzen der einen Liste berührt die andere nie.',
                     'Jedes Panel hat eine Zeile {next_label}: wer als Nächstes starten muss und in wie vielen Sekunden.',
-                    'Entferne den Haken bei {show_counter} in der Kopfzeile, um den Konter auszublenden und dem Angriff die volle Breite zu geben. Der Konter behält seinen Zustand, und deine Wahl wird gemerkt.',
+                    'Entferne den Haken bei {show_counter} im {menu_btn}, um den Konter auszublenden und dem Angriff die volle Breite zu geben. Der Konter behält seinen Zustand, und deine Wahl wird gemerkt.',
                     'Der Konter-Text beginnt mit einer eigenen Überschrift, damit er nicht mit dem Angriffstext verwechselt wird.'
                 ]]
             ]],
@@ -371,7 +371,7 @@
                 ['ul', [
                     '{reset_btn} geht zurück auf {live_ind}. Sobald der erste Start vorbei ist, wird es rot und warnt.',
                     'Reset vergessen? Kopieren sendet nie alte Zeiten: Es setzt zurück, sperrt neue Zeiten, kopiert sie und meldet, dass die alten vorbei waren.',
-                    '{auto_reset_label} (in der Kopfzeile): Aus, 1, 2, 3, 5 (Standard), 10 oder 15 Minuten. Ein gesperrter Plan geht von allein zurück auf LIVE, mit einem Countdown unter {locked_ind}. Jede Liste zählt ab ihrem eigenen Sperrzeitpunkt. Erneutes Kopieren oder Bearbeiten startet den Countdown nicht neu.',
+                    '{auto_reset_label} (im {menu_btn}): Aus, 1, 2, 3, 5 (Standard), 10 oder 15 Minuten. Ein gesperrter Plan geht von allein zurück auf LIVE, mit einem Countdown unter {locked_ind}. Jede Liste zählt ab ihrem eigenen Sperrzeitpunkt. Erneutes Kopieren oder Bearbeiten startet den Countdown nicht neu.',
                     'Bearbeiten im gesperrten Zustand lässt den ersten Start, wo er ist. Eine Änderung bei {reaction_time} geht zurück auf {live_ind}.'
                 ]]
             ]],
@@ -465,7 +465,7 @@
                     'Atak to twój własny plan (z falami). Kontra to osobna lista na kontrzwołanie innego sojuszu: jedna fala, jak najszybciej. Wpisz tag tego sojuszu w tytule Kontry (np. BDE).',
                     'Każda lista ma własnych zwołujących, czas trwania, czas reakcji, godzinę lądowania, stan NA ŻYWO/ZABLOKOWANY, przycisk kopiowania i automatyczny reset. Kopiowanie lub reset jednej nigdy nie rusza drugiej.',
                     'Każdy panel ma linię {next_label}: kto ma wystartować jako następny i za ile sekund.',
-                    'Odznacz {show_counter} w nagłówku, aby ukryć Kontrę i dać Atakowi całą szerokość. Kontra zachowuje swój stan, a twój wybór jest zapamiętywany.',
+                    'Odznacz {show_counter} w {menu_btn}, aby ukryć Kontrę i dać Atakowi całą szerokość. Kontra zachowuje swój stan, a twój wybór jest zapamiętywany.',
                     'Tekst Kontry zaczyna się własnym nagłówkiem, więc nie pomylisz go z tekstem Ataku.'
                 ]]
             ]],
@@ -473,7 +473,7 @@
                 ['ul', [
                     '{reset_btn} wraca do {live_ind}. Gdy pierwszy start minie, robi się czerwony z ostrzeżeniem.',
                     'Zapomniałeś o resecie? Kopiowanie nigdy nie wysyła starych godzin: resetuje, blokuje świeże godziny, kopiuje je i informuje, że stare minęły.',
-                    '{auto_reset_label} (w nagłówku): Wył., 1, 2, 3, 5 (domyślnie), 10 lub 15 minut. Zablokowany plan sam wraca do stanu NA ŻYWO, z odliczaniem pod {locked_ind}. Każda lista liczy od własnego zablokowania. Ponowne kopiowanie lub edycja go nie restartują.',
+                    '{auto_reset_label} (w {menu_btn}): Wył., 1, 2, 3, 5 (domyślnie), 10 lub 15 minut. Zablokowany plan sam wraca do stanu NA ŻYWO, z odliczaniem pod {locked_ind}. Każda lista liczy od własnego zablokowania. Ponowne kopiowanie lub edycja go nie restartują.',
                     'Edycja przy zablokowanym planie zostawia pierwszy start na miejscu. Zmiana {reaction_time} wraca do {live_ind}.'
                 ]]
             ]],
@@ -567,7 +567,7 @@
                     '공격은 내 계획(웨이브 포함)입니다. 카운터는 다른 연맹의 카운터 랠리를 위한 별도 목록으로, 웨이브 하나를 최대한 빨리 보냅니다. 카운터 제목에 그 연맹의 태그를 입력하세요(예: BDE).',
                     '각 목록은 자신만의 소환자, 랠리 지속시간, 반응 시간, 도착 시간, {live_ind}/{locked_ind} 상태, 복사 버튼, 자동 초기화를 가집니다. 한쪽을 복사하거나 초기화해도 다른 쪽에는 영향이 없습니다.',
                     '각 패널에는 {next_label} 줄이 있어, 다음에 누가 출발해야 하는지와 몇 초 뒤인지를 보여 줍니다.',
-                    '머리글에서 {show_counter} 체크를 해제하면 카운터가 숨겨지고 공격이 전체 너비를 씁니다. 카운터의 상태는 유지되며, 이 선택도 기억됩니다.',
+                    '{menu_btn}에서 {show_counter} 체크를 해제하면 카운터가 숨겨지고 공격이 전체 너비를 씁니다. 카운터의 상태는 유지되며, 이 선택도 기억됩니다.',
                     '카운터 텍스트는 자체 제목으로 시작하므로 공격 텍스트와 헷갈리지 않습니다.'
                 ]]
             ]],
@@ -575,7 +575,7 @@
                 ['ul', [
                     '{reset_btn} 버튼을 누르면 {live_ind} 상태로 돌아갑니다. 첫 출발 시간이 지나면 빨간색으로 바뀌며 경고가 표시됩니다.',
                     '초기화를 잊었나요? 복사해도 지난 시간은 절대 나가지 않습니다. 초기화하고 새 시간을 고정해 복사한 뒤, 이전 시간이 지났다고 알려 줍니다.',
-                    '{auto_reset_label}(머리글): 끔, 1, 2, 3, 5(기본), 10, 15분. 잠긴 계획은 저절로 {live_ind} 상태로 돌아가며, {locked_ind} 아래에 카운트다운이 표시됩니다. 각 목록은 자신이 잠긴 시점부터 계산합니다. 다시 복사하거나 편집해도 카운트다운은 다시 시작되지 않습니다.',
+                    '{auto_reset_label}({menu_btn}): 끔, 1, 2, 3, 5(기본), 10, 15분. 잠긴 계획은 저절로 {live_ind} 상태로 돌아가며, {locked_ind} 아래에 카운트다운이 표시됩니다. 각 목록은 자신이 잠긴 시점부터 계산합니다. 다시 복사하거나 편집해도 카운트다운은 다시 시작되지 않습니다.',
                     '잠긴 상태에서 편집해도 첫 출발은 그대로입니다. {reaction_time} 설정을 바꾸면 {live_ind} 상태로 돌아갑니다.'
                 ]]
             ]],
@@ -669,7 +669,7 @@
                     '进攻是你自己的计划（含波次）。反击是用于应对其他联盟的独立列表（反击集结）：一个波次，尽快发出。在反击标题中输入该联盟的标签（例如 BDE）。',
                     '每个列表都有自己的召唤者、时长、反应时间、到达时间、实时/已锁定状态、复制按钮和自动重置。复制或重置其中一个不会影响另一个。',
                     '每个面板都有一行{next_label}：下一个该出发的人，以及还有多少秒。',
-                    '在页眉取消勾选{show_counter}可隐藏反击，让进攻占满整个宽度。反击保留其状态，你的选择会被记住。',
+                    '在{menu_btn}中取消勾选{show_counter}可隐藏反击，让进攻占满整个宽度。反击保留其状态，你的选择会被记住。',
                     '反击文本以自己的标题开头，因此不会与进攻文本混淆。'
                 ]]
             ]],
@@ -677,7 +677,7 @@
                 ['ul', [
                     '{reset_btn}返回{live_ind}。首次出发时间过去后，它会变红并发出警告。',
                     '忘记重置了？复制绝不会发送旧时间：它会重置、锁定新时间、复制，并告知旧时间已过。',
-                    '{auto_reset_label}（页眉）：关闭、1、2、3、5（默认）、10 或 15 分钟。已锁定的计划会自动回到{live_ind}，并在{locked_ind}下方显示倒计时。每个列表从各自的锁定时间开始计时。再次复制或编辑不会重新计时。',
+                    '{auto_reset_label}（{menu_btn}）：关闭、1、2、3、5（默认）、10 或 15 分钟。已锁定的计划会自动回到{live_ind}，并在{locked_ind}下方显示倒计时。每个列表从各自的锁定时间开始计时。再次复制或编辑不会重新计时。',
                     '锁定状态下编辑会保持首次出发不变。更改{reaction_time}会回到{live_ind}。'
                 ]]
             ]],
@@ -771,7 +771,7 @@
                     'Saldırı kendi planındır (dalgalar dahil). Kontra, başka bir ittifakın karşı ralli açması için ayrı bir listedir: tek dalga, mümkün olan en kısa sürede. O ittifakın etiketini Kontra başlığına yaz (örn. BDE).',
                     'Her listenin kendi çağrıcıları, ralli süresi, tepki süresi, varış saati, CANLI/KİLİTLİ durumu, kopyalama düğmesi ve otomatik sıfırlaması vardır. Birini kopyalamak veya sıfırlamak diğerini asla etkilemez.',
                     'Her panelde bir {next_label} satırı vardır: sıradaki kimin, kaç saniye sonra çıkması gerektiğini gösterir.',
-                    'Üst bilgide {show_counter} işaretini kaldırırsan Kontra gizlenir ve Saldırı tüm genişliği kullanır. Kontra durumunu korur ve seçimin hatırlanır.',
+                    '{menu_btn} içinde {show_counter} işaretini kaldırırsan Kontra gizlenir ve Saldırı tüm genişliği kullanır. Kontra durumunu korur ve seçimin hatırlanır.',
                     'Kontra metni kendi başlığıyla başlar, böylece Saldırı metniyle karışmaz.'
                 ]]
             ]],
@@ -779,7 +779,7 @@
                 ['ul', [
                     '{reset_btn}, {live_ind} durumuna döner. İlk çıkış saati geçince kırmızıya döner ve uyarı verir.',
                     'Sıfırlamayı mı unuttun? Kopyalama asla eski saatleri göndermez: sıfırlar, yeni saatleri kilitler, kopyalar ve eski saatlerin geçtiğini söyler.',
-                    '{auto_reset_label} (üst bilgide): Kapalı, 1, 2, 3, 5 (varsayılan), 10 veya 15 dakika. Kilitli plan kendiliğinden CANLI durumuna döner; {locked_ind} altında geri sayım görünür. Her liste kendi kilitlenme anından saymaya başlar. Yeniden kopyalamak veya düzenlemek sayacı yeniden başlatmaz.',
+                    '{auto_reset_label} ({menu_btn} içinde): Kapalı, 1, 2, 3, 5 (varsayılan), 10 veya 15 dakika. Kilitli plan kendiliğinden CANLI durumuna döner; {locked_ind} altında geri sayım görünür. Her liste kendi kilitlenme anından saymaya başlar. Yeniden kopyalamak veya düzenlemek sayacı yeniden başlatmaz.',
                     'Kilitliyken düzenleme yapmak ilk çıkışı yerinde bırakır. {reaction_time} değiştirilirse plan {live_ind} durumuna döner.'
                 ]]
             ]],
@@ -873,7 +873,7 @@
                     'الهجوم هو خطتك (مع الموجات). الهجوم المضاد قائمة منفصلة لحشد مضاد من تحالف آخر: موجة واحدة، في أسرع وقت. اكتب رمز ذلك التحالف في عنوان الهجوم المضاد (مثل BDE).',
                     'لكل قائمة منادوها ومدتها ووقت تفاعلها ووقت وصولها وحالة مباشر/مقفل وزر النسخ وإعادة الضبط التلقائي الخاصة بها. نسخ إحداهما أو إعادة ضبطها لا يمس الأخرى أبداً.',
                     'في كل لوحة سطر {next_label}: من يجب أن ينطلق بعد ذلك، وبعد كم ثانية.',
-                    'ألغِ تحديد {show_counter} في الترويسة لإخفاء الهجوم المضاد ومنح الهجوم العرض كاملاً. يحتفظ الهجوم المضاد بحالته ويُحفظ اختيارك.',
+                    'ألغِ تحديد {show_counter} في {menu_btn} لإخفاء الهجوم المضاد ومنح الهجوم العرض كاملاً. يحتفظ الهجوم المضاد بحالته ويُحفظ اختيارك.',
                     'يبدأ نص الهجوم المضاد بعنوانه الخاص، فلا يختلط بنص الهجوم.'
                 ]]
             ]],
@@ -881,7 +881,7 @@
                 ['ul', [
                     '{reset_btn} يعود إلى {live_ind}. وعندما يفوت أول انطلاق يتحول إلى الأحمر مع تحذير.',
                     'نسيت إعادة الضبط؟ النسخ لا يرسل أوقاتاً قديمة أبداً: يعيد الضبط، ويقفل أوقاتاً جديدة، وينسخها، ويخبرك أن الأوقات القديمة فاتت.',
-                    '{auto_reset_label} (في الترويسة): Off أو 1 أو 2 أو 3 أو 5 (الافتراضي) أو 10 أو 15 دقيقة. تعود الخطة المقفلة إلى مباشر من تلقاء نفسها، مع عدّ تنازلي تحت {locked_ind}. تحسب كل قائمة من وقت قفلها. النسخ مجدداً أو التعديل لا يعيدان تشغيله.',
+                    '{auto_reset_label} (في {menu_btn}): Off أو 1 أو 2 أو 3 أو 5 (الافتراضي) أو 10 أو 15 دقيقة. تعود الخطة المقفلة إلى مباشر من تلقاء نفسها، مع عدّ تنازلي تحت {locked_ind}. تحسب كل قائمة من وقت قفلها. النسخ مجدداً أو التعديل لا يعيدان تشغيله.',
                     'التعديل أثناء القفل يُبقي أول انطلاق في مكانه. وتغيير {reaction_time} يعيد إلى {live_ind}.'
                 ]]
             ]],

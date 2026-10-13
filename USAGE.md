@@ -37,7 +37,7 @@ Land 00:05:00
 
 ### Auto-reset
 In the heat of battle it's easy to forget Reset, so locked times go back to LIVE on their own after a while.
-- **Auto-reset after** (in Rally Settings): **Off**, 1, 2, 3, **5** (the default), 10 or 15 minutes. Your choice is remembered.
+- **Auto-reset after** (in the **Menu**, top right): **Off**, 1, 2, 3, **5** (the default), 10 or 15 minutes. Your choice is remembered.
 - The clock starts when the times are locked (Copy Schedule or LOCK). Under **LOCKED** you see *Auto-reset in 4:32* counting down, so it never takes you by surprise.
 - When it reaches zero the times go back to LIVE exactly as if you had pressed Reset, and a short message says *Auto-reset: times are live again*.
 - Copying the same text again, or changing callers, waves or the rally duration while locked, does **not** restart the countdown. Pressing **Reset** yourself ends it.
@@ -146,5 +146,6 @@ Attack and Counter sit side by side on one screen (no tabs); below 900px wide th
 
 - Each panel's head is the same: name, LIVE/LOCKED with the auto-reset countdown, LOCK (Reset in the same place once frozen), the landing time(s), a NEXT line (who starts next, in Xs) and the big Copy button (Attack in gold, Counter in red). The "first start passed" warning replaces the NEXT line, so nothing moves; Copy then says "new times" because it copies fresh ones.
 - Below: Settings (duration, reaction, waves and delays, counter tag) fold away behind a one-line summary; Land at stays in view. Then the schedule (waves as columns), the caller roster as tap-to-cycle chips (Edit list / Add/Edit for preparation; Clear list only while editing) and the chat text.
-- Untick **Counter** in the header to hide the Counter panel: Attack then takes the full width (good for widescreens). It is only hidden, so Counter keeps its callers and any frozen plan; tick it again to bring it back. The choice is remembered in the browser.
-- The UTC clock, Rally Spam | Garrison Defense, the shared auto-reset, language, theme and Log out are in the header.
+- Untick **Counter** in the **Menu** (top right) to hide the Counter panel: Attack then takes the full width (good for widescreens). It is only hidden, so Counter keeps its callers and any frozen plan; tick it again to bring it back. The choice is remembered in the browser.
+- The header holds the UTC clock, Rally Spam | Garrison Defense and the **?** guide. The **Menu** holds the rest, set once per battle: the Counter tick, the shared auto-reset, **Sound cues** (a beep 5 s before the next start and a double beep at it, for locked plans), language, theme, the keys (**C** copies Attack, **X** copies Counter, never while typing) and Log out.
+- The NEXT line has a thin bar that fills over the last 30 seconds before the next start (locked plans only).

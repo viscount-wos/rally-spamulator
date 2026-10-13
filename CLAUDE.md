@@ -36,7 +36,7 @@ CHANGELOG.md         English copy of the change log
 - **Changelog**: to add a release, edit `CHANGELOG.md` AND `public/changelog-content.js` in every language; `test/changelog.test.js` fails if they disagree.
 - **Guide**: button names are written `{key}` in `help-content.js` and replaced at runtime with the app's own label. Text is rendered with `textContent` only.
 - **CSP**: no inline scripts or styles, no external resources.
-- **Header must stay ONE row** at 900-1599px (brand, clock, tabs, ?, Counter tick, Auto-reset, language, theme, Log out), or the battle-view panels clip. `style.css` shrinks the clock there and visually hides the "Auto-reset after" label in es/fr/de/tr. Any header change needs `e2e/help_shots.py` (checks one row in all 9 languages at 1440).
+- **Header is brand · clock · tabs · ? · Menu** and must stay one row from 900px (`e2e/help_shots.py` checks it in all 9 languages at 1440). Everything else (Counter tick, Auto-reset, Sound cues, language, theme, keys, Log out) lives in the Menu popover (`#menu-panel`), so don't add controls to the header. In e2e, open it first: `menu(page)` / `hsel(page, '#lang-select', code)` in `smoke.py`.
 - Battle view is fitted to one screen from 1100x700. Check with `e2e/battle_shots.py` and look at `e2e/out/battle-*.png` with Read. `.ph-msg` has a fixed height so warnings never move the schedule.
 - Keep the app files as they are (separate html/js/css per page); don't add frameworks or a bundler.
 
