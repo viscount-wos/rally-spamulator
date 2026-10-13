@@ -9,10 +9,12 @@ const fs = require('fs');
 const path = require('path');
 
 const PUBLIC = path.join(__dirname, 'public');
+const Core = require('./public/core.js');
 const COOKIE = 'rally_gate';
 const COOKIE_MAX_AGE = 30 * 24 * 3600; // seconds
 const RATE_MAX = 10;                    // wrong POST /login attempts per client IP ...
 const RATE_WINDOW_MS = 15 * 60 * 1000;  // ... per 15 minutes
+const DISCORD_MAX_PER_MIN = 30;         // relayed posts per client IP per minute
 // Reachable without the cookie (the login page needs its own CSS/JS).
 const OPEN_PATHS = new Set(['/health', '/robots.txt', '/login', '/login.html', '/login.css', '/login.js', '/tokens.css', '/theme.js', '/icon.svg', '/favicon.ico', '/logout']);
 // Private tool (shared by password only): ask search engines to stay out of every response.
@@ -178,6 +180,39 @@ function createApp(opts = {}) {
     // Gate disabled (dev only): the login page and logout lead straight to the app.
     app.get(['/login', '/login.html', '/logout'], (req, res) => res.redirect(302, '/'));
   }
+
+  // Discord relay: the browser keeps the webhook URLs (localStorage) and sends one with each post.
+  // Only real Discord webhook URLs are accepted, so this can't be used as a general proxy.
+  // Nothing is stored and the URL is never logged. Behind the gate like everything else.
+  const posts = new Map(); // ip -> { count, resetAt }
+  const doFetch = opts.fetch || fetch;
+  app.post('/api/discord', express.json({ limit: '8kb' }), async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const ip = req.ip || 'unknown';
+    const now = Date.now();
+    if (posts.size > 1000) for (const [k, v] of posts) if (v.resetAt <= now) posts.delete(k);
+    let p = posts.get(ip);
+    if (!p || p.resetAt <= now) { p = { count: 0, resetAt: now + 60 * 1000 }; posts.set(ip, p); }
+    if (p.count >= DISCORD_MAX_PER_MIN) return res.status(429).json({ error: 'rate' });
+    p.count += 1;
+    const { url, text } = req.body || {};
+    if (!Core.isDiscordWebhook(url)) return res.status(400).json({ error: 'url' });
+    if (typeof text !== 'string' || !text.trim() || !Core.discordFits(text)) return res.status(400).json({ error: 'text' });
+    try {
+      const r = await doFetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: Core.discordContent(text), allowed_mentions: { parse: [] } }),
+        redirect: 'error',
+        signal: AbortSignal.timeout(8000)
+      });
+      if (r.ok) return res.json({ ok: true });
+      if (r.status === 404 || r.status === 401) return res.status(400).json({ error: 'gone' });
+      return res.status(502).json({ error: 'discord' });
+    } catch (e) {
+      return res.status(502).json({ error: 'discord' });
+    }
+  });
 
   // The guide (behind the gate like everything else)
   app.get('/help', (req, res) => {

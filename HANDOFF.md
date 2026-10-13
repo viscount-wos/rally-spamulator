@@ -6,14 +6,17 @@ viscount-wos-tools, us-central1, behind one shared password). The tool is privat
 people via the password. No public links, and it is noindexed.
 
 ## State: everything is shipped, nothing is in progress
+- Latest: Advanced > Post to Discord (webhook channels kept in the browser, `rally_discord_*`; server relay
+  `POST /api/discord`). Deliberately NOT in the guide, USAGE, README or change log (the owner wants it low-key).
+  Tests: `npm test` 80/80, smoke 783/783, `e2e/discord_flow.py` (run against a gate-off server).
 - `main` = `guide` = 716c286 is LIVE (Cloud Run revision `rally-spamulator-00011-n9z`), pushed to GitHub
   (viscount-wos/rally-spamulator, PUBLIC repo; git author viscount <viscount-wos@users.noreply.github.com>).
 - Tests on 716c286: `npm test` 72/72; Playwright smoke 783/783; `e2e/help_shots.py` all passed.
 - Live checks done after deploy: /health ok; /, /help, /changelog redirect to /login for browsers; /core.js,
   /help-content.js, /changelog-content.js return 401 without the cookie. I did not log in on the live site.
 - The local test copy (LAN) runs the same code: http://hannah.localdomain:8096 (container `rally-strip`).
-- IGNORE the repo's CLAUDE.md: it is stale (it describes the old Discord app) and a scanner flagged it.
-  README.md and USAGE.md are current.
+- CLAUDE.md was rewritten (2026-10-13) to match the current app; the old Discord-app version is gone.
+  README.md and USAGE.md are current too.
 
 ## What the tool is now
 - One Rally screen: **Attack** and **Counter** panels side by side on desktop (stacked under 900px). Counter is

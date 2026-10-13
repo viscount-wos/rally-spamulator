@@ -145,6 +145,27 @@
                         </span>
                         <ul id="gap-list" class="gap-list" hidden></ul>
                     </div>
+                    <!-- Advanced: Discord posting. One shared setup, mirrored in both panels. -->
+                    <div class="adv" id="adv">
+                        <button type="button" class="btn btn-ghost btn-sm" id="adv-btn" aria-expanded="false" aria-controls="adv-body">
+                            <span data-i18n="adv_btn">Advanced</span>
+                            <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div class="adv-body" id="adv-body" hidden>
+                            <div class="adv-row">
+                                <label class="dc-tick"><input type="checkbox" id="dc-on"><span data-i18n="dc_post">Post to Discord</span></label>
+                                <select id="dc-select" aria-label="Discord channel"></select>
+                            </div>
+                            <ul id="dc-list" class="dc-list"></ul>
+                            <div class="adv-row">
+                                <input type="text" id="dc-name" class="dc-name" maxlength="24" autocomplete="off" data-i18n-ph="dc_name_ph" placeholder="Name">
+                                <input type="text" id="dc-url" class="dc-url" autocomplete="off" spellcheck="false" data-i18n-ph="dc_url_ph" placeholder="Webhook URL">
+                                <button type="button" class="btn btn-primary btn-sm" id="dc-add" data-i18n="dc_add">Add channel</button>
+                            </div>
+                            <div id="dc-error" class="field-error" role="alert" hidden></div>
+                            <p class="hint" data-i18n="dc_warn">A webhook URL works like a password: anyone who has it can post to that channel. It is saved only in this browser.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 

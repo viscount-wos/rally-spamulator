@@ -83,6 +83,26 @@
     var autoResetMin = C.DEFAULT_AUTO_RESET_MIN;   // 0 = Off
     var panels = {};
     var uiOpen = {};   // which panels have their settings unfolded (UI preference only)
+    // Discord posting (Advanced): one shared setup, mirrored in both panels. The
+    // webhook URLs live only in this browser; the server just relays the post.
+    var dc = { channels: [], on: false, sel: 0 };
+    function dcChannel() { return dc.channels[dc.sel] || dc.channels[0] || null; }
+    function dcActive() { return dc.on && dcChannel() !== null; }
+    function dcSave() {
+        store('rally_discord_channels', JSON.stringify(dc.channels));
+        store('rally_discord_on', dc.on ? '1' : '0');
+        store('rally_discord_sel', String(dc.sel));
+    }
+    function dcRenderAll() { C.LISTS.forEach(function (k) { if (panels[k]) panels[k].renderDiscord(); }); }
+    function dcPost(text) {
+        var ch = dcChannel();
+        if (!ch || !C.discordFits(text)) return Promise.resolve(false);
+        return fetch('/api/discord', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: ch.url, text: text })
+        }).then(function (r) { return r.ok; }, function () { return false; });
+    }
     function applyStorage(obj) {
         Object.keys(obj).forEach(function (k) {
             if (obj[k] === null) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
@@ -152,9 +172,61 @@
         }
 
         function copyBtnLabel() {
-            return counter ? LANG[currentLang].copy_counter_btn(counterLabel) : t('copy_attack_btn');
+            var base = counter ? LANG[currentLang].copy_counter_btn(counterLabel) : t('copy_attack_btn');
+            return dcActive() ? base + ' + Discord' : base;
         }
         function copyLabel() { return q('copy-btn').querySelector('.copy-label'); }
+
+        // ===== Advanced: Discord channels (state is shared, see dc above) =====
+        function renderDiscord() {
+            var open = uiOpen.adv === true;
+            q('adv-btn').setAttribute('aria-expanded', open ? 'true' : 'false');
+            q('adv-body').hidden = !open;
+            q('dc-on').checked = dc.on;
+            var sel = q('dc-select');
+            sel.textContent = '';
+            sel.setAttribute('aria-label', t('dc_channel'));
+            dc.channels.forEach(function (c, i) {
+                var o = el('option', null, c.name);
+                o.value = String(i);
+                sel.appendChild(o);
+            });
+            sel.disabled = !dc.channels.length;
+            if (dc.channels.length) sel.value = String(dc.channels[dc.sel] ? dc.sel : 0);
+            var ul = q('dc-list');
+            ul.textContent = '';
+            dc.channels.forEach(function (c, i) {
+                var li = el('li');
+                li.appendChild(el('span', 'dc-item-name', c.name));
+                var rm = el('button', 'btn btn-danger-outline btn-sm', t('remove'));
+                rm.type = 'button';
+                rm.addEventListener('click', function () {
+                    dc.channels.splice(i, 1);
+                    if (dc.sel >= dc.channels.length) dc.sel = 0;
+                    dcSave();
+                    dcRenderAll();
+                });
+                li.appendChild(rm);
+                ul.appendChild(li);
+            });
+            renderName();
+        }
+        function addChannel() {
+            var err = q('dc-error');
+            var url = q('dc-url').value.trim();
+            var msg = '';
+            if (!C.isDiscordWebhook(url)) msg = t('dc_bad_url');
+            else if (dc.channels.length >= C.MAX_CHANNELS) msg = t('dc_full');
+            err.hidden = !msg;
+            err.textContent = msg;
+            if (msg) return;
+            dc.channels.push({ name: C.cleanChannelName(q('dc-name').value) || 'Discord', url: url });
+            dc.sel = dc.channels.length - 1;
+            q('dc-name').value = '';
+            q('dc-url').value = '';
+            dcSave();
+            dcRenderAll();
+        }
         function renderName() {
             q('list-name').textContent = listName(kind);
             if (!q('copy-btn').classList.contains('done')) copyLabel().textContent = copyBtnLabel();
@@ -708,6 +780,13 @@
             if (stale) showToast(t('stale_recopied'));
             var text = currentCopyText(Date.now());
             var btn = q('copy-btn');
+            if (dc.on && !dcChannel()) showToast(t('dc_no_channel'));
+            else if (dcActive()) {
+                var ch = dcChannel();
+                dcPost(text).then(function (ok) {
+                    showToast((stale ? t('stale_recopied') + ' · ' : '') + (ok ? t('dc_posted') + ' · ' + ch.name : t('dc_failed')));
+                });
+            }
             copyText(text).then(function (ok) {
                 if (!ok) { selectNode(q('copy-preview')); return; }
                 copyLabel().textContent = t('copied');
@@ -740,6 +819,15 @@
             q('target-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { applyTargetInput(); this.blur(); } });
             q('copy-btn').addEventListener('click', copySchedule);
             q('settings-btn').addEventListener('click', function () { setSettingsOpen(!settingsOpen()); });
+            q('adv-btn').addEventListener('click', function () {
+                uiOpen.adv = uiOpen.adv !== true;
+                store('rally_ui_open', JSON.stringify(uiOpen));
+                dcRenderAll();
+            });
+            q('dc-on').addEventListener('change', function () { dc.on = this.checked; dcSave(); dcRenderAll(); });
+            q('dc-select').addEventListener('change', function () { dc.sel = parseInt(this.value, 10) || 0; dcSave(); dcRenderAll(); });
+            q('dc-add').addEventListener('click', addChannel);
+            q('dc-url').addEventListener('keydown', function (e) { if (e.key === 'Enter') addChannel(); });
             q('select-all-btn').addEventListener('click', function () {
                 callers.forEach(function (c) { if (!c.wave) c.wave = 1; }); saveState(); renderCallers(); updateSchedule();
             });
@@ -778,6 +866,7 @@
         function renderAll() {
             renderDurationSelect();
             renderName();
+            renderDiscord();
             renderSettingsOpen();
             renderSummary();
             renderLock();
@@ -795,7 +884,7 @@
         }
 
         return {
-            kind: kind, load: load, wire: wire, renderAll: renderAll, tick: tick,
+            kind: kind, load: load, wire: wire, renderAll: renderAll, tick: tick, renderDiscord: renderDiscord,
             renderAutoResetCd: renderAutoResetCd,
             setEditMode: setEditMode, hasCallers: function () { return callers.length > 0; }
         };
@@ -1074,6 +1163,9 @@
         autoResetMin = C.normalizeAutoReset(read('rally_auto_reset'));
         try { uiOpen = JSON.parse(read('rally_ui_open')) || {}; } catch (e) { uiOpen = {}; }
         if (typeof uiOpen !== 'object' || Array.isArray(uiOpen)) uiOpen = {};
+        dc.channels = C.normalizeChannels(read('rally_discord_channels'));
+        dc.on = read('rally_discord_on') === '1';
+        dc.sel = parseInt(read('rally_discord_sel'), 10) || 0;
         C.LISTS.forEach(function (k) {
             panels[k] = createPanel(k);
             panels[k].load(now);

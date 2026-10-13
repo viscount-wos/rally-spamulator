@@ -475,6 +475,29 @@
         return { hitTimeMs: hitTimeMs, sendTimeMs: hitTimeMs - yourMarchSeconds * 1000 };
     }
 
+    // Discord webhooks (Advanced). The same check runs in the browser and on the server relay.
+    var DISCORD_WEBHOOK_RE = /^https:\/\/(?:discord|discordapp)\.com\/api\/webhooks\/\d{15,25}\/[A-Za-z0-9_-]{20,120}$/;
+    var MAX_CHANNEL_NAME = 24;
+    var MAX_CHANNELS = 12;
+    var DISCORD_MAX = 2000;
+    function isDiscordWebhook(url) { return typeof url === 'string' && DISCORD_WEBHOOK_RE.test(url); }
+    function cleanChannelName(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, MAX_CHANNEL_NAME); }
+    // Saved list -> [{name, url}], dropping anything that is not a valid webhook.
+    function normalizeChannels(raw) {
+        var list = raw;
+        if (typeof raw === 'string') { try { list = JSON.parse(raw); } catch (e) { list = []; } }
+        if (!Array.isArray(list)) return [];
+        var out = [];
+        list.forEach(function (c) {
+            if (!c || !isDiscordWebhook(c.url) || out.length >= MAX_CHANNELS) return;
+            out.push({ name: cleanChannelName(c.name) || 'Discord', url: c.url });
+        });
+        return out;
+    }
+    // The chat text goes into a code block (monospace, no markdown or mentions); backticks can't close it early.
+    function discordContent(text) { return '```\n' + String(text).replace(/`/g, "'") + '\n```'; }
+    function discordFits(text) { return discordContent(text).length <= DISCORD_MAX; }
+
     return {
         pad: pad, formatUTC: formatUTC, formatMarch: formatMarch, parseMarch: parseMarch,
         liveFirstStartMs: liveFirstStartMs,
@@ -497,6 +520,8 @@
         normalizeDuration: normalizeDuration, normalizeReaction: normalizeReaction,
         LISTS: LISTS, LIST_KEYS: LIST_KEYS, MAX_LABEL: MAX_LABEL, cleanLabel: cleanLabel,
         loadList: loadList, planStorage: planStorage, callersStorage: callersStorage,
-        buildCounterCopyText: buildCounterCopyText
+        buildCounterCopyText: buildCounterCopyText,
+        isDiscordWebhook: isDiscordWebhook, cleanChannelName: cleanChannelName, normalizeChannels: normalizeChannels,
+        discordContent: discordContent, discordFits: discordFits, MAX_CHANNELS: MAX_CHANNELS, MAX_CHANNEL_NAME: MAX_CHANNEL_NAME
     };
 });

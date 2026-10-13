@@ -714,3 +714,17 @@ select { cursor: pointer; }
         position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
     }
 }
+
+/* Advanced: Discord posting (inside the folded settings) */
+.adv { flex-basis: 100%; }
+.adv > .btn { display: inline-flex; align-items: center; gap: 6px; }
+.adv .chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s ease; }
+.adv > .btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.adv-body { margin-top: 6px; display: flex; flex-direction: column; gap: 8px; }
+.adv-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.dc-tick { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; cursor: pointer; }
+.dc-name { width: 8rem; padding: 6px 8px; }
+.dc-url { flex: 1 1 12rem; min-width: 0; padding: 6px 8px; font-family: var(--mono); direction: ltr; }
+.dc-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.dc-list li { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; }
+.dc-list .dc-item-name { font-weight: 700; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
