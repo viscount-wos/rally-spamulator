@@ -47,6 +47,10 @@ const FILLS = ['c-accent', 'c-success', 'c-warning', 'c-danger', 'c-counter', 'c
   'c-wave-1', 'c-wave-2', 'c-wave-3', 'c-wave-4', 'c-wave-5', 'c-wave-6'];
 
 for (const [name, t] of Object.entries(themes)) {
+  test(`theme ${name}: Attack's Copy (c-attack-ink on c-attack) clears AA`, () => {
+    const r = ratio(rgb(t, 'c-attack'), rgb(t, 'c-attack-ink'));
+    assert.ok(r >= 4.5, 'c-attack-ink on c-attack: ' + r.toFixed(2));
+  });
   test(`theme ${name}: text and coloured text clear AA (4.5:1) on page, cards and inputs`, () => {
     const bad = [];
     for (const fg of TEXT) for (const bg of GROUNDS) {

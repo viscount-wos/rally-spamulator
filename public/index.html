@@ -16,7 +16,7 @@
     <script src="app.js" defer></script>
 </head>
 <body>
-    <!-- One header row on desktop: brand | UTC clock | Rallies/Garrison | auto-reset, language, theme, log out -->
+    <!-- Header: brand | UTC clock | Rally/Garrison | ? guide | menu (Counter, auto-reset, sound, language, theme, keys, log out) -->
     <header class="top-bar" id="site-header">
         <div class="brand">
             <img src="icon.svg" class="brand-icon" alt="" width="32" height="32">
@@ -32,26 +32,38 @@
         </nav>
         <div class="header-controls">
             <a href="/help" class="guide-link" id="guide-link" data-i18n-aria="guide_link" aria-label="Guide" title="Guide">?</a>
-            <label class="counter-toggle"><input type="checkbox" id="show-counter" checked><span data-i18n="show_counter">Counter</span></label>
-            <!-- shared by both lists (each counts from its own freeze time) -->
-            <div class="auto-reset-box">
-                <label for="auto-reset-select" data-i18n="auto_reset_label">Auto-reset after:</label>
-                <select id="auto-reset-select"></select>
+            <div class="menu" id="menu">
+                <button type="button" class="chip menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu-panel">
+                    <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    <span class="chip-text" data-i18n="menu_btn">Menu</span>
+                </button>
+                <div class="menu-panel" id="menu-panel" hidden>
+                    <label class="counter-toggle menu-item"><input type="checkbox" id="show-counter" checked><span data-i18n="show_counter">Counter</span></label>
+                    <!-- shared by both lists (each counts from its own freeze time) -->
+                    <div class="auto-reset-box menu-item">
+                        <label for="auto-reset-select" data-i18n="auto_reset_label">Auto-reset after:</label>
+                        <select id="auto-reset-select"></select>
+                    </div>
+                    <label class="counter-toggle menu-item"><input type="checkbox" id="sound-on"><span data-i18n="sound_label">Sound cues</span></label>
+                    <div class="menu-row menu-item">
+                        <!-- compact chip with a native <select> stretched invisibly over it (as in the event app) -->
+                        <div class="chip" id="lang-chip">
+                            <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                            <span class="chip-text" id="lang-display" aria-hidden="true">English</span>
+                            <svg class="chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                            <select id="lang-select" aria-label="Language"></select>
+                        </div>
+                        <div class="chip" id="theme-chip">
+                            <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.2"/><circle cx="17.5" cy="10.5" r="1.2"/><circle cx="8.5" cy="7.5" r="1.2"/><circle cx="6.5" cy="12.5" r="1.2"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.55-2.5 5.55-5.55C21.97 6.01 17.46 2 12 2z"/></svg>
+                            <span class="chip-text chip-text-wide" id="theme-display" aria-hidden="true">Dark</span>
+                            <svg class="chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                            <select id="theme-select" aria-label="Theme"></select>
+                        </div>
+                    </div>
+                    <div class="menu-keys menu-item" id="menu-keys"></div>
+                    <a href="/logout" class="logout-link menu-item" data-i18n="log_out">Log out</a>
+                </div>
             </div>
-            <!-- compact chip with a native <select> stretched invisibly over it (as in the event app) -->
-            <div class="chip" id="lang-chip">
-                <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                <span class="chip-text" id="lang-display" aria-hidden="true">English</span>
-                <svg class="chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                <select id="lang-select" aria-label="Language"></select>
-            </div>
-            <div class="chip" id="theme-chip">
-                <svg class="chip-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.2"/><circle cx="17.5" cy="10.5" r="1.2"/><circle cx="8.5" cy="7.5" r="1.2"/><circle cx="6.5" cy="12.5" r="1.2"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.55-2.5 5.55-5.55C21.97 6.01 17.46 2 12 2z"/></svg>
-                <span class="chip-text chip-text-wide" id="theme-display" aria-hidden="true">Dark</span>
-                <svg class="chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                <select id="theme-select" aria-label="Theme"></select>
-            </div>
-            <a href="/logout" class="logout-link" data-i18n="log_out">Log out</a>
         </div>
     </header>
 
@@ -84,6 +96,7 @@
                         <span class="ns-name" id="next-name"></span>
                         <span class="ns-time" id="next-time"></span>
                         <span class="ns-cd" id="next-cd"></span>
+                        <span class="ns-bar" aria-hidden="true"><i id="next-bar"></i></span>
                     </div>
                     <div id="schedule-warning" class="warning" role="alert" hidden></div>
                 </div>
@@ -206,49 +219,46 @@
         </section>
     </main>
 
-    <!-- ==================== TAB: GARRISON DEFENSE ==================== -->
+    <!-- ==================== TAB: GARRISON DEFENSE ====================
+         One panel, like the battle view: inputs on one row at the top,
+         incoming rallies (big SEND countdown) beside the enemy roster. -->
     <main id="tab-garrison" class="tab-panel">
-
-        <section class="section area-g-march">
-            <h2 class="section-title" data-i18n="your_march_time">Your March Time</h2>
-            <div class="config-row">
-                <label for="your-march-input" data-i18n="your_march_label">Your march to building:</label>
-                <input type="text" id="your-march-input" class="march-input" value="0:20" placeholder="M:SS" inputmode="numeric">
+        <section class="plan-panel g-panel" data-list="garrison">
+            <div class="g-head">
+                <div class="g-field">
+                    <label for="your-march-input" data-i18n="your_march_label">Your march to building:</label>
+                    <input type="text" id="your-march-input" class="march-input" value="0:20" placeholder="M:SS" inputmode="numeric">
+                </div>
+                <div class="g-field g-enemy">
+                    <span class="cfg-label" data-i18n="select_enemy">Select Enemy</span>
+                    <div class="quick-select" id="enemy-quick-select"></div>
+                    <div id="selected-enemy-display" class="selected-enemy empty-msg">Tap an enemy to select</div>
+                </div>
+                <div class="g-field">
+                    <label for="rally-countdown-input" data-i18n="rally_countdown">Rally countdown:</label>
+                    <input type="text" id="rally-countdown-input" class="march-input track-input" placeholder="M:SS" inputmode="numeric">
+                    <button type="button" class="btn btn-primary" id="track-btn" data-i18n="track_btn">Track</button>
+                </div>
             </div>
-        </section>
-
-        <section class="section area-g-select">
-            <h2 class="section-title" data-i18n="select_enemy">Select Enemy</h2>
-            <div class="quick-select" id="enemy-quick-select"></div>
-            <div id="selected-enemy-display" class="selected-enemy empty-msg">Tap an enemy to select</div>
-        </section>
-
-        <section class="section area-g-track">
-            <h2 class="section-title" data-i18n="track_rally_title">Track Incoming Rally</h2>
-            <div class="config-row">
-                <label for="rally-countdown-input" data-i18n="rally_countdown">Rally countdown:</label>
-                <input type="text" id="rally-countdown-input" class="march-input track-input" placeholder="M:SS" inputmode="numeric">
-                <button type="button" class="btn btn-primary" id="track-btn" data-i18n="track_btn">Track</button>
-            </div>
-        </section>
-
-        <section class="section area-g-incoming">
-            <h2 class="section-title" data-i18n="incoming_rallies">Incoming Rallies</h2>
-            <div id="active-rallies-list"></div>
-            <div id="no-rallies" class="empty-msg" data-i18n="no_rallies">No rallies being tracked</div>
-        </section>
-
-        <section class="section area-g-roster">
-            <h2 class="section-title" data-i18n="enemy_roster">Enemy Roster</h2>
-            <div class="enemy-header">
-                <span data-i18n="col_name">Name</span>
-                <span data-i18n="col_alliance">Alliance</span>
-                <span data-i18n="col_march">March</span>
-                <span></span>
-            </div>
-            <ul id="enemy-list" class="caller-list"></ul>
-            <div class="caller-actions">
-                <button type="button" class="btn btn-primary" id="add-enemy-btn" data-i18n="add_enemy">+ Add Enemy</button>
+            <div class="g-body">
+                <div class="g-incoming">
+                    <h2 class="roster-title" data-i18n="incoming_rallies">Incoming Rallies</h2>
+                    <div id="active-rallies-list"></div>
+                    <div id="no-rallies" class="empty-msg" data-i18n="no_rallies">No rallies being tracked</div>
+                </div>
+                <div class="roster g-roster">
+                    <div class="qs-actions">
+                        <h3 class="roster-title" data-i18n="enemy_roster">Enemy Roster</h3>
+                        <button type="button" class="btn btn-primary btn-sm" id="add-enemy-btn" data-i18n="add_enemy">+ Add Enemy</button>
+                    </div>
+                    <div class="enemy-header">
+                        <span data-i18n="col_name">Name</span>
+                        <span data-i18n="col_alliance">Alliance</span>
+                        <span data-i18n="col_march">March</span>
+                        <span></span>
+                    </div>
+                    <ul id="enemy-list" class="caller-list"></ul>
+                </div>
             </div>
         </section>
     </main>

@@ -61,18 +61,39 @@ body { padding: 0 12px 24px; }
 }
 .guide-link:hover { border-color: rgb(var(--c-accent)); }
 .guide-link:focus-visible { outline: 3px solid rgb(var(--c-accent)); outline-offset: 2px; }
-.counter-toggle { display: inline-flex; align-items: center; gap: 4px; margin-inline-end: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.counter-toggle input { width: 16px; height: 16px; margin: 0; accent-color: rgb(var(--c-danger)); cursor: pointer; }
+.counter-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.counter-toggle input { width: 18px; height: 18px; margin: 0; accent-color: rgb(var(--c-danger)); cursor: pointer; }
 .counter-toggle:focus-within { outline: 3px solid rgb(var(--c-accent)); outline-offset: 2px; border-radius: var(--radius-sm); }
 body.no-counter #panel-counter { display: none; }
 body.no-counter #tab-rally.active { grid-template-columns: minmax(0, 1fr); }
-.auto-reset-box { display: inline-flex; align-items: center; gap: 6px; }
-.auto-reset-box label { font-size: 0.8rem; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
-.auto-reset-box select { min-width: 0; padding: 6px 8px; font-size: 0.9rem; }
+.auto-reset-box { display: inline-flex; align-items: center; gap: 8px; }
+.auto-reset-box label { font-size: 0.9rem; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
+.auto-reset-box select { min-width: 0; padding: 6px 8px; font-size: 0.95rem; margin-inline-start: auto; }
+/* the menu: everything set once per battle, off the header */
+.menu { position: relative; }
+.menu-btn { cursor: pointer; font: inherit; }
+.menu-btn[aria-expanded="true"] { border-color: rgb(var(--c-accent)); color: rgb(var(--c-accent)); }
+.menu-panel {
+    position: absolute; z-index: 40; inset-inline-end: 0; top: calc(100% + 6px);
+    display: flex; flex-direction: column; gap: 10px;
+    min-width: 17rem; max-width: calc(100vw - 24px); padding: 12px;
+    background: rgb(var(--c-dark-card)); border: 1px solid rgb(var(--c-theme-border)); border-radius: var(--radius);
+    box-shadow: 0 10px 30px rgb(var(--c-shadow) / 0.45);
+}
+.menu-panel[hidden] { display: none; }
+.menu-item { min-height: var(--tap); display: flex; align-items: center; }
+.menu-row { gap: 8px; flex-wrap: wrap; }
+.menu-row .chip { flex: 1 1 7rem; }
+.menu-keys { font-size: 0.85rem; color: rgb(var(--c-theme-dim)); flex-wrap: wrap; gap: 4px 12px; line-height: 1.4; }
+.menu-keys kbd {
+    display: inline-block; min-width: 1.5em; padding: 1px 6px; margin-inline-end: 4px; text-align: center;
+    border: 1px solid rgb(var(--c-theme-border)); border-bottom-width: 2px; border-radius: 6px;
+    font-family: var(--mono); font-weight: 700; color: rgb(var(--c-theme-text)); background: rgb(var(--c-dark-input));
+}
 .logout-link {
     display: inline-flex; align-items: center;
-    min-height: var(--tap); padding: 0 8px;
-    color: rgb(var(--c-theme-dim)); font-size: 0.85rem; white-space: nowrap;
+    min-height: var(--tap); padding: 0;
+    color: rgb(var(--c-theme-dim)); font-size: 0.9rem; white-space: nowrap;
 }
 .logout-link:hover { color: rgb(var(--c-accent)); }
 
@@ -183,8 +204,8 @@ select { cursor: pointer; }
 .config-row label { min-width: 128px; }
 
 /* ================= Battle view: one panel per list ================= */
-.plan-panel { --list: var(--c-accent); }
-.plan-panel[data-list="counter"] { --list: var(--c-counter); }
+.plan-panel { --list: var(--c-accent); --list-fill: var(--c-attack); --list-ink: var(--c-attack-ink); }
+.plan-panel[data-list="counter"] { --list: var(--c-counter); --list-fill: var(--c-counter); --list-ink: var(--c-ink); }
 .plan-panel {
     container-type: inline-size;
     display: flex; flex-direction: column; gap: 6px;
@@ -265,9 +286,9 @@ select { cursor: pointer; }
     grid-area: copy;
     display: block; width: 100%;
     min-height: 56px;
-    background: rgb(var(--list)); color: rgb(var(--c-ink));
+    background: rgb(var(--list-fill)); color: rgb(var(--list-ink));
     font-size: 1.2rem; font-weight: 800; letter-spacing: 0.3px;
-    box-shadow: 0 4px 14px rgb(var(--list) / 0.28);
+    box-shadow: 0 4px 14px rgb(var(--list-fill) / 0.28);
     overflow-wrap: anywhere;
 }
 .btn-copy { display: flex; align-items: center; justify-content: center; gap: 10px; }
@@ -278,7 +299,7 @@ select { cursor: pointer; }
 .btn-copy[data-fresh]:not([data-fresh=""])::after {
     content: '\21BB  ' attr(data-fresh);
     padding: 2px 10px; border-radius: 999px; white-space: nowrap;
-    background: rgb(var(--c-ink)); color: rgb(var(--list));
+    background: rgb(var(--list-ink)); color: rgb(var(--list-fill));
     font-size: 0.85rem; font-weight: 800;
 }
 /* copied (1.5 s): inverted - dark fill, the list's colour on the border and text, a tick */
@@ -286,7 +307,12 @@ select { cursor: pointer; }
 .btn-copy.done .icon-copy { display: none; }
 .btn-copy.done .icon-done { display: block; stroke-width: 3; }
 
-.ph-msg { grid-area: msg; height: 2.6rem; overflow: hidden; display: flex; align-items: center; min-width: 0; }
+.ph-msg { grid-area: msg; height: 2.6rem; overflow: hidden; display: flex; align-items: center; min-width: 0; position: relative; }
+/* a thin bar fills over the last 30 s before the next start (frozen plans only: LIVE never counts down) */
+.ns-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgb(var(--c-theme-border) / 0.35); border-radius: 2px; overflow: hidden; }
+.ns-bar i { display: block; height: 100%; width: 0; background: rgb(var(--c-success)); transition: width 0.9s linear; }
+.next-start.imminent .ns-bar i { background: rgb(var(--c-warning)); }
+.plan-panel.live .ns-bar { display: none; }
 .next-start { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; min-width: 0; font-size: 1.5rem; line-height: 1.1; }
 .ns-label { color: rgb(var(--c-theme-dim)); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.8px; }
 .ns-name { font-weight: 800; }
@@ -437,6 +463,7 @@ select { cursor: pointer; }
 .wave-help { margin: 6px 0 0; font-size: 0.78rem; line-height: 1.2; flex: none; }
 .plan-panel.editing .wave-help { display: none; }
 .caller-list { min-height: 0; }
+.caller-list.more { -webkit-mask-image: linear-gradient(to bottom, rgb(var(--c-shadow)) calc(100% - 32px), transparent); mask-image: linear-gradient(to bottom, rgb(var(--c-shadow)) calc(100% - 32px), transparent); }
 .caller-list.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.2rem, 1fr)); gap: 6px; align-content: start; }
 .caller-list.chips > li { min-width: 0; }
 
@@ -495,8 +522,22 @@ select { cursor: pointer; }
     user-select: all; -webkit-user-select: all;
 }
 
-/* ---- Garrison Defense ---- */
-.quick-select { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+/* ---- Garrison Defense: one panel; inputs on a row, incoming rallies beside the roster ---- */
+.g-panel { --list: var(--c-accent); }
+.g-head {
+    display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 24px;
+    padding: 8px 12px; border-radius: var(--radius-sm);
+    border: 1px solid rgb(var(--c-theme-border) / 0.7); background: rgb(var(--c-dark-bg) / 0.4);
+}
+.g-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.g-field label, .g-field .cfg-label { font-size: 0.85rem; color: rgb(var(--c-theme-dim)); white-space: nowrap; }
+.g-enemy { flex: 1 1 16rem; }
+.g-body { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.g-incoming .roster-title, .g-roster .roster-title { margin-bottom: 6px; }
+/* the roster is a flex column: its list must not grow to the rows' intrinsic width */
+.g-roster .caller-list, .g-roster .enemy-header { width: 100%; min-width: 0; }
+.g-roster .caller-list:not(.chips) { display: block; }   /* one enemy per row, whatever the panel width */
+.quick-select { display: flex; flex-wrap: wrap; gap: 6px; }
 .qs-btn {
     min-height: var(--tap); padding: 8px 14px;
     border-radius: 999px;
@@ -509,12 +550,13 @@ select { cursor: pointer; }
 .qs-btn.selected { background: rgb(var(--c-accent) / 0.15); color: rgb(var(--c-accent)); border-color: rgb(var(--c-accent)); }
 .qs-btn .tag { color: rgb(var(--c-theme-dim)); font-size: 0.75rem; }
 .flash { outline: 2px solid rgb(var(--c-danger)); }
-.selected-enemy { padding: 8px; font-size: 0.9rem; }
+.selected-enemy { flex-basis: 100%; padding: 2px 0 0; font-size: 0.88rem; }
+.selected-enemy.empty-msg { text-align: start; padding: 2px 0 0; }
 .selected-enemy-name { font-weight: 600; color: rgb(var(--c-accent)); }
 .track-input { width: 96px; font-size: 1.1rem; }
 
 .rally-tracker {
-    padding: 10px 12px; margin-bottom: 8px;
+    padding: 12px 14px; margin-bottom: 8px;
     background: rgb(var(--c-dark-input));
     border: 1px solid rgb(var(--c-theme-border) / 0.5);
     border-inline-start: 4px solid rgb(var(--c-accent));
@@ -532,7 +574,7 @@ select { cursor: pointer; }
 .rt-time.hit-time { color: rgb(var(--c-danger)); }
 .rt-time.send-time { color: rgb(var(--c-warning)); }
 .rt-countdown { font-size: 0.8rem; color: rgb(var(--c-theme-dim)); margin-inline-start: 8px; }
-.rt-send-countdown { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: rgb(var(--c-warning)); text-align: center; padding: 6px 0 2px; }
+.rt-send-countdown { font-family: var(--mono); font-size: 2.4rem; font-weight: 800; color: rgb(var(--c-warning)); text-align: center; padding: 6px 0 2px; font-variant-numeric: tabular-nums; }
 .rt-send-countdown.go-now { color: rgb(var(--c-success)); animation: pulse 0.5s infinite; }
 .rt-send-countdown.too-late { color: rgb(var(--c-danger)); animation: none; opacity: 0.7; }
 
@@ -591,20 +633,26 @@ select { cursor: pointer; }
 
 /* ---- Phones / narrow (< 900px): stacked, the clock stays stuck to the top ---- */
 @media (max-width: 899px) {
+    /* three rows: brand + ? + menu; the clock (stuck to the top); the tabs */
     .brand { flex: 1; }
-    .header-controls { margin-inline-start: 0; }
     .clock {
         order: 5; flex-basis: 100%; justify-content: center;
         position: sticky; top: 0; z-index: 20; padding: 4px 12px;
         box-shadow: 0 6px 10px -6px rgb(var(--c-shadow) / 0.5);
     }
-    .tab-bar { order: 6; flex-basis: 100%; }
+    .tab-bar { order: 6; flex-basis: 100%; scroll-margin-top: 64px; }   /* scrolled into view below the sticky clock */
     .tab-btn { flex: 1; }
-    .auto-reset-box { order: 7; }
+    .menu-btn .chip-text { display: none; }
+    /* the NEXT line may wrap: let the message slot grow (nothing sits beside it on a phone) */
+    .ph-msg { height: auto; min-height: 2.6rem; padding-bottom: 5px; }
+    .next-start { font-size: 1.2rem; }
+    .ns-time { font-size: 1.45rem; }
+    .ns-cd { font-size: 1.6rem; }
 }
 @media (max-width: 520px) {
-    .caller-row { flex-wrap: wrap; }
-    .caller-row .name-input { flex-basis: 100%; }
+    .caller-row, .enemy-row { flex-wrap: wrap; }
+    .enemy-header { display: none; }   /* the wrapped rows no longer line up with column labels */
+    .caller-row .name-input, .enemy-row .name-input { flex-basis: 100%; }
     .caller-row .march-input { margin-inline-end: auto; }
     .chip-text-wide { display: none; }       /* theme: palette icon only (as the event app) */
     .chip-text { max-width: 5.5rem; }
@@ -636,29 +684,12 @@ select { cursor: pointer; }
         align-items: start;
     }
     .plan-panel { margin-bottom: 0; }
-    #tab-garrison.active {
-        display: grid;
-        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-        grid-template-areas: "march incoming" "select incoming" "track incoming" "roster incoming";
-        grid-template-rows: auto auto auto 1fr;
-        gap: 0 var(--gap);
-        align-items: start;
-    }
-    .area-g-march { grid-area: march; }
-    .area-g-select { grid-area: select; }
-    .area-g-track { grid-area: track; }
-    .area-g-roster { grid-area: roster; }
-    .area-g-incoming { grid-area: incoming; }
-    .section { padding: 18px; margin-bottom: var(--gap); }
+    .g-body { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--gap); align-items: start; }
+    .g-panel { margin-bottom: 0; }
 }
 /* Attack (waves) gets more room than Counter (one wave) */
 @media (min-width: 1200px) {
     #tab-rally.active { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
-    #tab-garrison.active {
-        grid-template-columns: minmax(300px, 1fr) minmax(320px, 1.1fr) minmax(400px, 1.35fr);
-        grid-template-areas: "march roster incoming" "select roster incoming" "track roster incoming";
-        grid-template-rows: auto auto 1fr;
-    }
 }
 
 /* big screens: scale the whole UI up a step (everything is in rem) */
@@ -679,6 +710,7 @@ select { cursor: pointer; }
     .top-bar { flex: none; width: 100%; }
     .tab-panel.active { flex: 1; min-height: 0; width: 100%; }
     #tab-garrison.active { overflow: auto; }
+    .g-panel { overflow: visible; }
     #tab-rally.active { align-items: stretch; }
     .plan-panel { min-height: 0; overflow: hidden; }
     .panel-head, .panel-settings { flex: none; }
@@ -695,24 +727,6 @@ select { cursor: pointer; }
     .panel-foot > .preview-wrap { flex: 1 1 auto; }
     .panel-foot { flex: 1 1 0; }
     .caller-list { overflow: auto; flex: 0 1 auto; min-height: 0; }
-}
-
-/* medium desktops: the header (clock, tabs, Counter tick, ? guide, menus) has to stay on one row */
-@media (min-width: 900px) and (max-width: 1599px) {
-    .top-bar { column-gap: 6px; }
-    .clock-time { font-size: 1.9rem; letter-spacing: 0; }
-    .clock { gap: 8px; padding: 2px 10px; }
-    .counter-toggle { margin-inline-end: 2px; }
-    .logout-link { font-size: 0.85rem; }
-}
-
-/* long-label languages at 900-1599px: the Auto-reset label is hidden visually (still the select's
-   accessible name, and its tooltip) so the header stays on one row */
-@media (min-width: 900px) and (max-width: 1599px) {
-    html:lang(es) .auto-reset-box label, html:lang(fr) .auto-reset-box label,
-    html:lang(de) .auto-reset-box label, html:lang(tr) .auto-reset-box label {
-        position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
-    }
 }
 
 /* Advanced: Discord posting (inside the folded settings) */

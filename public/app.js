@@ -51,6 +51,7 @@
         renderThemeSelect();
         renderAutoResetSelect();
         C.LISTS.forEach(function (k) { panels[k].renderAll(); });
+        renderKeys();
         renderEnemies();
         updateActiveRallies();
     }
@@ -86,6 +87,50 @@
     // Discord posting (Advanced): one shared setup, mirrored in both panels. The
     // webhook URLs live only in this browser; the server just relays the post.
     var dc = { channels: [], on: false, sel: 0 };
+    // Sound cues (menu, rally_sound): a short beep 5 s before the next start and a
+    // double beep at it, for frozen plans only (LIVE never counts down). WebAudio,
+    // no files: the context is made on the first click after the box is ticked.
+    var sound = { on: false, ctx: null };
+    function soundReady() {
+        if (!sound.on) return false;
+        try {
+            if (!sound.ctx) sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (sound.ctx.state === 'suspended') sound.ctx.resume();
+            return sound.ctx.state === 'running';
+        } catch (e) { return false; }
+    }
+    function beep(at, freq, len) {
+        var c = sound.ctx, o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, at);
+        g.gain.exponentialRampToValueAtTime(0.25, at + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+        o.connect(g); g.connect(c.destination);
+        o.start(at); o.stop(at + len + 0.02);
+    }
+    function cue(stage) {
+        if (!soundReady()) return;
+        var now = sound.ctx.currentTime;
+        if (stage === 'warn') beep(now, 880, 0.12);
+        else { beep(now, 1320, 0.1); beep(now + 0.16, 1320, 0.18); }
+    }
+    // Keys (menu): C copies Attack, X copies Counter. Never while typing.
+    function renderKeys() {
+        var box = $('menu-keys');
+        box.textContent = '';
+        box.appendChild(el('span', null, t('keys_label')));
+        [['C', t('copy_attack_btn')], ['X', LANG[currentLang].copy_counter_btn(counterLabel)]].forEach(function (k) {
+            var item = el('span', 'key-item');
+            item.appendChild(el('kbd', null, k[0]));
+            item.appendChild(document.createTextNode(k[1]));
+            box.appendChild(item);
+        });
+    }
+    function setMenuOpen(on) {
+        $('menu-btn').setAttribute('aria-expanded', on ? 'true' : 'false');
+        $('menu-panel').hidden = !on;
+    }
+    function menuOpen() { return !$('menu-panel').hidden; }
     function dcChannel() { return dc.channels[dc.sel] || dc.channels[0] || null; }
     function dcActive() { return dc.on && dcChannel() !== null; }
     function dcSave() {
@@ -151,6 +196,7 @@
         var plan = { mode: 'live' };
         var editMode = false;
         var lastPreview = null;
+        var cued = { ms: 0, warn: false, go: false };   // sound cues fired for this next start
 
         function selectedCallers() { return C.includedCallers(callers, waves); }
         function multiWave() { return waves.count > 1; }
@@ -230,6 +276,7 @@
         function renderName() {
             q('list-name').textContent = listName(kind);
             if (!q('copy-btn').classList.contains('done')) copyLabel().textContent = copyBtnLabel();
+            if (counter) renderKeys();
         }
 
         // ===== Settings: folded away behind a one-line summary of their state =====
@@ -707,6 +754,13 @@
                 q('next-time').textContent = formatUTC(nextItem.setOffMs);
                 q('next-cd').textContent = formatCountdown(nsecs);
                 q('next-start').classList.toggle('imminent', nsecs <= 10);
+                // bar fills over the last 30 s; cues at 5 s and 0 s, once per start (frozen/fixed only)
+                q('next-bar').style.width = Math.round(Math.max(0, Math.min(1, 1 - nsecs / 30)) * 100) + '%';
+                if (plan.mode !== 'live') {
+                    if (cued.ms !== nextItem.setOffMs) cued = { ms: nextItem.setOffMs, warn: nsecs < 5, go: false };
+                    if (!cued.warn && nsecs <= 5) { cued.warn = true; cue('warn'); }
+                    if (!cued.go && nsecs <= 0) { cued.go = true; cue('go'); }
+                }
             }
             var r = 0;
             groups.forEach(function (g, gi) {
@@ -835,6 +889,7 @@
                 callers.forEach(function (c) { c.wave = 0; }); saveState(); renderCallers(); updateSchedule();
             });
             q('edit-btn').addEventListener('click', function () { setEditMode(!editMode); });
+            q('caller-list').addEventListener('scroll', updateMore, { passive: true });
             q('add-caller-btn').addEventListener('click', addCaller);
             q('clear-btn').addEventListener('click', function () {
                 if (!callers.length || !window.confirm(t('confirm_clear'))) return;
@@ -881,12 +936,17 @@
             autoResetIfDue(now, false);
             renderAutoResetCd(now);
             updateSchedule();
+            if (editMode) updateMore();
+        }
+        function updateMore() {
+            var l = q('caller-list');
+            l.classList.toggle('more', editMode && l.scrollHeight - l.clientHeight - l.scrollTop > 4);
         }
 
         return {
             kind: kind, load: load, wire: wire, renderAll: renderAll, tick: tick, renderDiscord: renderDiscord,
             renderAutoResetCd: renderAutoResetCd,
-            setEditMode: setEditMode, hasCallers: function () { return callers.length > 0; }
+            setEditMode: setEditMode, copy: copySchedule, hasCallers: function () { return callers.length > 0; }
         };
     }
 
@@ -1180,6 +1240,31 @@
             store('rally_show_counter', showCounter.checked ? '1' : '0');
             applyShowCounter();
         });
+        // the menu: toggles on its button, closes on Escape or a click outside
+        $('menu-btn').addEventListener('click', function () { setMenuOpen(!menuOpen()); });
+        document.addEventListener('click', function (e) {
+            if (menuOpen() && !$('menu').contains(e.target)) setMenuOpen(false);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && menuOpen()) { setMenuOpen(false); $('menu-btn').focus(); return; }
+            // hotkeys: plain C / X, not while typing and not with a modifier
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            var tg = e.target, tag = tg && tg.tagName;
+            if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (tg && tg.isContentEditable)) return;
+            if (!$('tab-rally').classList.contains('active')) return;
+            var k = e.key.toLowerCase();
+            if (k === 'c') { panels.attack.copy(); e.preventDefault(); }
+            else if (k === 'x' && !document.body.classList.contains('no-counter')) { panels.counter.copy(); e.preventDefault(); }
+        });
+        var soundBox = $('sound-on');
+        soundBox.checked = read('rally_sound') === '1';
+        sound.on = soundBox.checked;
+        soundBox.addEventListener('change', function () {
+            sound.on = soundBox.checked;
+            store('rally_sound', sound.on ? '1' : '0');
+            if (sound.on) cue('warn');   // the change is a user gesture: the context can start now
+        });
+        document.addEventListener('click', function () { if (sound.on) soundReady(); }, { passive: true });
         $('auto-reset-select').addEventListener('change', function () {
             autoResetMin = C.normalizeAutoReset(this.value);
             store('rally_auto_reset', String(autoResetMin));

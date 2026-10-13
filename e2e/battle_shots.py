@@ -111,7 +111,9 @@ def main():
         for w, h in ((1920, 1080), (1440, 900)):
             page = ctx_page(w, h)
             seed(page)
+            page.click("#menu-btn")
             page.uncheck("#show-counter")
+            page.keyboard.press("Escape")
             at(page, 28)
             page.screenshot(path=f"{OUT}/battle-{w}-nocounter.png")
             facts(page, f"{w} no counter")

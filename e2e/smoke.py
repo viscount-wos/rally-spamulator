@@ -77,8 +77,21 @@ def gate_login(page, url=None):
     expect(page).to_have_url(base + "/")
 
 
+def menu(page, on=True):
+    """Open (or close) the header menu, where Counter, auto-reset, language, theme and Log out live now."""
+    if page.is_visible("#menu-panel") != on:
+        page.click("#menu-btn")
+
+def hsel(page, sel_id, value):
+    """select_option on a menu <select>, then close the menu again."""
+    menu(page)
+    page.select_option(sel_id, value)
+    menu(page, False)
+
 def no_hscroll(page):
-    return page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+    # clientWidth, not innerWidth: a mobile browser zooms out to fit overflowing content, which
+    # widens innerWidth too and would hide the overflow
+    return page.evaluate("document.documentElement.scrollWidth <= Math.min(window.innerWidth, document.documentElement.clientWidth) + 1")
 
 
 def run(pw, label, ctx_args):
@@ -199,7 +212,7 @@ def run(pw, label, ctx_args):
 
     # --- Arabic / RTL ---
     page.click(".tab-btn[data-tab=rally]")
-    page.select_option("#lang-select", "ar")
+    hsel(page, "#lang-select", "ar")
     check(f"[{label}] RTL", page.evaluate("document.documentElement.dir") == "rtl")
     expect(page.locator("#copy-btn")).to_have_text("نسخ الهجوم")
     expect(page.locator("#add-caller-btn")).to_have_text("إضافة/تعديل")
@@ -420,6 +433,7 @@ def auto_reset(pw, label, ctx_args, lang):
         return (A0 + dt.timedelta(seconds=sec)).strftime("%H:%M:%S")
 
     status, cd, toast = page.locator("#plan-status"), page.locator("#auto-reset-cd"), page.locator("#plan-toast")
+    menu(page)
     sel = page.locator("#auto-reset-select")
     doc_y = "document.querySelector('#schedule-list').getBoundingClientRect().top + window.scrollY"
 
@@ -429,6 +443,7 @@ def auto_reset(pw, label, ctx_args, lang):
     check(f"{tag} default is 5 min", sel.input_value() == "5")
     check(f"{tag} option labels translated", opts[0][1] == L("auto_reset_off") and opts[4][1] == L("minutes_n", 5), str(opts))
     check(f"{tag} label translated", page.inner_text("label[for=auto-reset-select]") == L("auto_reset_label"))
+    menu(page, False)
     check(f"{tag} live: no countdown", cd.is_hidden())
 
     # reaction 3 min, so the first start is still ahead when re-copying a minute later
@@ -485,7 +500,7 @@ def auto_reset(pw, label, ctx_args, lang):
           and page.evaluate("document.documentElement.scrollHeight") == page_h)
 
     # --- 1 minute; LOCK starts it too; the choice is remembered ---
-    sel.select_option("1")
+    menu(page); sel.select_option("1"); menu(page, False)
     page.reload()
     check(f"{tag} setting saved", sel.input_value() == "1")
     go(310)
@@ -507,7 +522,7 @@ def auto_reset(pw, label, ctx_args, lang):
     check(f"{tag} auto-reset clears the typed Land at", page.input_value("#target-input") == "")
 
     # --- reload while frozen: the countdown carries on; overdue -> reset on load ---
-    sel.select_option("5")
+    menu(page); sel.select_option("5"); menu(page, False)
     go(500)
     page.click("#copy-btn")
     expect(cd).to_have_text(L("auto_reset_in", "5:00"))
@@ -524,7 +539,7 @@ def auto_reset(pw, label, ctx_args, lang):
     expect(toast).to_have_text(L("auto_reset_done"))
 
     # --- Off: no countdown, never resets ---
-    sel.select_option("0")
+    menu(page); sel.select_option("0"); menu(page, False)
     go(1000)
     page.click("#lock-btn")
     expect(status).to_have_text(L("locked_ind"))
@@ -565,7 +580,7 @@ def auto_reset(pw, label, ctx_args, lang):
           clip() != typed_clip and clip().split("\n")[1].startswith(hhmmss(3730)) and page.input_value("#target-input") == "", repr(clip()))
 
     # --- 320px wide, frozen with the countdown: no sideways scroll ---
-    sel.select_option("5")
+    menu(page); sel.select_option("5"); menu(page, False)
     page.set_viewport_size({"width": 320, "height": 700})
     expect(cd).to_be_visible()
     check(f"{tag} no horizontal scroll at 320px", no_hscroll(page))
@@ -811,6 +826,7 @@ def gate_page(pw, label, ctx_args, lang):
     check(f"{tag} script cannot read the cookie", "rally_gate" not in page.evaluate("document.cookie"))
 
     # --- Log out in the footer: back to the login, app gated again ---
+    menu(page)
     link = page.locator(".logout-link")
     expect(link).to_have_text(page.evaluate(f"RallyLang['{lang}'].log_out"))
     link.click()
@@ -1101,7 +1117,7 @@ def themes_langs(pw, label, ctx_args):
     check(f"{tag} default theme stamps nothing", page.evaluate("document.documentElement.getAttribute('data-theme')") is None)
     bgs = {}
     for th in opts:
-        page.select_option("#theme-select", th)
+        hsel(page, "#theme-select", th)
         want = None if th == "ministry-dark" else th
         check(f"{tag} theme {th} applied", page.evaluate("document.documentElement.getAttribute('data-theme')") == want)
         bgs[th] = page.evaluate("getComputedStyle(document.body).backgroundColor")
@@ -1114,17 +1130,17 @@ def themes_langs(pw, label, ctx_args):
         page.click("#counter-reset-btn")
         check(f"{tag} theme {th}: no horizontal scroll", no_hscroll(page))
     check(f"{tag} the 3 themes look different", len(set(bgs.values())) == 3, str(bgs))
-    page.select_option("#theme-select", "reading")
+    hsel(page, "#theme-select", "reading")
     page.reload()
     check(f"{tag} theme remembered", page.evaluate("document.documentElement.getAttribute('data-theme')") == "reading"
           and page.input_value("#theme-select") == "reading")
-    page.select_option("#theme-select", "ministry-dark")
+    hsel(page, "#theme-select", "ministry-dark")
 
     # --- languages ---
     langs = page.locator("#lang-select option").evaluate_all("os => os.map(o => o.value)")
     check(f"{tag} 9 languages listed", langs == LANGS9, str(langs))
     for code in ("es", "fr", "de"):
-        page.select_option("#lang-select", code)
+        hsel(page, "#lang-select", code)
         T = page.evaluate(f"RallyLang['{code}']")
         check(f"{tag} {code}: UI changes", page.evaluate("document.documentElement.lang") == code
               and page.inner_text("#copy-btn") == T["copy_attack_btn"] and page.inner_text(".tab-btn[data-tab=garrison]") == T["tab_garrison"]
@@ -1141,7 +1157,7 @@ def themes_langs(pw, label, ctx_args):
             shot(page, f"{OUT}/{label}-battle-de.png")
 
     # --- Arabic: RTL, Counter heading in Arabic, Attack on the right ---
-    page.select_option("#lang-select", "ar")
+    hsel(page, "#lang-select", "ar")
     check(f"{tag} ar: RTL", page.evaluate("document.documentElement.dir") == "rtl")
     page.click("#counter-copy-btn")
     clip = page.evaluate("navigator.clipboard.readText()")
@@ -1151,7 +1167,7 @@ def themes_langs(pw, label, ctx_args):
     check(f"{tag} ar: no horizontal scroll", no_hscroll(page))
     shot(page, f"{OUT}/{label}-battle-ar.png")
     page.click("#counter-reset-btn")
-    page.select_option("#lang-select", "en")
+    hsel(page, "#lang-select", "en")
     check(f"{tag} no console/CSP errors", not errors, str(errors))
     browser.close()
 
@@ -1159,7 +1175,10 @@ def themes_langs(pw, label, ctx_args):
 ONLY_NEW = os.environ.get("ONLY") == "new"   # quick loop: just the Counter/look runs
 
 with sync_playwright() as pw:
-    if not ONLY_NEW:
+    if os.environ.get("ONLY") == "run":   # quick loop: the two basic runs only
+        run(pw, "desktop", DESKTOP)
+        run(pw, "iphone", iphone_device(pw))
+    elif not ONLY_NEW:
         for lang in ("en", "ar"):
             gate_page(pw, "desktop", DESKTOP, lang)
             gate_page(pw, "iphone", iphone_device(pw), lang)

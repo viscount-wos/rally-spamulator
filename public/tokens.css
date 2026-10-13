@@ -45,6 +45,9 @@
     --c-counter: var(--c-danger);
     /* text on a filled coloured button/badge = the page ground (flips per theme) */
     --c-ink: var(--c-dark-bg);
+    /* the Attack list's Copy button: gold in every theme (Reading's accent is a dark brown for text) */
+    --c-attack: var(--c-accent);
+    --c-attack-ink: var(--c-ink);
     /* waves: Okabe-Ito (colour-blind safe); the number is always in the badge too */
     --c-wave-1: 86 180 233;             /* #56b4e9 */
     --c-wave-2: 230 159 0;              /* #e69f00 */
@@ -83,6 +86,8 @@
     --c-heat-mid: 138 90 18;            /* #8a5a12 */
     --c-heat-high: 163 43 30;           /* #a32b1e */
     --c-counter: var(--c-heat-high);
+    --c-attack: 214 150 30;             /* #d6961e */
+    --c-attack-ink: var(--c-theme-text);
 
     /* darker wave hues: readable as text on the light ground */
     --c-wave-1: 11 98 148;              /* #0b6294 */
