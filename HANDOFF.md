@@ -6,12 +6,17 @@ viscount-wos-tools, us-central1, behind one shared password). The tool is privat
 people via the password. No public links, and it is noindexed.
 
 ## State: everything is shipped, nothing is in progress
-- Latest: Advanced > Post to Discord (webhook channels kept in the browser, `rally_discord_*`; server relay
-  `POST /api/discord`). Deliberately NOT in the guide, USAGE, README or change log (the owner wants it low-key).
-  Tests: `npm test` 80/80, smoke 783/783, `e2e/discord_flow.py` (run against a gate-off server).
-- `main` = `guide` = 716c286 is LIVE (Cloud Run revision `rally-spamulator-00011-n9z`), pushed to GitHub
+- Latest (2026-10-14): the interface polish (header Menu, NEXT bar + sound cues + C/X keys, Garrison in the
+  battle-view look), the "ledger" look and the fold-away chat text. Before that: Advanced > Post to Discord
+  (webhook channels kept in the browser, `rally_discord_*`; server relay `POST /api/discord`), deliberately NOT
+  in the guide, USAGE, README or change log (the owner wants it low-key); `e2e/discord_flow.py` tests it against
+  a gate-off server.
+- `main` = `polish` = 4d1ff39 is LIVE (Cloud Run revision `rally-spamulator-00013-gj4`), pushed to GitHub
   (viscount-wos/rally-spamulator, PUBLIC repo; git author viscount <viscount-wos@users.noreply.github.com>).
-- Tests on 716c286: `npm test` 72/72; Playwright smoke 783/783; `e2e/help_shots.py` all passed.
+- Tests on 885cc03 (same code): `npm test` 83/83; Playwright smoke 783/783; `e2e/help_shots.py` all passed;
+  `e2e/battle_shots.py` fits at 1440 and 1920 in all themes and Arabic.
+- Not yet written: a change-log entry for the menu/sound/keys/look/fold changes (CHANGELOG.md +
+  `public/changelog-content.js` in 9 languages) and guide text for the sound cues and keys. Ask the owner.
 - Live checks done after deploy: /health ok; /, /help, /changelog redirect to /login for browsers; /core.js,
   /help-content.js, /changelog-content.js return 401 without the cookie. I did not log in on the live site.
 - The local test copy (LAN) runs the same code: http://hannah.localdomain:8096 (container `rally-strip`).
