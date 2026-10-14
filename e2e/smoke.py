@@ -231,8 +231,8 @@ def run(pw, label, ctx_args):
     page.click(".tab-btn[data-tab=rally]")
     small = page.evaluate("""[...document.querySelectorAll('#tab-rally button, #tab-rally select, #tab-rally input, .tab-btn')]
         .filter(e => e.offsetParent).map(e => [e.id || e.className, Math.round(e.getBoundingClientRect().height)])
-        .filter(([, h]) => h < 44)""")
-    check(f"[{label}] tap targets >= 44px", not small, str(small))
+        .filter(([, h]) => h < (matchMedia('(pointer: coarse)').matches ? 44 : 32))""")
+    check(f"[{label}] tap targets (44px touch, 32px mouse)", not small, str(small))
 
     check(f"[{label}] no console/CSP errors", not errors, str(errors))
     check(f"[{label}] no external requests", not external, str(external))
@@ -327,7 +327,7 @@ def live_freeze(pw, label, ctx_args, lang):
     y2 = page.evaluate(doc_y)
     check(f"{tag} no layout jump on freeze", abs(y2 - list_y) < 1, f"{list_y} -> {y2}")
     rb = reset.bounding_box()
-    check(f"{tag} Reset is a big tap target", rb and rb["height"] >= 48 and rb["width"] >= 100, str(rb))
+    check(f"{tag} Reset is a big tap target", rb and rb["height"] >= 44 and rb["width"] >= 70, str(rb))
     cd_first = page.locator(".si-countdown").first
     check(f"{tag} countdown at freeze", cd_first.inner_text() == L("fmtCountdown", 0, "30"), cd_first.inner_text())
 
@@ -752,8 +752,8 @@ def waves(pw, label, ctx_args, lang):
     # --- tap targets, edit-mode wave select ---
     small = page.evaluate("""[...document.querySelectorAll('#tab-rally button, #tab-rally select, #tab-rally input')]
         .filter(e => e.offsetParent).map(e => [e.id || e.className, Math.round(e.getBoundingClientRect().height)])
-        .filter(([, h]) => h < 44)""")
-    check(f"{tag} tap targets >= 44px", not small, str(small))
+        .filter(([, h]) => h < (matchMedia('(pointer: coarse)').matches ? 44 : 32))""")
+    check(f"{tag} tap targets (44px touch, 32px mouse)", not small, str(small))
     page.click("#edit-btn")
     check(f"{tag} Edit list has a wave menu per caller", page.locator(".wave-select").count() == 5)
     page.locator("#caller-list li").nth(0).locator(".wave-select").select_option("3")
@@ -801,8 +801,8 @@ def gate_page(pw, label, ctx_args, lang):
     check(f"{tag} no error shown at first", page.locator("#gate-error").is_hidden())
     check(f"{tag} password field is masked", page.get_attribute("#password", "type") == "password")
     small = page.evaluate("""[...document.querySelectorAll('#password, #gate-submit')]
-        .map(e => [e.id, Math.round(e.getBoundingClientRect().height)]).filter(([, h]) => h < 44)""")
-    check(f"{tag} tap targets >= 44px", not small, str(small))
+        .map(e => [e.id, Math.round(e.getBoundingClientRect().height)]).filter(([, h]) => h < (matchMedia('(pointer: coarse)').matches ? 44 : 32))""")
+    check(f"{tag} tap targets (44px touch, 32px mouse)", not small, str(small))
     check(f"{tag} no horizontal scroll", no_hscroll(page))
     os.makedirs(OUT, exist_ok=True)
     page.screenshot(path=f"{OUT}/{label}-login-{lang}.png", full_page=True)
@@ -1038,8 +1038,8 @@ def battle_flow(pw, label, ctx_args, lang):
 
     small = page.evaluate("""[...document.querySelectorAll('#tab-rally button, #tab-rally select, #tab-rally input, .tab-btn, .chip')]
         .filter(e => e.offsetParent).map(e => [e.id || e.className, Math.round(e.getBoundingClientRect().height)])
-        .filter(([, h]) => h < 44)""")
-    check(f"{tag} tap targets >= 44px", not small, str(small))
+        .filter(([, h]) => h < (matchMedia('(pointer: coarse)').matches ? 44 : 32))""")
+    check(f"{tag} tap targets (44px touch, 32px mouse)", not small, str(small))
     check(f"{tag} no horizontal scroll", no_hscroll(page))
     check(f"{tag} no console/CSP errors", not errors, str(errors))
     browser.close()

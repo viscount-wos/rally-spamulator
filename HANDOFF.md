@@ -48,6 +48,11 @@ people via the password. No public links, and it is noindexed.
   Log out are in the Menu popover (`#menu-panel`), so the header fits on one row at any width/language (still
   checked by `e2e/help_shots.py`). Don't put controls back in the header. In e2e, open the menu first
   (`menu(page)`, `hsel(...)` in smoke.py). `ONLY=run` runs just the two basic smoke runs.
+- **The look is a "ledger"** (style.css, branch `polish`): no boxes inside boxes. Each panel is a column under a
+  2px rule in its colour (title, status, Lock/Reset and Copy on that title row), hairlines between rows, a NEXT
+  strip with the countdown big on the right, roster as pills, the chat text as a quiet tinted block. Mouse screens
+  use compact controls (32-36px); `@media (pointer: coarse)` lifts every control to 44px, and smoke checks tap
+  targets per pointer type (44 touch / 32 mouse). Copy stays 56px tall and both Copy buttons share a y.
 - The battle view is fitted to one screen from 1100x700 (panels fill the height, only their insides scroll).
   Check it with `e2e/battle_shots.py <url>` (prints scroll/client heights; clipped = scrollHeight > clientHeight)
   and look at `e2e/out/battle-*.png` yourself.
