@@ -208,12 +208,14 @@
                         <button type="button" class="btn btn-danger-outline btn-sm" id="clear-btn" data-i18n="clear_list">Clear list</button>
                     </div>
                 </div>
+                <!-- chat text folds away (closed by default; remembered per panel in rally_ui_open) -->
                 <div class="preview-wrap" id="preview-wrap" hidden>
-                    <div class="preview-head">
+                    <button type="button" class="btn btn-ghost btn-sm preview-toggle" id="preview-btn" aria-expanded="false" aria-controls="copy-preview">
                         <span class="preview-label" data-i18n="chat_preview">Chat text (UTC)</span>
-                        <span id="plan-hint" class="plan-hint" hidden></span>
-                    </div>
-                    <pre id="copy-preview" class="copy-preview" dir="auto"></pre>
+                        <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <span id="plan-hint" class="plan-hint" hidden></span>
+                    <pre id="copy-preview" class="copy-preview" dir="auto" hidden></pre>
                 </div>
             </div>
         </section>

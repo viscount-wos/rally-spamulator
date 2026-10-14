@@ -50,7 +50,9 @@ people via the password. No public links, and it is noindexed.
   (`menu(page)`, `hsel(...)` in smoke.py). `ONLY=run` runs just the two basic smoke runs.
 - **The look is a "ledger"** (style.css, branch `polish`): no boxes inside boxes. Each panel is a column under a
   2px rule in its colour (title, status, Lock/Reset and Copy on that title row), hairlines between rows, a NEXT
-  strip with the countdown big on the right, roster as pills, the chat text as a quiet tinted block. Mouse screens
+  strip with the countdown big on the right, roster as pills, the chat text folded behind a "Chat text (UTC)" toggle
+  under the roster (closed by default, remembered per panel in `rally_ui_open` as `preview_attack` /
+  `preview_counter`; open it sits beside the roster from 760px; the clipboard fallback opens it). Mouse screens
   use compact controls (32-36px); `@media (pointer: coarse)` lifts every control to 44px, and smoke checks tap
   targets per pointer type (44 touch / 32 mouse). Copy stays 56px tall and both Copy buttons share a y.
 - The battle view is fitted to one screen from 1100x700 (panels fill the height, only their insides scroll).

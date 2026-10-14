@@ -421,8 +421,9 @@ select { cursor: pointer; }
 /* ---- Foot: roster (tap to cycle) | chat text ---- */
 .panel-foot { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding-top: 8px; margin-top: 6px; border-top: 1px solid var(--hair); }
 @container (min-width: 760px) {
-    .panel-foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 17.5rem); grid-template-rows: minmax(0, 1fr); gap: 20px; }
-    .plan-panel.editing .panel-foot, .plan-panel.empty .panel-foot { grid-template-columns: minmax(0, 1fr); }
+    /* chat text open: roster | chat text side by side; closed: the toggle is one row under the roster */
+    .plan-panel.preview-open:not(.editing):not(.empty) .panel-foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 17.5rem); grid-template-rows: minmax(0, 1fr); gap: 20px; }
+    .plan-panel.preview-open .preview-wrap { border-top: 0; padding-top: 0; }
 }
 .plan-panel.editing .preview-wrap { display: none; }
 .roster, .preview-wrap { min-width: 0; display: flex; flex-direction: column; min-height: 0; flex: 0 1 auto; align-self: start; max-height: 100%; }
@@ -487,10 +488,14 @@ select { cursor: pointer; }
 }
 .wave-select { min-width: 4rem; flex: 0 0 auto; font-weight: 600; text-align: center; }
 
-.preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0 10px; margin-bottom: 6px; min-width: 0; }
-.preview-head .preview-label { flex: none; }
-.preview-head .plan-hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.preview-label { font-size: 0.72rem; font-weight: 600; color: rgb(var(--c-theme-dim)); text-transform: uppercase; letter-spacing: 1px; }
+/* chat text folds behind its own label; closed it is one quiet row under the roster */
+.preview-toggle { display: inline-flex; align-items: center; gap: 6px; align-self: start; min-height: 32px; padding: 4px 6px; margin-bottom: 4px; }
+.preview-toggle .chev { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s ease; }
+.preview-toggle[aria-expanded="true"] { color: rgb(var(--c-theme-text)); }
+.preview-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.preview-wrap .plan-hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.preview-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.preview-wrap { border-top: 1px solid var(--hair); padding-top: 4px; }
 .copy-preview {
     flex: 0 1 auto; min-height: 0; overflow: auto;
     padding: 8px 10px;
@@ -610,7 +615,7 @@ select { cursor: pointer; }
 
 /* touch screens: every control is a full 44px tap target (mouse screens keep the compact sizes) */
 @media (pointer: coarse) {
-    .tab-btn, .qs-actions .btn-sm, .caller-toggle, .qs-btn, .set-land .time-input,
+    .tab-btn, .qs-actions .btn-sm, .preview-toggle, .caller-toggle, .qs-btn, .set-land .time-input,
     .caller-row input, .caller-row select, .caller-row .btn, .enemy-row input, .enemy-row .btn { min-height: var(--tap); }
 }
 

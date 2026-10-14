@@ -293,6 +293,19 @@
             q('settings-btn').title = t('settings_btn');
             root.classList.toggle('settings-open', on);
         }
+        // ===== Chat text: folded away by default, remembered per panel =====
+        function previewOpen() { return uiOpen['preview_' + kind] === true; }
+        function setPreviewOpen(on) {
+            uiOpen['preview_' + kind] = on;
+            store('rally_ui_open', JSON.stringify(uiOpen));
+            renderPreviewOpen();
+        }
+        function renderPreviewOpen() {
+            var on = previewOpen();
+            q('copy-preview').hidden = !on;
+            q('preview-btn').setAttribute('aria-expanded', on ? 'true' : 'false');
+            root.classList.toggle('preview-open', on);
+        }
         function renderSummary() {
             var L = LANG[currentLang];
             var react = q('buffer-select');
@@ -842,7 +855,7 @@
                 });
             }
             copyText(text).then(function (ok) {
-                if (!ok) { selectNode(q('copy-preview')); return; }
+                if (!ok) { setPreviewOpen(true); selectNode(q('copy-preview')); return; }
                 copyLabel().textContent = t('copied');
                 btn.classList.add('done');
                 setTimeout(function () { btn.classList.remove('done'); copyLabel().textContent = copyBtnLabel(); }, 1500);
@@ -873,6 +886,7 @@
             q('target-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') { applyTargetInput(); this.blur(); } });
             q('copy-btn').addEventListener('click', copySchedule);
             q('settings-btn').addEventListener('click', function () { setSettingsOpen(!settingsOpen()); });
+            q('preview-btn').addEventListener('click', function () { setPreviewOpen(!previewOpen()); });
             q('adv-btn').addEventListener('click', function () {
                 uiOpen.adv = uiOpen.adv !== true;
                 store('rally_ui_open', JSON.stringify(uiOpen));
@@ -923,6 +937,7 @@
             renderName();
             renderDiscord();
             renderSettingsOpen();
+            renderPreviewOpen();
             renderSummary();
             renderLock();
             renderWaves();

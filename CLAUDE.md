@@ -37,7 +37,7 @@ CHANGELOG.md         English copy of the change log
 - **Guide**: button names are written `{key}` in `help-content.js` and replaced at runtime with the app's own label. Text is rendered with `textContent` only.
 - **CSP**: no inline scripts or styles, no external resources.
 - **Header is brand · clock · tabs · ? · Menu** and must stay one row from 900px (`e2e/help_shots.py` checks it in all 9 languages at 1440). Everything else (Counter tick, Auto-reset, Sound cues, language, theme, keys, Log out) lives in the Menu popover (`#menu-panel`), so don't add controls to the header. In e2e, open it first: `menu(page)` / `hsel(page, '#lang-select', code)` in `smoke.py`.
-- **Look**: a ledger. No borders/boxes around sections: each panel is a column under a rule in its own colour, rows split by hairlines (`--hair`), quiet fills from `--tint`, one filled button per panel (Copy). Compact controls on mouse screens; `@media (pointer: coarse)` lifts them to 44px (smoke checks 44 touch / 32 mouse).
+- **Look**: a ledger. No borders/boxes around sections: each panel is a column under a rule in its own colour, rows split by hairlines (`--hair`), quiet fills from `--tint`, one filled button per panel (Copy). The chat text folds behind a toggle under the roster (closed by default, `preview_<list>` in `rally_ui_open`). Compact controls on mouse screens; `@media (pointer: coarse)` lifts them to 44px (smoke checks 44 touch / 32 mouse).
 - Battle view is fitted to one screen from 1100x700. Check with `e2e/battle_shots.py` and look at `e2e/out/battle-*.png` with Read. `.ph-msg` has a fixed height so warnings never move the schedule.
 - Keep the app files as they are (separate html/js/css per page); don't add frameworks or a bundler.
 
